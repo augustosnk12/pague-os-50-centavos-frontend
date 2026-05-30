@@ -20,14 +20,48 @@ Mobile-first personal credit control app in Brazilian Portuguese. A lender regis
 
 ---
 
-## Getting started
+## Setup
+
+### Prerequisites
+
+- Node.js 18+
+- The [backend](https://github.com/augustosnk12/pague-os-50-centavos) running at `http://localhost:3000`
+
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/augustosnk12/pague-os-50-centavos-frontend.git
+cd pague-os-50-centavos-frontend
 npm install
+```
+
+### 2. Environment
+
+```bash
+cp .env.example .env
+```
+
+`.env.example`:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+Adjust `VITE_API_URL` if your backend runs on a different port.
+
+### 3. Run
+
+```bash
 npm run dev        # http://localhost:5174
 ```
 
-Requires the backend running at `http://localhost:3000`. Copy `.env.example` to `.env` and adjust if needed.
+### Other scripts
+
+```bash
+npm run build      # production build → dist/
+npm run preview    # preview the production build locally
+npm run typecheck  # tsc --noEmit
+```
 
 ---
 
