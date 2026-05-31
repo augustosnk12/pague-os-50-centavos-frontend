@@ -91,6 +91,10 @@ function UserMenu() {
             <Icon name="logout" size={17} />
             Sair
           </button>
+
+          <div style={{ padding: '6px 4px 2px', textAlign: 'center', fontSize: 11, color: 'var(--text-faint)', letterSpacing: '0.02em' }}>
+            v{__APP_VERSION__}
+          </div>
         </div>
       )}
     </div>

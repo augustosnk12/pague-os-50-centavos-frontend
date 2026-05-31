@@ -73,6 +73,10 @@ export function AccountSheet({ open, onClose }: AccountSheetProps) {
           Sair
         </button>
       </div>
+
+      <div style={{ marginTop: 14, textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', letterSpacing: '0.02em' }}>
+        v{__APP_VERSION__}
+      </div>
     </Modal>
   )
 }

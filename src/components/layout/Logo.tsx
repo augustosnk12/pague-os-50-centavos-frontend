@@ -1,4 +1,4 @@
-import { Icon } from '../ui/Icon'
+import iconUrl from '../../assets/svg/icon.svg'
 
 interface LogoProps {
   size?: number
@@ -8,19 +8,13 @@ interface LogoProps {
 export function Logo({ size = 28, showText = true }: LogoProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '28%',
-          background: 'var(--primary)',
-          display: 'grid',
-          placeItems: 'center',
-          boxShadow: 'var(--shadow-primary)',
-        }}
-      >
-        <Icon name="wallet" size={size * 0.6} color="var(--on-primary)" strokeWidth={2.4} />
-      </div>
+      <img
+        src={iconUrl}
+        width={size}
+        height={size}
+        alt="Pague os 50 centavos"
+        style={{ flexShrink: 0, borderRadius: '23%', boxShadow: 'var(--shadow-primary)' }}
+      />
       {showText && (
         <span
           style={{

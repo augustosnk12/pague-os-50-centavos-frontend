@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pague os 50 centavos">
+  <defs>
+    <linearGradient id="p50-tile" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8B45E8"></stop>
+      <stop offset="1" stop-color="#5316A6"></stop>
+    </linearGradient>
+    <linearGradient id="p50-coin" x1="160" y1="120" x2="352" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"></stop>
+      <stop offset="1" stop-color="#F3ECFA"></stop>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="118" fill="url(#p50-tile)"></rect>
+  <ellipse cx="200" cy="150" rx="230" ry="170" fill="#FFFFFF" opacity="0.08"></ellipse>
+
+  <circle cx="256" cy="256" r="158" fill="url(#p50-coin)"></circle>
+  <circle cx="256" cy="256" r="158" fill="none" stroke="#3D0E80" stroke-opacity="0.12" stroke-width="2"></circle>
+  <circle cx="256" cy="256" r="135" fill="none" stroke="#7A33DB" stroke-opacity="0.32" stroke-width="7" stroke-dasharray="2 13" stroke-linecap="round"></circle>
+
+  <text x="258" y="262" text-anchor="middle" dominant-baseline="central" font-family="&#39;Manrope&#39;,&#39;Plus Jakarta Sans&#39;,system-ui,sans-serif" font-weight="800" font-size="190" letter-spacing="-7" fill="#6A22CC">50</text>
+</svg>
