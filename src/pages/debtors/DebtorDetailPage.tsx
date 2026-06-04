@@ -16,12 +16,9 @@ import { IconButton } from '../../components/ui/IconButton'
 import { Progress } from '../../components/ui/Progress'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Modal } from '../../components/ui/Modal'
-import { StatusBadge } from '../../components/ui/Badge'
 import { DebtorForm } from '../../components/shared/DebtorForm'
 import { DebtCard } from '../../components/shared/DebtCard'
-import { money } from '../../lib/utils'
 import type { Installment } from '../../types/installment'
-import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
 
 function ContactLine({ icon, text, action, muted }: { icon?: string; text: string; action?: React.ReactNode; muted?: boolean }) {
   return (
