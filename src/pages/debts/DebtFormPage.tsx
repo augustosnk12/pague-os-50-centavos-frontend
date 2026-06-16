@@ -47,7 +47,7 @@ export function DebtFormPage() {
   const isInstallment = type === 'PIX_INSTALLMENT' || type === 'CREDIT_CARD'
   const effCount = isInstallment ? Math.max(1, parseInt(count) || 1) : 1
   const numAmount = amountCents ? parseInt(amountCents, 10) / 100 : 0
-  const preview = numAmount > 0 ? genInstallments(numAmount, effCount, firstDue + 'T00:00:00.000Z') : []
+  const preview = numAmount > 0 && firstDue ? genInstallments(numAmount, effCount, firstDue + 'T00:00:00.000Z') : []
 
   const handleAmountChange = (v: string) => {
     setAmountCents(parseCurrencyDigits(v))
@@ -60,6 +60,7 @@ export function DebtFormPage() {
     setErr('')
     if (!debtorId) return setErr('Selecione um devedor.')
     if (!(numAmount > 0)) return setErr('Informe um valor válido.')
+    if (!firstDue) return setErr('Informe o primeiro vencimento.')
     createDebt.mutate(
       {
         debtorId,

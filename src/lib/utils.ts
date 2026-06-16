@@ -88,6 +88,7 @@ export function genInstallments(
   const base = Math.floor(t / n)
   const remainder = t - base * n
   const first = new Date(firstDueISO)
+  if (isNaN(first.getTime())) return []
   const out = []
   for (let i = 0; i < n; i++) {
     const cents = base + (i === 0 ? remainder : 0)
