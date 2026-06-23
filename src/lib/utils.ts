@@ -58,8 +58,12 @@ function sameDay(a: string | Date, b: string | Date): boolean {
   return x.getUTCFullYear() === y.getUTCFullYear() && x.getUTCMonth() === y.getUTCMonth() && x.getUTCDate() === y.getUTCDate()
 }
 
-export function deriveInstStatus(inst: { dueDate: string; paidAt: string | null }): InstallmentStatus {
+export function deriveInstStatus(inst: { dueDate: string; paidAt: string | null; paidAmount?: string; amount?: string }): InstallmentStatus {
   if (inst.paidAt) return 'PAID'
+  if (inst.paidAmount && inst.amount) {
+    const paid = Number(inst.paidAmount)
+    if (paid > 0 && paid < Number(inst.amount)) return 'PARTIALLY_PAID'
+  }
   const now = new Date()
   if (new Date(inst.dueDate) < now && !sameDay(inst.dueDate, now)) return 'OVERDUE'
   return 'PENDING'
@@ -74,6 +78,7 @@ export const DEBT_TYPE_META: Record<string, { label: string; icon: string; short
 
 export const STATUS_META: Record<InstallmentStatus, { label: string; color: string; weak: string; icon: string }> = {
   PAID: { label: 'Pago', color: 'var(--paid)', weak: 'var(--paid-weak)', icon: 'check' },
+  PARTIALLY_PAID: { label: 'Parcial', color: 'var(--partial)', weak: 'var(--partial-weak)', icon: 'clock' },
   PENDING: { label: 'Pendente', color: 'var(--pending)', weak: 'var(--pending-weak)', icon: 'clock' },
   OVERDUE: { label: 'Atrasado', color: 'var(--overdue)', weak: 'var(--overdue-weak)', icon: 'alert' },
 }

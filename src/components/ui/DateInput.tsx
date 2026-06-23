@@ -48,6 +48,7 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
   const [display, setDisplay] = useState(() => toDisplay(value))
   const [invalid, setInvalid] = useState(false)
   const [calOpen, setCalOpen] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
   const [viewDate, setViewDate] = useState<Date>(() => {
     if (value) return new Date(value + 'T12:00:00Z')
     const n = new Date()
@@ -129,7 +130,14 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
         />
         <button
           type="button"
-          onClick={() => setCalOpen(o => !o)}
+          onClick={() => {
+            if (!calOpen && containerRef.current) {
+              const rect = containerRef.current.getBoundingClientRect()
+              const spaceBelow = window.innerHeight - rect.bottom
+              setDropUp(spaceBelow < 300)
+            }
+            setCalOpen(o => !o)
+          }}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: calOpen ? 'var(--primary)' : 'var(--text-faint)' }}
           aria-label="Abrir calendário"
         >
@@ -143,7 +151,9 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
 
       {calOpen && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100,
+          position: 'absolute',
+          ...(dropUp ? { bottom: 'calc(100% + 6px)' } : { top: 'calc(100% + 6px)' }),
+          left: 0, zIndex: 300,
           background: 'var(--surface)', border: '1.5px solid var(--border)',
           borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', padding: 14, width: 270,
         }}>

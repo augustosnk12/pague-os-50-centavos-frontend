@@ -4,9 +4,9 @@ import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
-import { useMarkAsPaid } from '../../hooks/installments/useMarkAsPaid'
+import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useToast } from '../../contexts/ToastContext'
-import { translateApiError } from '../../lib/utils'
+import { translateApiError, deriveInstStatus } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
 import { Avatar } from '../../components/ui/Avatar'
 import { Money } from '../../components/ui/Money'
@@ -18,6 +18,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Modal } from '../../components/ui/Modal'
 import { DebtorForm } from '../../components/shared/DebtorForm'
 import { DebtCard } from '../../components/shared/DebtCard'
+import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import type { Installment } from '../../types/installment'
 
 function ContactLine({ icon, text, action, muted }: { icon?: string; text: string; action?: React.ReactNode; muted?: boolean }) {
@@ -42,12 +43,13 @@ export function DebtorDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [paymentContext, setPaymentContext] = useState<{ installment: Installment; debtorName: string; debtDescription: string | null } | null>(null)
 
   const { data: debtor, isLoading } = useDebtor(id!)
   const { data: debts = [] } = useDebtsByDebtor(id!)
   const updateDebtor = useUpdateDebtor(id!)
   const deleteDebtor = useDeleteDebtor()
-  const markAsPaid = useMarkAsPaid()
+  const registerPayment = useRegisterPayment()
 
   if (isLoading) {
     return (
@@ -66,10 +68,18 @@ export function DebtorDetailPage() {
   }
 
   const allInsts = debts.flatMap((d) => d.installments ?? [])
-  const paidCount = allInsts.filter((i) => i.status === 'PAID').length
-  const outstanding = allInsts.filter((i) => i.status !== 'PAID').reduce((s, i) => s + Number(i.amount), 0)
-  const overdueCount = allInsts.filter((i) => i.status === 'OVERDUE').length
-  const ratio = allInsts.length ? paidCount / allInsts.length : 0
+  const paidCount = allInsts.filter((i) => {
+    const s = deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount })
+    return s === 'PAID'
+  }).length
+  const outstanding = allInsts.reduce((s, i) => s + (Number(i.amount) - Number(i.paidAmount ?? '0')), 0)
+  const overdueCount = allInsts.filter((i) => {
+    const s = deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount })
+    return s === 'OVERDUE'
+  }).length
+  const totalValue = allInsts.reduce((s, i) => s + Number(i.amount), 0)
+  const paidValue = allInsts.reduce((s, i) => s + Number(i.paidAmount ?? '0'), 0)
+  const ratio = totalValue > 0 ? paidValue / totalValue : 0
 
   const handleUpdate = (data: { id?: string; name: string; email: string | null; phone: string | null; notes: string | null }) => {
     updateDebtor.mutate(data, {
@@ -87,12 +97,23 @@ export function DebtorDetailPage() {
     })
   }
 
-  const handleMarkPaid = (inst: Installment) => {
-    markAsPaid.mutate(inst.id, {
-      onSuccess: () => showToast('Parcela marcada como paga', { status: 'PAID', icon: 'check' }),
+  const handleReceive = (inst: Installment, debt: { description: string | null }) => {
+    setPaymentContext({ installment: inst, debtorName: debtor.name, debtDescription: debt.description })
+  }
+
+  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
+    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
+      onSuccess: ({ installment }) => {
+        setPaymentContext(null)
+        const wasFullyPaid = installment.status === 'PAID'
+        showToast(
+          wasFullyPaid ? 'Parcela quitada' : `Pagamento de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} registrado`,
+          { status: wasFullyPaid ? 'PAID' : undefined, icon: wasFullyPaid ? 'check' : undefined }
+        )
+      },
       onError: (e: unknown) => {
         const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao marcar como paga.'), { icon: msg?.includes('already paid') ? 'check' : 'alert' })
+        showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
       },
     })
   }
@@ -170,7 +191,7 @@ export function DebtorDetailPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {debts.map((debt) => (
-            <DebtCard key={debt.id} debt={debt} onMarkPaid={handleMarkPaid} />
+            <DebtCard key={debt.id} debt={debt} onReceive={(inst) => handleReceive(inst, debt)} />
           ))}
         </div>
       )}
@@ -205,6 +226,15 @@ export function DebtorDetailPage() {
           </p>
         </div>
       </Modal>
+
+      {/* Payment sheet */}
+      <PaymentSheet
+        open={!!paymentContext}
+        onClose={() => setPaymentContext(null)}
+        context={paymentContext}
+        onConfirm={handleConfirmPayment}
+        loading={registerPayment.isPending}
+      />
     </main>
   )
 }

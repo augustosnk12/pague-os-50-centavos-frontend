@@ -2,16 +2,19 @@ import { Avatar } from '../ui/Avatar'
 import { Money } from '../ui/Money'
 import { Button } from '../ui/Button'
 import { StatusBadge } from '../ui/Badge'
-import { fmtDate, daysBetween, STATUS_META, deriveInstStatus } from '../../lib/utils'
+import { Icon } from '../ui/Icon'
+import { fmtDate, daysBetween, STATUS_META, deriveInstStatus, money } from '../../lib/utils'
 import type { InstallmentStatus } from '../../types/installment'
 
 interface InstallmentData {
   id: string
   number: number
   amount: string
+  paidAmount: string
   dueDate: string
   paidAt: string | null
   status: InstallmentStatus
+  payments?: { id: string }[]
 }
 
 interface EnrichedInstallment {
@@ -25,20 +28,26 @@ interface EnrichedInstallment {
 interface InstallmentRowProps {
   enriched: EnrichedInstallment
   onOpenDebtor?: (id: string) => void
-  onMarkPaid: () => void
+  onReceive: () => void
   showDebtor?: boolean
   index?: number
 }
 
-export function InstallmentRow({ enriched, onOpenDebtor, onMarkPaid, showDebtor = true, index = 0 }: InstallmentRowProps) {
+export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor = true, index = 0 }: InstallmentRowProps) {
   const { inst, debtDescription, debtorId, debtorName } = enriched
   const now = new Date().toISOString()
   const days = daysBetween(now, inst.dueDate)
-  const status = deriveInstStatus({ dueDate: inst.dueDate, paidAt: inst.paidAt })
+  const status = deriveInstStatus({ dueDate: inst.dueDate, paidAt: inst.paidAt, paidAmount: inst.paidAmount, amount: inst.amount })
+
+  const paidAmt = Number(inst.paidAmount ?? '0')
+  const totalAmt = Number(inst.amount)
+  const isPartial = status === 'PARTIALLY_PAID'
 
   let when: string
   if (status === 'PAID') {
     when = `Pago em ${fmtDate(inst.paidAt!)}`
+  } else if (isPartial) {
+    when = `${money(paidAmt)} pago · vence ${fmtDate(inst.dueDate)}`
   } else if (status === 'OVERDUE') {
     when = days === 0 ? 'Vence hoje' : `Atrasado há ${days} ${days === 1 ? 'dia' : 'dias'}`
   } else {
@@ -84,24 +93,42 @@ export function InstallmentRow({ enriched, onOpenDebtor, onMarkPaid, showDebtor 
         <div
           style={{
             fontSize: 13,
-            color: status === 'OVERDUE' ? 'var(--overdue)' : 'var(--text-muted)',
-            fontWeight: status === 'OVERDUE' ? 700 : 500,
+            color: status === 'OVERDUE' ? 'var(--overdue)' : isPartial ? 'var(--partial)' : 'var(--text-muted)',
+            fontWeight: (status === 'OVERDUE' || isPartial) ? 700 : 500,
             marginTop: 2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}
         >
-          {debtDescription ? `${debtDescription} · ` : ''}{when}
+          {!isPartial && debtDescription ? `${debtDescription} · ` : ''}{when}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
-        <Money value={inst.amount} size={16.5} weight={800} />
-        {status === 'PAID' ? (
-          <StatusBadge status="PAID" size="sm" />
+        {isPartial ? (
+          <div style={{ textAlign: 'right' }}>
+            <Money value={totalAmt - paidAmt} size={16.5} weight={800} color="var(--partial)" />
+            <div style={{ fontSize: 11.5, color: 'var(--text-faint)', fontWeight: 600 }}>de {money(totalAmt)}</div>
+          </div>
         ) : (
-          <Button size="sm" variant="soft" icon="check" onClick={onMarkPaid}>
-            Marcar pago
+          <Money value={inst.amount} size={16.5} weight={800} />
+        )}
+        {status === 'PAID' ? (
+          (inst.payments?.length ?? 0) > 1 ? (
+            <button
+              type="button"
+              onClick={onReceive}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--paid-weak)', color: 'var(--paid)', border: 'none', padding: '5px 11px', borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <Icon name="clock" size={13} strokeWidth={2.6} />
+              {inst.payments!.length} pagamentos
+            </button>
+          ) : (
+            <StatusBadge status="PAID" size="sm" />
+          )
+        ) : (
+          <Button size="sm" variant="primary" icon="wallet" onClick={onReceive}>
+            Receber
           </Button>
         )}
       </div>
