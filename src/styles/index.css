@@ -114,6 +114,19 @@ a { text-decoration: none; }
   .lt-desktop-nav { display: flex !important; }
   .lt-desktop-only { display: inline-flex !important; }
   .lt-bottom-tabs { display: none !important; }
+  .lt-mobile-only { display: none !important; }
+}
+
+/* Calculator responsive sizing */
+.lt-calc-key { height: 60px; }
+.lt-calc-display { font-size: 40px; }
+@media (max-height: 680px) {
+  .lt-calc-key { height: 50px; }
+  .lt-calc-display { font-size: 32px; }
+}
+@media (max-height: 560px) {
+  .lt-calc-key { height: 42px; }
+  .lt-calc-display { font-size: 26px; }
 }
 
 /* Sheet: bottom on mobile, centered dialog on desktop */

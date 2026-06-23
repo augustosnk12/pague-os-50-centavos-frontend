@@ -28,6 +28,8 @@
   --pending-weak: oklch(0.95 0.06 75);
   --overdue: oklch(0.58 0.19 25);
   --overdue-weak: oklch(0.95 0.05 25);
+  --partial: oklch(0.55 0.13 250);
+  --partial-weak: oklch(0.95 0.04 250);
 
   --shadow-sm: 0 1px 2px oklch(0.4 0.05 var(--accent-h) / 0.06), 0 1px 3px oklch(0.4 0.05 var(--accent-h) / 0.05);
   --shadow-md: 0 4px 12px oklch(0.4 0.05 var(--accent-h) / 0.08), 0 2px 4px oklch(0.4 0.05 var(--accent-h) / 0.05);
@@ -59,6 +61,8 @@
   --pending-weak: oklch(0.34 0.06 75);
   --overdue: oklch(0.68 0.18 25);
   --overdue-weak: oklch(0.34 0.08 25);
+  --partial: oklch(0.72 0.14 250);
+  --partial-weak: oklch(0.33 0.06 250);
 
   --shadow-sm: 0 1px 2px #00000040;
   --shadow-md: 0 4px 14px #00000050;

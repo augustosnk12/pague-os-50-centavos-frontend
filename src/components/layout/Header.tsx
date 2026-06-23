@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { Avatar } from '../ui/Avatar'
 import { NAV } from '../../constants/nav'
 
-function UserMenu() {
+function UserMenu({ onCalc }: { onCalc: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
@@ -74,6 +74,17 @@ function UserMenu() {
             </>
           )}
 
+          <div className="lt-mobile-only">
+            <button
+              style={{ ...itemStyle, color: 'var(--text)' }}
+              onClick={() => { setOpen(false); onCalc() }}
+            >
+              <Icon name="calc" size={17} />
+              Calculadora
+            </button>
+            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+          </div>
+
           <button
             style={{ ...itemStyle, color: 'var(--text)' }}
             onClick={() => { toggleTheme(); setOpen(false) }}
@@ -101,7 +112,11 @@ function UserMenu() {
   )
 }
 
-export function Header() {
+interface HeaderProps {
+  onCalc: () => void
+}
+
+export function Header({ onCalc }: HeaderProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -164,7 +179,11 @@ export function Header() {
           <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')}>Nova cobrança</Button>
         </span>
 
-        <UserMenu />
+        <span className="lt-desktop-only">
+          <IconButton name="calc" onClick={onCalc} label="Calculadora" />
+        </span>
+
+        <UserMenu onCalc={onCalc} />
 
         {/* notification bell — temporarily disabled
         <div style={{ position: 'relative' }}>

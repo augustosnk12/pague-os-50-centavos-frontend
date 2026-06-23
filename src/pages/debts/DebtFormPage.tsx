@@ -5,6 +5,7 @@ import { useCreateDebt } from '../../hooks/debts/useCreateDebt'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
 import { useToast } from '../../contexts/ToastContext'
 import { Input } from '../../components/ui/Input'
+import { DateInput } from '../../components/ui/DateInput'
 import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
@@ -184,7 +185,7 @@ export function DebtFormPage() {
           )}
         </div>
 
-        <Input label="Primeiro vencimento" value={firstDue} onChange={setFirstDue} type="date" required />
+        <DateInput label="Primeiro vencimento" value={firstDue} onChange={setFirstDue} required />
         <Input label="Descrição" value={description} onChange={setDescription} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} />
 
         {/* Preview */}

@@ -30,10 +30,19 @@ function addMonthsKey(key, delta) {
 }
 function daysBetween(a, b) { return Math.round((d(a) - d(b)) / 86400000); }
 
-// status computed from dates + paidAt, per spec
+// ---------- payment helpers (supports partial payments) ----------
+function instPaid(inst) { return Number(inst.paidAmount || 0); }
+function instPayments(inst) { return inst.payments || []; }
+function instRemaining(inst) { return Math.max(0, round2(Number(inst.amount) - instPaid(inst))); }
+function isFullyPaid(inst) { return instRemaining(inst) <= 0.005; }
+function isOverdueDate(inst) { return d(inst.dueDate) < TODAY && !sameDay(inst.dueDate, TODAY); }
+function round2(n) { return Math.round(n * 100) / 100; }
+
+// status computed from paidAmount + dates
 function instStatus(inst) {
-  if (inst.paidAt) return "PAID";
-  if (d(inst.dueDate) < TODAY && !sameDay(inst.dueDate, TODAY)) return "OVERDUE";
+  if (isFullyPaid(inst)) return "PAID";
+  if (instPaid(inst) > 0) return "PARTIAL";
+  if (isOverdueDate(inst)) return "OVERDUE";
   return "PENDING";
 }
 function sameDay(a, b) { const x=d(a),y=d(b); return x.getUTCFullYear()===y.getUTCFullYear()&&x.getUTCMonth()===y.getUTCMonth()&&x.getUTCDate()===y.getUTCDate(); }
@@ -47,6 +56,7 @@ const DEBT_TYPE = {
 
 const STATUS_META = {
   PAID: { label: "Pago", color: "var(--paid)", weak: "var(--paid-weak)", icon: "check" },
+  PARTIAL: { label: "Parcial", color: "var(--partial)", weak: "var(--partial-weak)", icon: "clock" },
   PENDING: { label: "Pendente", color: "var(--pending)", weak: "var(--pending-weak)", icon: "clock" },
   OVERDUE: { label: "Atrasado", color: "var(--overdue)", weak: "var(--overdue-weak)", icon: "alert" },
 };
@@ -65,7 +75,7 @@ const SEED = [
     debts: [
       { type:"PIX_INSTALLMENT", description:"Empréstimo de junho", total:"1500.00", insts:[
         { n:1, amount:"500.00", due:iso(2026,5,1), paid:iso(2026,5,2) },
-        { n:2, amount:"500.00", due:iso(2026,6,1) },
+        { n:2, amount:"500.00", due:iso(2026,6,1), pays:[ { amt:"120.00", date:iso(2026,5,20) }, { amt:"80.00", date:iso(2026,5,28) } ] },
         { n:3, amount:"500.00", due:iso(2026,7,1) },
       ]},
       { type:"CREDIT_CARD", description:"Parcelei a TV pra ela", total:"1200.00", insts:[
@@ -123,7 +133,12 @@ function buildStore() {
       const debtId = uid("debt");
       debts.push({ id: debtId, description: dd.description, type: dd.type, totalAmount: dd.total, debtorId: row.debtor.id, createdAt: dd.insts[0].due });
       for (const it of dd.insts) {
-        installments.push({ id: uid("inst"), number: it.n, amount: it.amount, dueDate: it.due, paidAt: it.paid || null, debtId });
+        let payments = [];
+        if (it.paid) payments = [{ id: uid("pay"), amount: Number(it.amount), date: it.paid }];
+        else if (it.pays) payments = it.pays.map(p => ({ id: uid("pay"), amount: Number(p.amt), date: p.date }));
+        const paidAmount = round2(payments.reduce((s,p)=>s+p.amount,0));
+        const paidAt = payments.length ? payments[payments.length-1].date : null;
+        installments.push({ id: uid("inst"), number: it.n, amount: it.amount, dueDate: it.due, paidAmount, paidAt, payments, debtId });
       }
     }
   }
@@ -138,15 +153,17 @@ function instByDebtor(store, debtorId) {
   return store.installments.filter(x => ids.has(x.debtId));
 }
 function debtorOutstanding(store, debtorId) {
-  return instByDebtor(store, debtorId).filter(i => instStatus(i)!=="PAID").reduce((s,i)=>s+Number(i.amount),0);
+  return round2(instByDebtor(store, debtorId).reduce((s,i)=>s+instRemaining(i),0));
 }
 function debtorOverdueCount(store, debtorId) {
-  return instByDebtor(store, debtorId).filter(i => instStatus(i)==="OVERDUE").length;
+  return instByDebtor(store, debtorId).filter(i => !isFullyPaid(i) && isOverdueDate(i)).length;
 }
 function debtorPaidRatio(store, debtorId) {
   const all = instByDebtor(store, debtorId);
   if (!all.length) return 0;
-  return all.filter(i=>instStatus(i)==="PAID").length / all.length;
+  const total = all.reduce((s,i)=>s+Number(i.amount),0);
+  const paid = all.reduce((s,i)=>s+instPaid(i),0);
+  return total > 0 ? paid / total : 0;
 }
 function debtorById(store, id) { return store.debtors.find(x=>x.id===id); }
 function debtById(store, id) { return store.debts.find(x=>x.id===id); }
@@ -158,11 +175,14 @@ function dashboard(store, mKey) {
   let paid=0, pending=0, overdue=0;
   for (const i of inMonth) {
     const amt = Number(i.amount); totalExpected += amt;
-    const st = instStatus(i);
-    if (st==="PAID") { totalReceived += amt; paid++; }
-    else if (st==="OVERDUE") { totalOverdue += amt; overdue++; }
-    else { totalPending += amt; pending++; }
+    totalReceived += instPaid(i);
+    const rem = instRemaining(i);
+    if (rem <= 0.005) { paid++; }
+    else if (isOverdueDate(i)) { totalOverdue += rem; overdue++; }
+    else { totalPending += rem; pending++; }
   }
+  totalReceived = round2(totalReceived); totalExpected = round2(totalExpected);
+  totalPending = round2(totalPending); totalOverdue = round2(totalOverdue);
   return { month: mKey, totalExpected, totalReceived, totalPending, totalOverdue,
     counts: { paid, pending, overdue, total: inMonth.length } };
 }
@@ -196,12 +216,16 @@ function enrich(store, inst) {
 
 // overall "owed to me right now" across everything
 function totalOwedNow(store) {
-  return store.installments.filter(i => instStatus(i)!=="PAID").reduce((s,i)=>s+Number(i.amount),0);
+  return round2(store.installments.reduce((s,i)=>s+instRemaining(i),0));
+}
+function sumRemaining(list, pred) {
+  return round2(list.filter(i => !isFullyPaid(i) && (!pred || pred(i))).reduce((s,i)=>s+instRemaining(i),0));
 }
 
 Object.assign(window, {
   TODAY, money, moneyParts, fmtDate, fmtDateShort, fmtDayName, monthKey, monthLabel, monthLabelShort,
   addMonthsKey, daysBetween, instStatus, sameDay, DEBT_TYPE, STATUS_META, MESLONG, MES, DIA,
+  instPaid, instRemaining, instPayments, isFullyPaid, isOverdueDate, round2, sumRemaining,
   SEED_LENDER, buildStore, uid, iso,
   debtsByDebtor, instByDebt, instByDebtor, debtorOutstanding, debtorOverdueCount, debtorPaidRatio,
   debtorById, debtById, dashboard, installmentsForPeriod, enrich, totalOwedNow,

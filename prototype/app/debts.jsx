@@ -126,7 +126,7 @@ function NewDebt({ store, onClose, onSave, presetDebtorId, onNewDebtor }) {
 // ---------- Installments view ----------
 const PERIODS = [{ id: "day", label: "Dia" }, { id: "week", label: "Semana" }, { id: "month", label: "Mês" }];
 
-function InstallmentsView({ store, onOpenDebtor, onMarkPaid }) {
+function InstallmentsView({ store, onOpenDebtor, onPay }) {
   const [period, setPeriod] = useStateDebts("month");
   const [dateKey, setDateKey] = useStateDebts(() => new Date(TODAY).toISOString().slice(0,10));
   const [filter, setFilter] = useStateDebts("ALL"); // ALL | PENDING | OVERDUE | PAID
@@ -134,9 +134,9 @@ function InstallmentsView({ store, onOpenDebtor, onMarkPaid }) {
   let list = installmentsForPeriod(store, period, dateKey).map(i => enrich(store, i));
   if (filter !== "ALL") list = list.filter(e => e.status === filter);
 
-  const totalDue = list.filter(e=>e.status!=="PAID").reduce((s,e)=>s+Number(e.inst.amount),0);
+  const totalDue = round2(list.filter(e=>e.status!=="PAID").reduce((s,e)=>s+instRemaining(e.inst),0));
   const counts = { ALL: installmentsForPeriod(store, period, dateKey).length };
-  ["PENDING","OVERDUE","PAID"].forEach(s => counts[s] = installmentsForPeriod(store, period, dateKey).filter(i=>instStatus(i)===s).length);
+  ["PENDING","OVERDUE","PARTIAL","PAID"].forEach(s => counts[s] = installmentsForPeriod(store, period, dateKey).filter(i=>instStatus(i)===s).length);
 
   function shiftPeriod(dir) {
     const base = new Date(dateKey + "T12:00:00Z");
@@ -182,7 +182,7 @@ function InstallmentsView({ store, onOpenDebtor, onMarkPaid }) {
 
       {/* status filter chips */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
-        {[{id:"ALL",label:"Todas"},{id:"OVERDUE",label:"Atrasadas"},{id:"PENDING",label:"Pendentes"},{id:"PAID",label:"Pagas"}].map(f => {
+        {[{id:"ALL",label:"Todas"},{id:"OVERDUE",label:"Atrasadas"},{id:"PARTIAL",label:"Parciais"},{id:"PENDING",label:"Pendentes"},{id:"PAID",label:"Pagas"}].map(f => {
           const active = filter === f.id;
           const c = f.id==="ALL" ? "var(--primary)" : STATUS_META[f.id].color;
           return (
@@ -198,7 +198,7 @@ function InstallmentsView({ store, onOpenDebtor, onMarkPaid }) {
       {list.length === 0
         ? <Empty icon="calendar" title="Nenhuma parcela" sub="Não há parcelas para este período e filtro." />
         : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {list.map((e, idx) => <InstallmentRow key={e.inst.id} e={e} onOpenDebtor={onOpenDebtor} onMarkPaid={onMarkPaid} index={idx} />)}
+            {list.map((e, idx) => <InstallmentRow key={e.inst.id} e={e} onOpenDebtor={onOpenDebtor} onPay={onPay} index={idx} />)}
           </div>}
     </Page>
   );

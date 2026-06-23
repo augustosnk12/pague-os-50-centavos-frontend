@@ -38,6 +38,8 @@ const ICONS = {
   send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   whatsapp: "M3 21l1.65-4.5A8 8 0 113 21zM8.5 9.5c.5 2 2 3.5 4 4l1.2-1 2 1-.5 2c-3 0-7-4-7-7l2-.5 1 2-1 1z",
+  calc: "M5 2h14a1 1 0 011 1v18a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1zM8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15v4M8 19h4",
+  backspace: "M21 4H8l-7 8 7 8h13a1 1 0 001-1V5a1 1 0 00-1-1zM18 9l-6 6M12 9l6 6",
 };
 
 function Icon({ name, size = 20, color = "currentColor", strokeWidth = 2, fill = "none", style }) {

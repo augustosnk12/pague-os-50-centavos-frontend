@@ -35,6 +35,8 @@ function App() {
   const [newDebtPreset, setNewDebtPreset] = useStateMain(null);
   const [drawer, setDrawer] = useStateMain(false);
   const [account, setAccount] = useStateMain(false);
+  const [calcOpen, setCalcOpen] = useStateMain(false);
+  const [payCtx, setPayCtx] = useStateMain(null); // { inst, debt, debtor } or null
   const [debtorForm, setDebtorForm] = useStateMain({ open: false, editing: null });
   const [confirmDel, setConfirmDel] = useStateMain(null);
   const [mKey, setMKey] = useStateMain(monthKey(TODAY));
@@ -60,9 +62,22 @@ function App() {
   function logout() { setLender(null); localStorage.removeItem("lt-lender"); setDrawer(false); }
 
   // ---- mutations ----
-  function markPaid(inst) {
-    setStore(s => ({ ...s, installments: s.installments.map(i => i.id === inst.id ? { ...i, paidAt: new Date(TODAY).toISOString() } : i) }));
-    flash("Parcela marcada como paga", { status: "PAID", icon: "check" });
+  function openPay(ctx) {
+    // ctx may be an enriched {inst,debt,debtor} (from rows) or a bare inst
+    if (ctx && ctx.inst) setPayCtx(ctx);
+    else { const e = enrich(store, ctx); setPayCtx({ inst: e.inst, debt: e.debt, debtor: e.debtor }); }
+  }
+  function registerPayment(inst, { amount, date, fully }) {
+    setStore(s => ({ ...s, installments: s.installments.map(i => {
+      if (i.id !== inst.id) return i;
+      const payments = [...(i.payments || []), { id: uid("pay"), amount, date }];
+      const newPaid = round2(payments.reduce((a,p)=>a+p.amount,0));
+      const full = newPaid >= Number(i.amount) - 0.005;
+      return { ...i, paidAmount: full ? Number(i.amount) : newPaid, paidAt: date, payments };
+    }) }));
+    setPayCtx(null);
+    if (fully) flash("Parcela quitada", { status: "PAID", icon: "check" });
+    else flash(`Pagamento de ${money(amount)} registrado`, { status: "PARTIAL", icon: "wallet" });
   }
   function saveDebtor(data) {
     if (data.id) {
@@ -103,21 +118,25 @@ function App() {
 
   return (
     <>
-      <TopBar onMenu={()=>setDrawer(true)} route={route} onNav={go} theme={theme} onToggleTheme={toggleTheme} store={store} navStyle={navStyle} onNewDebt={()=>openNewDebt()} />
+      <TopBar onMenu={()=>setDrawer(true)} route={route} onNav={go} theme={theme} onToggleTheme={toggleTheme} store={store} navStyle={navStyle} onNewDebt={()=>openNewDebt()} onCalc={()=>setCalcOpen(true)} />
       {navStyle === "drawer" && <Drawer open={drawer} onClose={()=>setDrawer(false)} route={route} onNav={go} lender={{ ...lender, name: store.lenderName }}
-        theme={theme} onToggleTheme={toggleTheme} onLogout={logout} onNewDebt={()=>openNewDebt()} />}
+        theme={theme} onToggleTheme={toggleTheme} onLogout={logout} onNewDebt={()=>openNewDebt()} onCalc={()=>setCalcOpen(true)} />}
 
-      {route === "dashboard" && <Dashboard store={store} mKey={mKey} setMKey={setMKey} onNav={go} onOpenDebtor={openDebtor} onMarkPaid={markPaid} />}
+      {route === "dashboard" && <Dashboard store={store} mKey={mKey} setMKey={setMKey} onNav={go} onOpenDebtor={openDebtor} onPay={openPay} />}
       {route === "debtors" && <DebtorsList store={store} onOpenDebtor={openDebtor} onNewDebtor={()=>setDebtorForm({ open: true, editing: null })} />}
       {route === "debtor-detail" && <DebtorDetail store={store} debtorId={selDebtor} onBack={()=>go("debtors")}
-        onNewDebt={openNewDebt} onMarkPaid={markPaid} onEdit={(dt)=>setDebtorForm({ open: true, editing: dt })} onDelete={(dt)=>setConfirmDel(dt)} />}
-      {route === "installments" && <InstallmentsView store={store} onOpenDebtor={openDebtor} onMarkPaid={markPaid} />}
+        onNewDebt={openNewDebt} onPay={openPay} onEdit={(dt)=>setDebtorForm({ open: true, editing: dt })} onDelete={(dt)=>setConfirmDel(dt)} />}
+      {route === "installments" && <InstallmentsView store={store} onOpenDebtor={openDebtor} onPay={openPay} />}
       {route === "new-debt" && <NewDebt store={store} presetDebtorId={newDebtPreset} onClose={()=>go(selDebtor?"debtor-detail":"dashboard")}
         onSave={createDebt} onNewDebtor={()=>setDebtorForm({ open: true, editing: null })} />}
 
       {navStyle === "drawer" && route !== "new-debt" && <FAB onClick={()=>openNewDebt()} />}
       {navStyle === "tabs" && route !== "new-debt" && <BottomTabs route={route} onNav={go} onNewDebt={()=>openNewDebt()} onAccount={()=>setAccount(true)} store={store} />}
-      <AccountSheet open={account} onClose={()=>setAccount(false)} lender={{ ...lender, name: store.lenderName }} theme={theme} onToggleTheme={toggleTheme} onLogout={()=>{ setAccount(false); logout(); }} />
+      <AccountSheet open={account} onClose={()=>setAccount(false)} lender={{ ...lender, name: store.lenderName }} theme={theme} onToggleTheme={toggleTheme} onLogout={()=>{ setAccount(false); logout(); }} onCalc={()=>{ setAccount(false); setCalcOpen(true); }} />
+
+      <CalculatorSheet open={calcOpen} onClose={()=>setCalcOpen(false)} />
+
+      <PaymentSheet open={!!payCtx} context={payCtx} onClose={()=>setPayCtx(null)} onConfirm={registerPayment} />
 
       <DebtorForm open={debtorForm.open} editing={debtorForm.editing} onClose={()=>setDebtorForm({ open: false, editing: null })} onSave={saveDebtor} />
 
