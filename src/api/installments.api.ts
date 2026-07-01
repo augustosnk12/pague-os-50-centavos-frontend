@@ -29,4 +29,7 @@ export const installmentsApi = {
 
   registerPayment: (id: string, body: RegisterPaymentBody) =>
     api.post<RegisterPaymentResponse>(`/installments/${id}/payments`, body),
+
+  deletePayment: (installmentId: string, paymentId: string) =>
+    api.delete<Installment>(`/installments/${installmentId}/payments/${paymentId}`),
 }

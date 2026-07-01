@@ -21,7 +21,7 @@ function SummaryStat({ label, value, color, big }) {
   );
 }
 
-function PaymentSheet({ open, onClose, context, onConfirm }) {
+function PaymentSheet({ open, onClose, context, onConfirm, onDeletePayment }) {
   // context: { inst, debt, debtor }
   const inst = context?.inst;
   const remainingBefore = inst ? instRemaining(inst) : 0;
@@ -123,16 +123,8 @@ function PaymentSheet({ open, onClose, context, onConfirm }) {
             {histOpen && (
               <div style={{ padding: "4px 14px 10px", animation: "ltFade .2s ease" }}>
                 {payments.map((p, i) => (
-                  <div key={p.id || i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
-                    <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--paid-weak)", color: "var(--paid)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                      <Icon name="check" size={14} strokeWidth={2.8} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtDate(p.date)}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600 }}>{i + 1}º pagamento</div>
-                    </div>
-                    <Money value={p.amount} size={15} weight={800} color="var(--paid)" />
-                  </div>
+                  <PaymentHistoryRow key={p.id || i} payment={p} index={i}
+                    onDelete={onDeletePayment ? () => onDeletePayment(inst, p.id) : null} />
                 ))}
               </div>
             )}
@@ -188,6 +180,35 @@ function Chip({ children, active, onClick, disabled }) {
 // format a number like 500 or 12.5 into "500,00" / "12,50" for the input
 function formatAmountInput(n) {
   return Number(n).toFixed(2).replace(".", ",");
+}
+
+function PaymentHistoryRow({ payment, index, onDelete }) {
+  const [removing, setRemoving] = useStatePay(false);
+  function handleDelete() {
+    if (removing) return;
+    setRemoving(true);
+    setTimeout(() => onDelete && onDelete(), 240);
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderTop: "1px solid var(--border)", overflow: "hidden",
+      animation: removing ? "ltSwipeOut .24s cubic-bezier(0.4,0,1,1) forwards" : "none" }}>
+      <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--paid-weak)", color: "var(--paid)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <Icon name="check" size={14} strokeWidth={2.8} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtDate(payment.date)}</div>
+        <div style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600 }}>{index + 1}º pagamento</div>
+      </div>
+      <Money value={payment.amount} size={15} weight={800} color="var(--paid)" />
+      {onDelete && (
+        <button onClick={handleDelete} aria-label="Remover pagamento"
+          style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, border: "none", background: "transparent", color: "var(--overdue)", cursor: "pointer", flexShrink: 0, transition: "background .15s" }}
+          onMouseEnter={e=>e.currentTarget.style.background="var(--overdue-weak)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <Icon name="trash" size={15} />
+        </button>
+      )}
+    </div>
+  );
 }
 
 Object.assign(window, { PaymentSheet, parseAmount });

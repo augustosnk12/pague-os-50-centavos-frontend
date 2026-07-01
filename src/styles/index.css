@@ -107,6 +107,7 @@ a { text-decoration: none; }
 @keyframes ltSlideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @keyframes ltPop { 0% { transform: scale(0.7) translateX(-50%); opacity: 0; } 60% { transform: scale(1.08) translateX(-50%); } 100% { transform: scale(1) translateX(-50%); opacity: 1; } }
 @keyframes ltPopItem { 0% { transform: scale(0.72); opacity: 0; } 55% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes ltSwipeOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(60px); opacity: 0; } }
 
 .lt-anim-up { animation: ltRise 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
 .lt-anim-fade { animation: ltRise 0.38s ease; }

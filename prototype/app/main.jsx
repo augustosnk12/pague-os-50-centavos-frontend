@@ -38,7 +38,9 @@ function App() {
   const [calcOpen, setCalcOpen] = useStateMain(false);
   const [payCtx, setPayCtx] = useStateMain(null); // { inst, debt, debtor } or null
   const [debtorForm, setDebtorForm] = useStateMain({ open: false, editing: null });
+  const [debtForm, setDebtForm] = useStateMain({ open: false, editing: null });
   const [confirmDel, setConfirmDel] = useStateMain(null);
+  const [confirmDelDebt, setConfirmDelDebt] = useStateMain(null);
   const [mKey, setMKey] = useStateMain(monthKey(TODAY));
   const [toast, setToast] = useStateMain(null);
 
@@ -78,6 +80,34 @@ function App() {
     setPayCtx(null);
     if (fully) flash("Parcela quitada", { status: "PAID", icon: "check" });
     else flash(`Pagamento de ${money(amount)} registrado`, { status: "PARTIAL", icon: "wallet" });
+  }
+  function deletePayment(inst, paymentId) {
+    let updatedInst = null;
+    setStore(s => ({ ...s, installments: s.installments.map(i => {
+      if (i.id !== inst.id) return i;
+      const payments = (i.payments || []).filter(p => p.id !== paymentId);
+      const newPaid = round2(payments.reduce((a,p)=>a+p.amount,0));
+      const full = newPaid >= Number(i.amount) - 0.005;
+      updatedInst = { ...i, paidAmount: full ? Number(i.amount) : newPaid, paidAt: payments.length ? payments[payments.length-1].date : null, payments };
+      return updatedInst;
+    }) }));
+    // keep the open payment sheet in sync with the mutated installment
+    setPayCtx(ctx => ctx && ctx.inst.id === inst.id ? { ...ctx, inst: updatedInst } : ctx);
+    flash("Pagamento removido", { icon: "trash" });
+  }
+  function saveDebt(data) {
+    setStore(s => ({ ...s, debts: s.debts.map(d => d.id === data.id ? { ...d, description: data.description, type: data.type } : d) }));
+    setDebtForm({ open: false, editing: null });
+    flash("Dívida atualizada");
+  }
+  function deleteDebt(debt) {
+    setStore(s => ({
+      ...s,
+      debts: s.debts.filter(d => d.id !== debt.id),
+      installments: s.installments.filter(i => i.debtId !== debt.id),
+    }));
+    setConfirmDelDebt(null);
+    flash("Dívida excluída");
   }
   function saveDebtor(data) {
     if (data.id) {
@@ -125,7 +155,8 @@ function App() {
       {route === "dashboard" && <Dashboard store={store} mKey={mKey} setMKey={setMKey} onNav={go} onOpenDebtor={openDebtor} onPay={openPay} />}
       {route === "debtors" && <DebtorsList store={store} onOpenDebtor={openDebtor} onNewDebtor={()=>setDebtorForm({ open: true, editing: null })} />}
       {route === "debtor-detail" && <DebtorDetail store={store} debtorId={selDebtor} onBack={()=>go("debtors")}
-        onNewDebt={openNewDebt} onPay={openPay} onEdit={(dt)=>setDebtorForm({ open: true, editing: dt })} onDelete={(dt)=>setConfirmDel(dt)} />}
+        onNewDebt={openNewDebt} onPay={openPay} onEdit={(dt)=>setDebtorForm({ open: true, editing: dt })} onDelete={(dt)=>setConfirmDel(dt)}
+        onEditDebt={(debt)=>setDebtForm({ open: true, editing: debt })} />}
       {route === "installments" && <InstallmentsView store={store} onOpenDebtor={openDebtor} onPay={openPay} />}
       {route === "new-debt" && <NewDebt store={store} presetDebtorId={newDebtPreset} onClose={()=>go(selDebtor?"debtor-detail":"dashboard")}
         onSave={createDebt} onNewDebtor={()=>setDebtorForm({ open: true, editing: null })} />}
@@ -136,9 +167,11 @@ function App() {
 
       <CalculatorSheet open={calcOpen} onClose={()=>setCalcOpen(false)} />
 
-      <PaymentSheet open={!!payCtx} context={payCtx} onClose={()=>setPayCtx(null)} onConfirm={registerPayment} />
+      <PaymentSheet open={!!payCtx} context={payCtx} onClose={()=>setPayCtx(null)} onConfirm={registerPayment} onDeletePayment={deletePayment} />
 
       <DebtorForm open={debtorForm.open} editing={debtorForm.editing} onClose={()=>setDebtorForm({ open: false, editing: null })} onSave={saveDebtor} />
+      <DebtForm open={debtForm.open} editing={debtForm.editing} onClose={()=>setDebtForm({ open: false, editing: null })} onSave={saveDebt}
+        onDelete={(debt)=>{ setDebtForm({ open: false, editing: null }); setConfirmDelDebt(debt); }} />
 
       {/* delete confirm */}
       <Sheet open={!!confirmDel} onClose={()=>setConfirmDel(null)} title="Excluir devedor?"
@@ -149,6 +182,26 @@ function App() {
           </p>
         </div>}
       </Sheet>
+
+      {/* delete debt confirm — blocked if any installment has a recorded payment */}
+      {(() => {
+        const hasPayments = confirmDelDebt && instByDebt(store, confirmDelDebt.id).some(i => instPayments(i).length > 0);
+        return (
+          <Sheet open={!!confirmDelDebt} onClose={()=>setConfirmDelDebt(null)} title={hasPayments ? "Não é possível excluir" : "Excluir dívida?"}
+            footer={hasPayments
+              ? <Button full variant="secondary" onClick={()=>setConfirmDelDebt(null)}>Fechar</Button>
+              : <><Button variant="ghost" onClick={()=>setConfirmDelDebt(null)}>Cancelar</Button><Button full variant="danger" icon="trash" onClick={()=>deleteDebt(confirmDelDebt)}>Excluir</Button></>}>
+            {confirmDelDebt && <div style={{ paddingTop: 4, display: "flex", gap: 13, alignItems: "flex-start" }}>
+              {hasPayments && <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--overdue-weak)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="alert" size={20} color="var(--overdue)" /></span>}
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14.5, lineHeight: 1.6 }}>
+                {hasPayments
+                  ? "Esta dívida tem pagamentos registrados e não pode ser excluída. Remova os pagamentos antes, se quiser excluí-la."
+                  : "Isso vai apagar esta dívida e todas as suas parcelas. Esta ação não pode ser desfeita."}
+              </p>
+            </div>}
+          </Sheet>
+        );
+      })()}
 
       <Toast toast={toast} />
       <LtTweaks t={t} setTweak={setTweak} />

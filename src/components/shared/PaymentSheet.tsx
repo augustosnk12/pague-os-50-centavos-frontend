@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { DateInput } from '../ui/DateInput'
 import { Money } from '../ui/Money'
 import { Icon } from '../ui/Icon'
-import { Progress } from '../ui/Progress'
 import { fmtDate, money } from '../../lib/utils'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
 import type { Installment } from '../../types/installment'
@@ -22,6 +21,8 @@ interface PaymentSheetProps {
   onClose: () => void
   context: PaymentSheetContext | null
   onConfirm: (installmentId: string, amount: number, paidAt: string) => void
+  onDeletePayment?: (installmentId: string, paymentId: string) => void
+  deletingPaymentId?: string
   loading?: boolean
 }
 
@@ -70,7 +71,77 @@ function QuickChip({ children, active, onClick, disabled }: { children: React.Re
   )
 }
 
-export function PaymentSheet({ open, onClose, context, onConfirm, loading }: PaymentSheetProps) {
+interface PaymentHistoryRowProps {
+  payment: Payment
+  index: number
+  onDelete?: () => void
+  isDeleting?: boolean
+}
+
+function PaymentHistoryRow({ payment, index, onDelete, isDeleting }: PaymentHistoryRowProps) {
+  const [removing, setRemoving] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deletingStarted = useRef(false)
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  useEffect(() => {
+    if (isDeleting) {
+      deletingStarted.current = true
+    } else if (deletingStarted.current && removing) {
+      deletingStarted.current = false
+      setRemoving(false)
+    }
+  }, [isDeleting, removing])
+
+  function handleDelete() {
+    if (removing || isDeleting) return
+    setRemoving(true)
+    timerRef.current = setTimeout(() => onDelete?.(), 240)
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0',
+        borderTop: '1px solid var(--border)', overflow: 'hidden',
+        animation: removing ? 'ltSwipeOut .24s cubic-bezier(0.4,0,1,1) forwards' : 'none',
+      }}
+    >
+      <span style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--paid-weak)', color: 'var(--paid)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <Icon name="check" size={14} strokeWidth={2.8} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtDate(payment.paidAt)}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', fontWeight: 600 }}>{index + 1}º pagamento</div>
+      </div>
+      <Money value={Number(payment.amount)} size={15} weight={800} color="var(--paid)" />
+      {onDelete && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={removing || isDeleting}
+          aria-label="Excluir pagamento"
+          style={{
+            flexShrink: 0, display: 'grid', placeItems: 'center',
+            width: 30, height: 30, borderRadius: 8, border: 'none',
+            background: 'transparent', cursor: removing || isDeleting ? 'not-allowed' : 'pointer',
+            color: 'var(--overdue)', transition: 'background .15s',
+            opacity: isDeleting ? 0.4 : 1,
+          }}
+          onMouseEnter={(e) => { if (!removing && !isDeleting) e.currentTarget.style.background = 'var(--overdue-weak)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <Icon name="trash" size={15} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+export function PaymentSheet({ open, onClose, context, onConfirm, onDeletePayment, deletingPaymentId, loading }: PaymentSheetProps) {
   const inst = context?.installment ?? null
   const fullAmount = inst ? Number(inst.amount) : 0
   const alreadyPaid = inst ? Number(inst.paidAmount ?? '0') : 0
@@ -91,7 +162,7 @@ export function PaymentSheet({ open, onClose, context, onConfirm, loading }: Pay
       setQuick('total')
       setHistOpen(remainingBefore <= 0)
     }
-  }, [open, inst?.id])
+  }, [open, inst?.id, inst?.paidAmount])
 
   if (!context || !inst) return null
 
@@ -118,6 +189,7 @@ export function PaymentSheet({ open, onClose, context, onConfirm, loading }: Pay
   }
 
   function handleConfirm() {
+    if (!inst) return
     if (!(amount > 0)) return setErr('Informe um valor maior que zero.')
     if (overpay) return setErr(`O valor não pode ser maior que o restante (${money(remainingBefore)}).`)
     if (!dateISO) return setErr('Informe a data do pagamento.')
@@ -154,11 +226,7 @@ export function PaymentSheet({ open, onClose, context, onConfirm, loading }: Pay
             <div style={{ width: 1, background: 'var(--border)' }} />
             <SummaryStat label="Restante" value={remainingBefore} color={remainingBefore > 0 ? 'var(--overdue)' : 'var(--paid)'} />
           </div>
-          {alreadyPaid > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <Progress value={alreadyPaid / fullAmount} color="var(--paid)" height={6} />
-            </div>
-          )}
+
         </div>
 
         {/* Payment history accordion */}
@@ -185,16 +253,13 @@ export function PaymentSheet({ open, onClose, context, onConfirm, loading }: Pay
             {histOpen && (
               <div style={{ padding: '4px 14px 10px', maxHeight: 220, overflowY: 'auto' }}>
                 {payments.map((p, i) => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderTop: '1px solid var(--border)' }}>
-                    <span style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--paid-weak)', color: 'var(--paid)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                      <Icon name="check" size={14} strokeWidth={2.8} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtDate(p.paidAt)}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', fontWeight: 600 }}>{i + 1}º pagamento</div>
-                    </div>
-                    <Money value={Number(p.amount)} size={15} weight={800} color="var(--paid)" />
-                  </div>
+                  <PaymentHistoryRow
+                    key={p.id}
+                    payment={p}
+                    index={i}
+                    onDelete={onDeletePayment ? () => onDeletePayment(inst.id, p.id) : undefined}
+                    isDeleting={deletingPaymentId === p.id}
+                  />
                 ))}
               </div>
             )}
@@ -252,7 +317,7 @@ export function PaymentSheet({ open, onClose, context, onConfirm, loading }: Pay
                   ? <>Restante após: <b style={{ color: 'var(--text)' }}>{money(remainingAfter)}</b></>
                   : willFullyPay
                   ? 'Nada mais a receber nesta parcela'
-                  : ' '}
+                  : ' '}
               </div>
             </div>
           </div>

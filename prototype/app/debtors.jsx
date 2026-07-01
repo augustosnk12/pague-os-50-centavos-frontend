@@ -54,7 +54,7 @@ function DebtorsList({ store, onOpenDebtor, onNewDebtor }) {
   );
 }
 
-function DebtorDetail({ store, debtorId, onBack, onNewDebt, onPay, onEdit, onDelete, onOpenDebt }) {
+function DebtorDetail({ store, debtorId, onBack, onNewDebt, onPay, onEdit, onDelete, onOpenDebt, onEditDebt, onDeleteDebt }) {
   const dt = debtorById(store, debtorId);
   if (!dt) return <Page><Empty title="Devedor não encontrado" /></Page>;
   const debts = debtsByDebtor(store, debtorId);
@@ -98,7 +98,7 @@ function DebtorDetail({ store, debtorId, onBack, onNewDebt, onPay, onEdit, onDel
       {debts.length === 0
         ? <Empty icon="wallet" title="Sem dívidas" sub="Registre o que essa pessoa te deve." action={<Button icon="plus" onClick={()=>onNewDebt(debtorId)}>Nova dívida</Button>} />
         : <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {debts.map(debt => <DebtCard key={debt.id} store={store} debt={debt} onPay={onPay} onOpenDebt={onOpenDebt} />)}
+            {debts.map(debt => <DebtCard key={debt.id} store={store} debt={debt} onPay={onPay} onOpenDebt={onOpenDebt} onEditDebt={onEditDebt} onDeleteDebt={onDeleteDebt} />)}
           </div>}
     </Page>
   );
@@ -114,7 +114,7 @@ function ContactLine({ icon, text, action, muted }) {
   );
 }
 
-function DebtCard({ store, debt, onPay, onOpenDebt }) {
+function DebtCard({ store, debt, onPay, onOpenDebt, onEditDebt, onDeleteDebt }) {
   const [open, setOpen] = useStateDebtors(false);
   const insts = instByDebt(store, debt.id);
   const debtor = debtorById(store, debt.debtorId);
@@ -164,6 +164,16 @@ function DebtCard({ store, debt, onPay, onOpenDebt }) {
             </div>
           );
         })}
+        {onEditDebt && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+            <button onClick={()=>onEditDebt(debt)} aria-label="Editar dívida"
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: "calc(var(--radius)*0.55)", border: "none", background: "transparent", color: "var(--text-muted)", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "background .15s, color .15s" }}
+              onMouseEnter={e=>{e.currentTarget.style.background="var(--surface-hover)";e.currentTarget.style.color="var(--text)";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--text-muted)";}}>
+              <Icon name="edit" size={15} /> Editar
+            </button>
+          </div>
+        )}
       </div>}
     </div>
   );
@@ -207,4 +217,53 @@ function DebtorForm({ open, onClose, onSave, editing }) {
   );
 }
 
-Object.assign(window, { DebtorsList, DebtorDetail, DebtorForm, DebtCard });
+// Edit debt form (Sheet) — description + type only (amount/installments are immutable once generated)
+function DebtForm({ open, onClose, onSave, onDelete, editing }) {
+  const [description, setDescription] = useStateDebtors("");
+  const [type, setType] = useStateDebtors("PIX_INSTALLMENT");
+
+  React.useEffect(() => {
+    if (open && editing) { setDescription(editing.description || ""); setType(editing.type || "PIX_INSTALLMENT"); }
+  }, [open, editing]);
+
+  const TYPES = ["CASH", "PIX", "CREDIT_CARD", "PIX_INSTALLMENT"];
+
+  function save() { onSave({ id: editing.id, description: description.trim() || null, type }); }
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Editar dívida"
+      footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button full icon="check" onClick={save}>Salvar</Button></>}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, paddingTop: 4 }}>
+        <Field label="Descrição" value={description} onChange={setDescription} placeholder="Empréstimo de junho" hint="Opcional" autoFocus />
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 7 }}>Tipo</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {TYPES.map(tp => {
+              const m = DEBT_TYPE[tp]; const active = type === tp;
+              return (
+                <button key={tp} onClick={()=>setType(tp)}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "13px 14px", borderRadius: "calc(var(--radius)*0.6)", cursor: "pointer", textAlign: "left",
+                    background: active ? "var(--primary-weak)" : "var(--surface)", border: `1.5px solid ${active ? "var(--primary)" : "var(--border)"}`, color: active ? "var(--primary)" : "var(--text)", fontWeight: 700, fontSize: 14, transition: "all .15s" }}>
+                  <Icon name={m.icon} size={18} /> {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* destructive zone — deliberately separated and quiet */}
+        {onDelete && (
+          <div style={{ marginTop: 4, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            <button onClick={()=>onDelete(editing)}
+              style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: "calc(var(--radius)*0.6)", border: "none", background: "transparent", color: "var(--overdue)", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", transition: "background .15s" }}
+              onMouseEnter={e=>e.currentTarget.style.background="var(--overdue-weak)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <Icon name="trash" size={16} /> Excluir dívida
+            </button>
+          </div>
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+Object.assign(window, { DebtorsList, DebtorDetail, DebtorForm, DebtForm, DebtCard });

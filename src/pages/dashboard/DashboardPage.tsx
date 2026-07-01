@@ -6,7 +6,6 @@ import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { Card } from '../../components/ui/Card'
-import { Progress } from '../../components/ui/Progress'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
 import { InstallmentRow } from '../../components/shared/InstallmentRow'
@@ -137,8 +136,7 @@ export function DashboardPage() {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)' }}>{monthLabel(mKey)}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--paid)' }}>{Math.round(receivedPct * 100)}% recebido</div>
           </div>
-          <Progress value={receivedPct} color="var(--paid)" height={9} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}>
             <span style={{ color: 'var(--text-muted)' }}>Recebido <b style={{ color: 'var(--text)' }}>{money(dashData.totalReceived)}</b></span>
             <span style={{ color: 'var(--text-muted)' }}>Esperado <b style={{ color: 'var(--text)' }}>{money(dashData.totalExpected)}</b></span>
           </div>

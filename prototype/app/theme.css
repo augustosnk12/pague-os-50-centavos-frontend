@@ -106,6 +106,7 @@ input, textarea, select { font-family: inherit; }
 @keyframes ltSlideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @keyframes ltPop { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes ltSpin { to { transform: rotate(360deg); } }
+@keyframes ltSwipeOut { from { opacity: 1; transform: translateX(0); max-height: 70px; } to { opacity: 0; transform: translateX(34px); max-height: 0; padding-top: 0; padding-bottom: 0; } }
 @keyframes ltRise { from { transform: translateY(12px); } to { transform: translateY(0); } }
 
 /* Structural reveals are translate-only: a paused/hidden document can freeze an

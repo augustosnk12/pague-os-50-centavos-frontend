@@ -138,7 +138,8 @@ Navigation is **bottom tab bar** on mobile (the chosen default), with a hamburge
 - **Header:** name, back arrow, edit (pencil) + delete (trash) icon buttons.
 - **Summary card:** big avatar · "Saldo devedor" amount (red if overdue, green if zero) · "{paid} de {total} parcelas pagas" · progress bar · contact lines (phone with a green "Lembrar" WhatsApp action, email, notes).
 - **Dívidas:** "Nova dívida" button + list of **DebtCard**s (one per debt).
-  - **DebtCard** (collapsible): type icon · description (or type label) · "{type} · {n}× · {paid}/{n} pagas" · total + "{remaining} restam" or "Quitada" · chevron. A small red dot marks debts with overdue installments. Progress bar (red if any overdue, else green). Expanding reveals each installment row (number chip, amount, "Vence {date}" / "Pago em {date}", and a **Pago** button or **Pago** badge).
+  - **DebtCard** (collapsible): type icon · description (or type label) · "{type} · {n}× · {paid}/{n} pagas" · total + "{remaining} restam" or "Quitada" · chevron. A small red dot marks debts with overdue installments. Progress bar (red if any overdue, else green). Expanding reveals each installment row (number chip, amount, "Vence {date}" / "Pago em {date}" / partial state, and a **Receber** button or Pago badge / "{n} pagamentos" chip), plus a subtle right-aligned **Editar** (pencil) action at the bottom.
+  - **Edit / delete a debt:** the expanded card's **Editar** opens the **DebtForm** sheet (edit description + type; amount/installments are immutable once generated). **Delete lives at the bottom of that edit sheet** as a quiet "Excluir dívida" — deliberately buried (destructive + rare). It routes through a confirm modal with a **payments-guard**: a debt with any recorded payment cannot be deleted (the modal explains why and only offers "Fechar"). Wire to `PUT /debts/:id` (edit) and `DELETE /debts/:id` (delete; backend should enforce the same payment guard).
 - **Edit / delete** use the `DebtorForm` sheet and a confirm sheet → `PUT /debtors/:id` (edit), `DELETE /debtors/:id` (cascades debts + installments; show the destructive confirm).
 
 ### 6. Create debtor — `DebtorForm` sheet (`app/debtors.jsx`) — `POST /debtors` / `PUT /debtors/:id`
@@ -198,6 +199,8 @@ In production replace `store` with server data:
 | Devedores | `GET /debtors` |
 | Debtor detail | `GET /debtors/:id`, debts via `GET /debts/:id` (or include on debtor) |
 | Create/Edit debtor | `POST /debtors`, `PUT /debtors/:id`, `DELETE /debtors/:id` |
+| Edit/Delete debt | `PUT /debts/:id`, `DELETE /debts/:id` (block delete if any payment recorded) |
+| Delete a payment | `DELETE /installments/:id/payments/:paymentId` (recompute `paidAmount`) |
 | Nova cobrança | `POST /debts` |
 | Parcelas / mark paid | `GET /installments?period=&date=&debtorId=`, `PUT /installments/:id` |
 

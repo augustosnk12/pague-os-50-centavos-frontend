@@ -126,6 +126,8 @@ const API_ERROR_MAP: Record<string, string> = {
   'Number of installments must be at least 1': 'O número de parcelas deve ser pelo menos 1.',
   'Installment not found': 'Parcela não encontrada.',
   'Installment is already paid': 'Esta parcela já foi paga.',
+  'Payment not found': 'Pagamento não encontrado.',
+  'Debt has payments and cannot be deleted': 'Esta dívida tem pagamentos registrados e não pode ser excluída.',
 }
 
 export function translateApiError(msg: string | undefined | null, fallback = 'Ocorreu um erro. Tente novamente.'): string {
