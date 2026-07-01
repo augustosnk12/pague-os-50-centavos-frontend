@@ -7,7 +7,7 @@ const NAV = [
   { id: "installments", label: "Parcelas", icon: "calendar" },
 ];
 
-function TopBar({ onMenu, route, onNav, theme, onToggleTheme, store, navStyle, onNewDebt }) {
+function TopBar({ onMenu, route, onNav, theme, onToggleTheme, store, navStyle, onNewDebt, onCalc }) {
   const overdue = store.installments.filter(i => instStatus(i) === "OVERDUE").length;
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 90, background: "color-mix(in oklch, var(--bg) 86%, transparent)",
@@ -31,6 +31,7 @@ function TopBar({ onMenu, route, onNav, theme, onToggleTheme, store, navStyle, o
         <div style={{ flex: 1 }} />
         {/* desktop-only explicit create action */}
         <span className="lt-desktop-only" style={{ marginRight: 2 }}><Button size="sm" icon="plus" onClick={onNewDebt}>Nova cobrança</Button></span>
+        <IconButton name="calc" label="Calculadora" onClick={onCalc} />
         <IconButton name={theme === "dark" ? "sun" : "moon"} onClick={onToggleTheme} label="Alternar tema" />
         <div style={{ position: "relative" }}>
           <IconButton name="bell" label="Atrasados" onClick={()=>onNav("installments")} />
@@ -84,7 +85,7 @@ function BottomTabs({ route, onNav, onNewDebt, onAccount, store }) {
 }
 
 // Account sheet (used by the "Conta" tab) — profile + theme + logout
-function AccountSheet({ open, onClose, lender, theme, onToggleTheme, onLogout }) {
+function AccountSheet({ open, onClose, lender, theme, onToggleTheme, onLogout, onCalc }) {
   return (
     <Sheet open={open} onClose={onClose} title="Conta">
       <div style={{ display: "flex", alignItems: "center", gap: 13, background: "var(--surface-2)", borderRadius: "calc(var(--radius)*0.7)", padding: 14, marginBottom: 14 }}>
@@ -95,6 +96,9 @@ function AccountSheet({ open, onClose, lender, theme, onToggleTheme, onLogout })
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <button onClick={onCalc} style={{ display: "flex", alignItems: "center", gap: 13, padding: "14px", borderRadius: 13, border: "1px solid var(--border)", cursor: "pointer", textAlign: "left", background: "var(--surface)", color: "var(--text)", fontWeight: 700, fontSize: 15 }}>
+          <Icon name="calc" size={20} /> Calculadora
+        </button>
         <button onClick={onToggleTheme} style={{ display: "flex", alignItems: "center", gap: 13, padding: "14px", borderRadius: 13, border: "1px solid var(--border)", cursor: "pointer", textAlign: "left", background: "var(--surface)", color: "var(--text)", fontWeight: 700, fontSize: 15 }}>
           <Icon name={theme === "dark" ? "sun" : "moon"} size={20} /> {theme === "dark" ? "Tema claro" : "Tema escuro"}
         </button>
@@ -106,7 +110,7 @@ function AccountSheet({ open, onClose, lender, theme, onToggleTheme, onLogout })
   );
 }
 
-function Drawer({ open, onClose, route, onNav, lender, theme, onToggleTheme, onLogout, onNewDebt }) {
+function Drawer({ open, onClose, route, onNav, lender, theme, onToggleTheme, onLogout, onNewDebt, onCalc }) {
   useEffectShell(() => {
     if (!open) return;
     const h = (e) => e.key === "Escape" && onClose();
@@ -142,6 +146,10 @@ function Drawer({ open, onClose, route, onNav, lender, theme, onToggleTheme, onL
               <Icon name={n.icon} size={20} /> {n.label}
             </button>
           ))}
+          <button onClick={()=>{ onCalc(); onClose(); }}
+            style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 14px", borderRadius: 13, border: "none", cursor: "pointer", textAlign: "left", background: "transparent", color: "var(--text)", fontWeight: 700, fontSize: 15.5 }}>
+            <Icon name="calc" size={20} /> Calculadora
+          </button>
         </nav>
 
         <div style={{ marginTop: 16 }}>

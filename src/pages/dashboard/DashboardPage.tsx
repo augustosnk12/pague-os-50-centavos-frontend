@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../hooks/dashboard/useDashboard'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
-import { useMarkAsPaid } from '../../hooks/installments/useMarkAsPaid'
+import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { Card } from '../../components/ui/Card'
-import { Progress } from '../../components/ui/Progress'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
 import { InstallmentRow } from '../../components/shared/InstallmentRow'
+import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { MonthSwitcher } from '../../components/shared/MonthSwitcher'
 import { StatTile } from '../../components/shared/StatTile'
 import { monthKey, monthLabel, money, translateApiError, deriveInstStatus } from '../../lib/utils'
@@ -24,36 +24,55 @@ export function DashboardPage() {
 
   const today = new Date().toISOString().slice(0, 10)
   const { data: dashData, isLoading: dashLoading } = useDashboard(mKey)
-
-  // current month installments (enriched with debtor info)
   const { data: monthInstallments = [] } = useInstallmentsByPeriod({ period: 'month', date: today })
+  const registerPayment = useRegisterPayment()
 
-  const markAsPaid = useMarkAsPaid()
+  const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
 
-  // action list: non-paid, overdue first, then by due date, max 6
-  const actionItems: InstallmentEnriched[] = monthInstallments
-    .filter((i) => deriveInstStatus(i) !== 'PAID')
+  const enriched = monthInstallments.map((i) => ({
+    ...i,
+    status: deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount }),
+  }))
+
+  const actionItems: InstallmentEnriched[] = enriched
+    .filter((i) => i.status !== 'PAID')
     .sort((a, b) => {
-      const ao = deriveInstStatus(a) === 'OVERDUE' ? 0 : 1
-      const bo = deriveInstStatus(b) === 'OVERDUE' ? 0 : 1
+      const ao = a.status === 'OVERDUE' ? 0 : 1
+      const bo = b.status === 'OVERDUE' ? 0 : 1
       if (ao !== bo) return ao - bo
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     })
     .slice(0, 6)
 
-  const handleMarkPaid = (inst: InstallmentEnriched) => {
-    markAsPaid.mutate(inst.id, {
-      onSuccess: () => showToast('Parcela marcada como paga', { status: 'PAID', icon: 'check' }),
+  const handleReceive = (inst: InstallmentEnriched) => {
+    setPaymentContext({
+      installment: inst,
+      debtorName: inst.debt?.debtor?.name ?? '',
+      debtDescription: inst.debt?.description ?? null,
+    })
+  }
+
+  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
+    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
+      onSuccess: ({ installment }) => {
+        setPaymentContext(null)
+        const wasFullyPaid = installment.status === 'PAID'
+        showToast(
+          wasFullyPaid ? 'Parcela quitada' : `Pagamento de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} registrado`,
+          { status: wasFullyPaid ? 'PAID' : undefined, icon: wasFullyPaid ? 'check' : undefined }
+        )
+      },
       onError: (e: unknown) => {
         const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao marcar como paga.'), { icon: msg?.includes('already paid') ? 'check' : 'alert' })
+        showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
       },
     })
   }
 
-  const totalOwedNow = monthInstallments.filter((i) => deriveInstStatus(i) !== 'PAID').reduce((s, i) => s + Number(i.amount), 0)
-  const overdueNow = monthInstallments.filter((i) => deriveInstStatus(i) === 'OVERDUE').reduce((s, i) => s + Number(i.amount), 0)
-  const pendingNow = monthInstallments.filter((i) => deriveInstStatus(i) === 'PENDING').reduce((s, i) => s + Number(i.amount), 0)
+  // remaining = amount - paidAmount, summed over all non-paid installments
+  const totalOwedNow = enriched.filter((i) => i.status !== 'PAID').reduce((s, i) => s + (Number(i.amount) - Number(i.paidAmount ?? '0')), 0)
+  const overdueNow = enriched.filter((i) => i.status === 'OVERDUE').reduce((s, i) => s + (Number(i.amount) - Number(i.paidAmount ?? '0')), 0)
+  const pendingNow = enriched.filter((i) => i.status === 'PENDING' || i.status === 'PARTIALLY_PAID').reduce((s, i) => s + (Number(i.amount) - Number(i.paidAmount ?? '0')), 0)
 
   const receivedPct = dashData && Number(dashData.totalExpected) > 0
     ? Number(dashData.totalReceived) / Number(dashData.totalExpected)
@@ -117,8 +136,7 @@ export function DashboardPage() {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)' }}>{monthLabel(mKey)}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--paid)' }}>{Math.round(receivedPct * 100)}% recebido</div>
           </div>
-          <Progress value={receivedPct} color="var(--paid)" height={9} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}>
             <span style={{ color: 'var(--text-muted)' }}>Recebido <b style={{ color: 'var(--text)' }}>{money(dashData.totalReceived)}</b></span>
             <span style={{ color: 'var(--text-muted)' }}>Esperado <b style={{ color: 'var(--text)' }}>{money(dashData.totalExpected)}</b></span>
           </div>
@@ -155,12 +173,21 @@ export function DashboardPage() {
                 status: inst.status,
               }}
               onOpenDebtor={(id) => navigate(`/debtors/${id}`)}
-              onMarkPaid={() => handleMarkPaid(inst)}
+              onReceive={() => handleReceive(inst)}
               index={idx}
             />
           ))}
         </div>
       )}
+
+      {/* Payment sheet */}
+      <PaymentSheet
+        open={!!paymentContext}
+        onClose={() => setPaymentContext(null)}
+        context={paymentContext}
+        onConfirm={handleConfirmPayment}
+        loading={registerPayment.isPending}
+      />
     </main>
   )
 }

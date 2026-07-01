@@ -8,9 +8,10 @@ import { useTheme } from '../../contexts/ThemeContext'
 interface AccountSheetProps {
   open: boolean
   onClose: () => void
+  onCalc: () => void
 }
 
-export function AccountSheet({ open, onClose }: AccountSheetProps) {
+export function AccountSheet({ open, onClose, onCalc }: AccountSheetProps) {
   const { lender, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
 
@@ -57,6 +58,11 @@ export function AccountSheet({ open, onClose }: AccountSheetProps) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <button onClick={onCalc} style={{ ...rowStyle, color: 'var(--text)' }}>
+          <Icon name="calc" size={20} />
+          Calculadora
+        </button>
+
         <button
           onClick={() => { toggleTheme(); onClose() }}
           style={{ ...rowStyle, color: 'var(--text)' }}

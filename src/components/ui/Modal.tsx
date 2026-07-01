@@ -12,20 +12,14 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
     document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', handler)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
+    return () => { document.body.style.overflow = '' }
+  }, [open])
 
   if (!open) return null
 
   return (
     <div
-      onClick={onClose}
       className="lt-sheet-wrap"
       style={{
         position: 'fixed',
@@ -39,7 +33,6 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         className="lt-sheet"
         style={{
           background: 'var(--surface)',

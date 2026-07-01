@@ -35,6 +35,9 @@ const ICONS: Record<string, string> = {
   filter: 'M22 3H2l8 9.5V19l4 2v-8.5L22 3',
   send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
   whatsapp: 'M3 21l1.65-4.5A8 8 0 113 21zM8.5 9.5c.5 2 2 3.5 4 4l1.2-1 2 1-.5 2c-3 0-7-4-7-7l2-.5 1 2-1 1z',
+  calc: 'M5 2h14a1 1 0 011 1v18a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1zM8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15v4M8 19h4',
+  backspace: 'M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2zM18 9l-6 6M12 9l6 6',
+  divide: 'M5 12h14M12 6h.01M12 18h.01',
 }
 
 interface IconProps {

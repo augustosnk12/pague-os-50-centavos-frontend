@@ -58,8 +58,12 @@ function sameDay(a: string | Date, b: string | Date): boolean {
   return x.getUTCFullYear() === y.getUTCFullYear() && x.getUTCMonth() === y.getUTCMonth() && x.getUTCDate() === y.getUTCDate()
 }
 
-export function deriveInstStatus(inst: { dueDate: string; paidAt: string | null }): InstallmentStatus {
+export function deriveInstStatus(inst: { dueDate: string; paidAt: string | null; paidAmount?: string; amount?: string }): InstallmentStatus {
   if (inst.paidAt) return 'PAID'
+  if (inst.paidAmount && inst.amount) {
+    const paid = Number(inst.paidAmount)
+    if (paid > 0 && paid < Number(inst.amount)) return 'PARTIALLY_PAID'
+  }
   const now = new Date()
   if (new Date(inst.dueDate) < now && !sameDay(inst.dueDate, now)) return 'OVERDUE'
   return 'PENDING'
@@ -74,6 +78,7 @@ export const DEBT_TYPE_META: Record<string, { label: string; icon: string; short
 
 export const STATUS_META: Record<InstallmentStatus, { label: string; color: string; weak: string; icon: string }> = {
   PAID: { label: 'Pago', color: 'var(--paid)', weak: 'var(--paid-weak)', icon: 'check' },
+  PARTIALLY_PAID: { label: 'Parcial', color: 'var(--partial)', weak: 'var(--partial-weak)', icon: 'clock' },
   PENDING: { label: 'Pendente', color: 'var(--pending)', weak: 'var(--pending-weak)', icon: 'clock' },
   OVERDUE: { label: 'Atrasado', color: 'var(--overdue)', weak: 'var(--overdue-weak)', icon: 'alert' },
 }
@@ -121,6 +126,8 @@ const API_ERROR_MAP: Record<string, string> = {
   'Number of installments must be at least 1': 'O número de parcelas deve ser pelo menos 1.',
   'Installment not found': 'Parcela não encontrada.',
   'Installment is already paid': 'Esta parcela já foi paga.',
+  'Payment not found': 'Pagamento não encontrado.',
+  'Debt has payments and cannot be deleted': 'Esta dívida tem pagamentos registrados e não pode ser excluída.',
 }
 
 export function translateApiError(msg: string | undefined | null, fallback = 'Ocorreu um erro. Tente novamente.'): string {

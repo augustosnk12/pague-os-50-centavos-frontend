@@ -27,7 +27,7 @@ function StatTile({ label, value, status, count }) {
   );
 }
 
-function Dashboard({ store, mKey, setMKey, onNav, onOpenDebtor, onMarkPaid }) {
+function Dashboard({ store, mKey, setMKey, onNav, onOpenDebtor, onPay }) {
   const data = dashboard(store, mKey);
   const owedNow = totalOwedNow(store);
   const isCurrent = mKey === monthKey(TODAY);
@@ -72,12 +72,12 @@ function Dashboard({ store, mKey, setMKey, onNav, onOpenDebtor, onMarkPaid }) {
           <div style={{ display: "flex", gap: 18, marginTop: 18, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>Atrasado</div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{money(store.installments.filter(i=>instStatus(i)==="OVERDUE").reduce((s,i)=>s+Number(i.amount),0))}</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{money(sumRemaining(store.installments, isOverdueDate))}</div>
             </div>
             <div style={{ width: 1, background: "rgba(255,255,255,0.25)" }} />
             <div>
               <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>A vencer</div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{money(store.installments.filter(i=>instStatus(i)==="PENDING").reduce((s,i)=>s+Number(i.amount),0))}</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{money(sumRemaining(store.installments, i=>!isOverdueDate(i)))}</div>
             </div>
           </div>
         </div>
@@ -112,18 +112,20 @@ function Dashboard({ store, mKey, setMKey, onNav, onOpenDebtor, onMarkPaid }) {
       {actionItems.length === 0
         ? <Empty icon="check" title="Tudo em dia!" sub="Nenhuma parcela atrasada ou pendente no momento." />
         : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {actionItems.map((e, idx) => <InstallmentRow key={e.inst.id} e={e} onOpenDebtor={onOpenDebtor} onMarkPaid={onMarkPaid} index={idx} />)}
+            {actionItems.map((e, idx) => <InstallmentRow key={e.inst.id} e={e} onOpenDebtor={onOpenDebtor} onPay={onPay} index={idx} />)}
           </div>}
     </Page>
   );
 }
 
 // shared row used in dashboard + installments view + debtor detail
-function InstallmentRow({ e, onOpenDebtor, onMarkPaid, showDebtor = true, index = 0 }) {
+function InstallmentRow({ e, onOpenDebtor, onPay, showDebtor = true, index = 0 }) {
   const { inst, debt, debtor, status } = e;
   const days = daysBetween(TODAY, inst.dueDate); // positive = overdue by N
+  const paid = instPaid(inst), remaining = instRemaining(inst);
   let when;
   if (status === "PAID") when = `Pago em ${fmtDate(inst.paidAt)}`;
+  else if (status === "PARTIAL") when = `${money(paid)} pago · falta ${money(remaining)}`;
   else if (status === "OVERDUE") when = days === 0 ? "Vence hoje" : `Atrasado há ${days} ${days===1?"dia":"dias"}`;
   else { const dleft = -days; when = dleft === 0 ? "Vence hoje" : `Vence em ${dleft} ${dleft===1?"dia":"dias"} · ${fmtDate(inst.dueDate)}`; }
   const m = STATUS_META[status];
@@ -139,16 +141,19 @@ function InstallmentRow({ e, onOpenDebtor, onMarkPaid, showDebtor = true, index 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {showDebtor && <span onClick={()=>onOpenDebtor && onOpenDebtor(debtor.id)} style={{ fontWeight: 800, fontSize: 15, cursor: onOpenDebtor?"pointer":"default", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{debtor.name}</span>}
           <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>Parcela {inst.number}</span>
+          {status === "PARTIAL" && <StatusBadge status="PARTIAL" size="sm" />}
         </div>
-        <div style={{ fontSize: 13, color: status === "OVERDUE" ? "var(--overdue)" : "var(--text-muted)", fontWeight: status==="OVERDUE"?700:500, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {debt.description ? `${debt.description} · ` : ""}{when}
+        <div style={{ fontSize: 13, color: status === "OVERDUE" ? "var(--overdue)" : status === "PARTIAL" ? "var(--partial)" : "var(--text-muted)", fontWeight: (status==="OVERDUE"||status==="PARTIAL")?700:500, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {debt.description && status !== "PARTIAL" ? `${debt.description} · ` : ""}{when}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 7 }}>
-        <Money value={inst.amount} size={16.5} weight={800} />
+        {status === "PARTIAL"
+          ? <div style={{ textAlign: "right" }}><Money value={remaining} size={16.5} weight={800} color="var(--partial)" /><div style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 600 }}>de {money(inst.amount)}</div></div>
+          : <Money value={inst.amount} size={16.5} weight={800} />}
         {status === "PAID"
           ? <StatusBadge status="PAID" size="sm" />
-          : <Button size="sm" variant={status==="OVERDUE"?"paid":"soft"} icon="check" onClick={()=>onMarkPaid(inst)}>Pago</Button>}
+          : <Button size="sm" variant="primary" icon="wallet" onClick={()=>onPay(e)}>Receber</Button>}
       </div>
     </div>
   );
