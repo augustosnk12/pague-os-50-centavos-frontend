@@ -114,14 +114,14 @@ export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor =
           <Money value={inst.amount} size={16.5} weight={800} />
         )}
         {status === 'PAID' ? (
-          (inst.payments?.length ?? 0) > 1 ? (
+          (inst.payments?.length ?? 0) > 0 ? (
             <button
               type="button"
               onClick={onReceive}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--paid-weak)', color: 'var(--paid)', border: 'none', padding: '5px 11px', borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              <Icon name="clock" size={13} strokeWidth={2.6} />
-              {inst.payments!.length} pagamentos
+              <Icon name="check" size={13} strokeWidth={2.6} />
+              Pago
             </button>
           ) : (
             <StatusBadge status="PAID" size="sm" />

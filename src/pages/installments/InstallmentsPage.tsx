@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
+import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useToast } from '../../contexts/ToastContext'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { IconButton } from '../../components/ui/IconButton'
@@ -36,9 +37,11 @@ export function InstallmentsPage() {
   const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10))
   const [filter, setFilter] = useState<Filter>('ALL')
   const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
 
   const { data: allItems = [], isLoading } = useInstallmentsByPeriod({ period, date: dateKey })
   const registerPayment = useRegisterPayment()
+  const deletePayment = useDeletePayment()
 
   const derivedItems = allItems.map((i) => ({
     ...i,
@@ -89,6 +92,22 @@ export function InstallmentsPage() {
       onError: (e: unknown) => {
         const msg = getApiError(e)
         showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
+      },
+    })
+  }
+
+  const handleDeletePayment = (installmentId: string, paymentId: string) => {
+    setDeletingPaymentId(paymentId)
+    deletePayment.mutate({ installmentId, paymentId }, {
+      onSuccess: (updatedInstallment) => {
+        setDeletingPaymentId(undefined)
+        showToast('Pagamento removido')
+        setPaymentContext((ctx) => ctx ? { ...ctx, installment: { ...ctx.installment, ...updatedInstallment } } : null)
+      },
+      onError: (e: unknown) => {
+        setDeletingPaymentId(undefined)
+        const msg = getApiError(e)
+        showToast(translateApiError(msg, 'Erro ao excluir pagamento.'), { icon: 'alert' })
       },
     })
   }
@@ -188,6 +207,8 @@ export function InstallmentsPage() {
         onClose={() => setPaymentContext(null)}
         context={paymentContext}
         onConfirm={handleConfirmPayment}
+        onDeletePayment={handleDeletePayment}
+        deletingPaymentId={deletingPaymentId}
         loading={registerPayment.isPending}
       />
     </main>
