@@ -94,7 +94,7 @@ export function DebtorsPage() {
                 fontWeight: 700, fontSize: 13.5, transition: 'all .15s', whiteSpace: 'nowrap',
                 border: `1.5px solid ${active ? f.color : 'var(--border)'}`,
                 background: active ? f.color : 'var(--surface)',
-                color: active ? '#fff' : 'var(--text-muted)',
+                color: active ? 'var(--on-primary)' : 'var(--text-muted)',
               }}
             >
               {f.icon && <Icon name={f.icon} size={14} strokeWidth={3} />}
@@ -146,7 +146,7 @@ export function DebtorsPage() {
                         background: opt.color, border: '2.5px solid var(--surface)',
                       }}
                     >
-                      <Icon name={opt.icon} size={11} color="#fff" strokeWidth={3} />
+                      <Icon name={opt.icon} size={11} color="var(--on-primary)" strokeWidth={3} />
                     </span>
                   ) : null
                 })()}
