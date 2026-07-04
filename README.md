@@ -130,20 +130,35 @@ Navigation is **bottom tab bar** on mobile (the chosen default), with a hamburge
 ### 4. Debtors list / Devedores (`app/debtors.jsx`) — `GET /debtors`
 - **Header:** "Devedores", subtitle "{n} pessoas · {total} a receber".
 - **Search:** pill input filtering by name (client-side here; API has no search param).
-- **Rows** (sorted: most overdue first, then highest outstanding): avatar (deterministic hue from name) · name + "{n} atrasada(s)" badge if overdue · secondary line (notes/email/phone) · paid-progress bar · right side: "deve {outstanding}" (red if overdue) **or** "✓ Quitado" + chevron.
+- **Reliability filter chips:** "Todos" + the three reliability values (icon + label: ✓ Bom pagador / 🕐 Atrasa, mas paga / ⚠ Veaco), horizontally scrollable row, single-select, filters the list client-side by `debtor.reliability`.
+- **Rows** (sorted: most overdue first, then highest outstanding): avatar (see **Avatar** below) — with a small colored icon badge on its bottom-right corner when `reliability` is set (check/clock/alert, same colors as the filter chips) · name + "{n} atrasada(s)" badge if overdue · secondary line (notes/email/phone) · paid-progress bar · right side: "deve {outstanding}" (red if overdue) **or** "✓ Quitado" + chevron.
 - **Outstanding** = sum of that debtor's non-paid installments. **paidRatio** = paid count / total count.
 - Tap → Debtor detail. Empty state with "Adicionar devedor".
 
+#### Avatar (placeholder until real photo upload ships)
+Every debtor has a lightweight **preset avatar** instead of (or before) a real photo: `{ hue, emoji }`.
+- No `avatar` set → render initials (first letters of first two words of the name) on a deterministic OKLCH-hue background derived from the name.
+- `avatar.hue` set → same initials-or-emoji rendering, but background is `oklch(0.62 0.13 <hue>)` from a curated palette of 8 hues (not freeform color picking).
+- `avatar.emoji` set → render the emoji instead of initials, same colored background.
+- The **AvatarPicker** (used in create/edit) shows the live avatar preview + a collapsed **accordion** ("Personalizar cor e emoji", closed by default) that reveals the 8 color swatches and a 20-emoji grid only when expanded — keeps the form short by default.
+- When building the real thing: this whole token can be replaced by an uploaded image URL later; keep `{ hue, emoji }` as the fallback renderer for debtors without a photo.
+
 ### 5. Debtor detail (`app/debtors.jsx` → `DebtorDetail`) — `GET /debtors/:id`, `GET /debts/:id`
 - **Header:** name, back arrow, edit (pencil) + delete (trash) icon buttons.
-- **Summary card:** big avatar · "Saldo devedor" amount (red if overdue, green if zero) · "{paid} de {total} parcelas pagas" · progress bar · contact lines (phone with a green "Lembrar" WhatsApp action, email, notes).
+- **Reliability badge:** when `reliability` is set, a small pill (icon + label, same color as elsewhere) renders just under the header, above the summary card.
+- **Summary card:** big avatar · "Saldo devedor" amount (red if overdue, green if zero) · "{paid} de {total} parcelas pagas" · progress bar · contact lines (phone with a green "Lembrar" WhatsApp action, email, **address** — one line, formatted as "Street, Number — Complement — Neighborhood · City/UF — ZIP", only the parts present are shown, muted style like notes — then notes).
 - **Dívidas:** "Nova dívida" button + list of **DebtCard**s (one per debt).
   - **DebtCard** (collapsible): type icon · description (or type label) · "{type} · {n}× · {paid}/{n} pagas" · total + "{remaining} restam" or "Quitada" · chevron. A small red dot marks debts with overdue installments. Progress bar (red if any overdue, else green). Expanding reveals each installment row (number chip, amount, "Vence {date}" / "Pago em {date}" / partial state, and a **Receber** button or Pago badge / "{n} pagamentos" chip), plus a subtle right-aligned **Editar** (pencil) action at the bottom.
   - **Edit / delete a debt:** the expanded card's **Editar** opens the **DebtForm** sheet (edit description + type; amount/installments are immutable once generated). **Delete lives at the bottom of that edit sheet** as a quiet "Excluir dívida" — deliberately buried (destructive + rare). It routes through a confirm modal with a **payments-guard**: a debt with any recorded payment cannot be deleted (the modal explains why and only offers "Fechar"). Wire to `PUT /debts/:id` (edit) and `DELETE /debts/:id` (delete; backend should enforce the same payment guard).
 - **Edit / delete** use the `DebtorForm` sheet and a confirm sheet → `PUT /debtors/:id` (edit), `DELETE /debtors/:id` (cascades debts + installments; show the destructive confirm).
 
 ### 6. Create debtor — `DebtorForm` sheet (`app/debtors.jsx`) — `POST /debtors` / `PUT /debtors/:id`
-Bottom sheet (mobile) / centered dialog (≥ 560px). Fields: **Nome** (required, unique per lender), E-mail (optional, unique when present), Telefone (optional), Observações (textarea, optional). Footer: Cancelar / Adicionar(Salvar). Handle `409` (duplicate name/email) inline.
+Bottom sheet (mobile) / centered dialog (≥ 560px). **Split into two tabs** (segmented control at the top of the sheet, mirrors the period control's visual style) to keep the form from becoming one long scroll:
+- **Geral tab:** AvatarPicker, Nome (required), E-mail (optional), Telefone (optional), Observações (textarea, optional), and a **Perfil de pagamento** selector — three stacked selectable rows (Bom pagador / Atrasa, mas paga / Veaco), tap again to deselect back to null.
+- **Endereço tab:** all optional — CEP + Estado (side by side), Rua, Número + Complemento (side by side), Bairro, Cidade. The tab's segmented-control label gets a small dot indicator when any address field has content, so the lender can tell at a glance the tab isn't empty.
+- Both tabs share one footer: Cancelar / Adicionar(Salvar). Saving is only blocked by the Nome validation (on the Geral tab); if invalid, the sheet auto-switches back to Geral to show the error.
+- `address` is only sent (non-null) if at least one sub-field has a value; otherwise `null`.
+- Handle `409` (duplicate name/email) inline.
 
 ### 7. Create debt / Nova cobrança (`app/debts.jsx` → `NewDebt`) — `POST /debts`
 Full page (can be a route or a sheet). Fields:
@@ -157,6 +172,7 @@ Full page (can be a route or a sheet). Fields:
 - **Period segmented control:** Dia / Semana / Mês (maps to `period=day|week|month`). Week = Monday–Sunday containing `date`.
 - **Date navigator:** ‹ {period label} › with "{total} a receber" subtitle; arrows shift by day/week/month and update `date` (`YYYY-MM-DD`).
 - **Status filter chips:** Todas / Atrasadas / Pendentes / Pagas (with counts). Client-side filter over the period's results.
+- **Devedor filter (multi-select):** a pill button below the status chips reads "Todos os devedores" by default (no filter applied — **showing every debtor's installments is the default state**), or the selected name / "{n} devedores" once narrowed. Tapping it opens a bottom sheet: a search field (filters the debtor list live by name), a "{n} selecionados / Limpar" row once any are picked, and a checkbox list of every debtor (avatar + name) that scrolls internally (`max-height: 44vh`) once the list is long, so the sheet itself never grows unbounded. Selecting is additive (checkbox toggle, not radio) — any combination of debtors can be shown at once; empty selection = all debtors.
 - **Rows:** shared `InstallmentRow`.
 
 ### Shared: `InstallmentRow` (`app/dashboard.jsx`)
@@ -215,12 +231,13 @@ Full request/response shapes, validation rules, and status codes are in `PROJECT
 1. **Entrance animations must be translate-only, not opacity-based.** Opacity-from-0 reveals can stay invisible if the document is backgrounded/throttled (animations pause at frame 0). All reveals use `translateY` and rest visible.
 2. **Don't `transition: color` on `<body>` when the color comes from a CSS variable.** Changing the variable (theme toggle) freezes the inherited color at the old value in Chromium. Only `background` is transitioned on body.
 3. **OKLCH hue in `calc()` must stay unitless** when added to the unitless `--accent-h` (e.g. `calc(var(--accent-h) + 25)`, not `+ 25deg`) — mixing number and `deg` invalidates the value and silently breaks gradients/avatars.
+4. **CSS `animation` shorthand needs an explicit `forwards` fill-mode on the Sheet overlay/dialog** (`.lt-sheet-wrap`, `.lt-sheet`) — without it, some environments compute `opacity: 0` after the fade/scale-in animation finishes instead of resting at the "to" keyframe's value. Always pair one-shot entrance animations with `animation-fill-mode: forwards` (or write it in the shorthand, as done here) so the element reliably ends up visible.
 
 ## Files
 - `prototype/LendTrack.html` — entry point (loads fonts, React/Babel, all scripts; responsive media queries inline).
 - `prototype/app/theme.css` — all design tokens, themes, keyframes.
-- `prototype/app/data.jsx` — seed data, formatters, **selectors that mirror the API** (read this to know what each screen consumes).
-- `prototype/app/ui.jsx` — primitives: `Icon`, `Button`, `IconButton`, `StatusBadge`, `TypeChip`, `Money`, `Field`, `Avatar`, `Card`, `Sheet`, `Toast`, `Progress`, `Empty`.
+- `prototype/app/data.jsx` — seed data, formatters, **selectors that mirror the API** (read this to know what each screen consumes), plus `formatAddress(address)`.
+- `prototype/app/ui.jsx` — primitives: `Icon`, `Button`, `IconButton`, `StatusBadge`, `TypeChip`, `Money`, `Field`, `Avatar`, `AvatarPicker`, `Card`, `Sheet`, `Toast`, `Progress`, `Empty`.
 - `prototype/app/auth.jsx` — auth flow + `Logo`.
 - `prototype/app/shell.jsx` — `TopBar`, `BottomTabs`, `AccountSheet`, `Drawer`, `FAB`, `Page`, `PageHeader`.
 - `prototype/app/dashboard.jsx` — `Dashboard`, `InstallmentRow`, `MonthSwitcher`.

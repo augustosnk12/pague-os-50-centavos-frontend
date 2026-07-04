@@ -1,3 +1,15 @@
+export interface Address {
+  id: string
+  zip: string | null
+  street: string | null
+  number: string | null
+  complement: string | null
+  neighborhood: string | null
+  city: string | null
+  state: string | null
+  debtorId: string
+}
+
 export interface Debtor {
   id: string
   name: string
@@ -6,4 +18,5 @@ export interface Debtor {
   notes: string | null
   lenderId: string
   createdAt: string
+  address: Address | null
 }

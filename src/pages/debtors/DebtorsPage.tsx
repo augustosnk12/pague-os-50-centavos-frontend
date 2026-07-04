@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { DebtorForm } from '../../components/shared/DebtorForm'
+import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 
 export function DebtorsPage() {
   const [q, setQ] = useState('')
@@ -26,7 +26,7 @@ export function DebtorsPage() {
   const filtered = debtors
     .filter((d) => d.name.toLowerCase().includes(q.toLowerCase()))
 
-  const handleCreate = (data: { name: string; email: string | null; phone: string | null; notes: string | null }) => {
+  const handleCreate = (data: DebtorFormPayload) => {
     createDebtor.mutate(data, {
       onSuccess: () => {
         setFormOpen(false)

@@ -71,7 +71,7 @@ const SEED_LENDER = { id: "lender_1", email: "joao@example.com", name: "João Si
 // debtors
 const SEED = [
   {
-    debtor: { id:"d1", name:"Maria Souza", email:"maria@example.com", phone:"+55 11 91234-5678", notes:"Vizinha do bloco B", createdAt: iso(2026,2,3) },
+    debtor: { id:"d1", name:"Maria Souza", email:"maria@example.com", phone:"+55 11 91234-5678", notes:"Vizinha do bloco B", avatar:{ hue:20, emoji:"🌸" }, reliability:"good", createdAt: iso(2026,2,3) },
     debts: [
       { type:"PIX_INSTALLMENT", description:"Empréstimo de junho", total:"1500.00", insts:[
         { n:1, amount:"500.00", due:iso(2026,5,1), paid:iso(2026,5,2) },
@@ -87,7 +87,7 @@ const SEED = [
     ],
   },
   {
-    debtor: { id:"d2", name:"Carlos Pereira", email:null, phone:"+55 11 98888-1122", notes:"Colega de trabalho", createdAt: iso(2026,3,1) },
+    debtor: { id:"d2", name:"Carlos Pereira", email:null, phone:"+55 11 98888-1122", notes:"Colega de trabalho", avatar:{ hue:235, emoji:"💼" }, reliability:"late", createdAt: iso(2026,3,1) },
     debts: [
       { type:"CASH", description:"Dinheiro emprestado", total:"400.00", insts:[ { n:1, amount:"400.00", due:iso(2026,5,20) } ]},
       { type:"PIX", description:"Rateio do churrasco", total:"80.00", insts:[ { n:1, amount:"80.00", due:iso(2026,5,26) } ]},
@@ -104,7 +104,7 @@ const SEED = [
     ],
   },
   {
-    debtor: { id:"d4", name:"Roberto Lima", email:null, phone:"+55 11 97777-3344", notes:"Amigo da academia", createdAt: iso(2026,2,20) },
+    debtor: { id:"d4", name:"Roberto Lima", email:null, phone:"+55 11 97777-3344", notes:"Amigo da academia", avatar:{ hue:150, emoji:"⚽" }, reliability:"risky", createdAt: iso(2026,2,20) },
     debts: [
       { type:"CREDIT_CARD", description:"Notebook usado", total:"2000.00", insts:[
         { n:1, amount:"400.00", due:iso(2026,3,5), paid:iso(2026,3,5) },
@@ -206,6 +206,13 @@ function installmentsForPeriod(store, period, dateKey, debtorId) {
 function startOfDay(x){ return new Date(Date.UTC(x.getUTCFullYear(),x.getUTCMonth(),x.getUTCDate(),0,0,0)); }
 function endOfDay(x){ return new Date(Date.UTC(x.getUTCFullYear(),x.getUTCMonth(),x.getUTCDate(),23,59,59)); }
 function addDays(x,n){ return new Date(x.getTime()+n*86400000); }
+
+function formatAddress(a) {
+  if (!a) return "";
+  const line1 = [a.street, a.number].filter(Boolean).join(", ");
+  const line2 = [a.neighborhood, a.city && a.state ? `${a.city}/${a.state}` : (a.city || a.state)].filter(Boolean).join(" · ");
+  return [line1, a.complement, line2, a.zip].filter(Boolean).join(" — ");
+}
 
 // enrich an installment with its debt + debtor for list rendering
 function enrich(store, inst) {

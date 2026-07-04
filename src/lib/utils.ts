@@ -1,6 +1,17 @@
 import type { InstallmentStatus } from '../types/installment'
+import type { Address } from '../types/debtor'
+import { formatCep } from './cep'
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+export function formatAddress(a: Address | null | undefined): string {
+  if (!a) return ''
+  const line1 = [a.street, a.number].filter(Boolean).join(', ')
+  const cityState = a.city && a.state ? `${a.city}/${a.state}` : a.city || a.state || ''
+  const line2 = [a.neighborhood, cityState].filter(Boolean).join(' · ')
+  const zip = a.zip ? formatCep(a.zip) : ''
+  return [line1, a.complement, line2, zip].filter(Boolean).join(' — ')
+}
 
 export function money(v: number | string): string {
   return BRL.format(Number(v))

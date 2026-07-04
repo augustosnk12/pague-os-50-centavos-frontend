@@ -130,9 +130,13 @@ function InstallmentsView({ store, onOpenDebtor, onPay }) {
   const [period, setPeriod] = useStateDebts("month");
   const [dateKey, setDateKey] = useStateDebts(() => new Date(TODAY).toISOString().slice(0,10));
   const [filter, setFilter] = useStateDebts("ALL"); // ALL | PENDING | OVERDUE | PAID
+  const [debtorIds, setDebtorIds] = useStateDebts([]); // empty = all debtors
+  const [debtorPickerOpen, setDebtorPickerOpen] = useStateDebts(false);
+  const [debtorSearch, setDebtorSearch] = useStateDebts("");
 
   let list = installmentsForPeriod(store, period, dateKey).map(i => enrich(store, i));
   if (filter !== "ALL") list = list.filter(e => e.status === filter);
+  if (debtorIds.length > 0) list = list.filter(e => e.debtor && debtorIds.includes(e.debtor.id));
 
   const totalDue = round2(list.filter(e=>e.status!=="PAID").reduce((s,e)=>s+instRemaining(e.inst),0));
   const counts = { ALL: installmentsForPeriod(store, period, dateKey).length };
@@ -181,7 +185,7 @@ function InstallmentsView({ store, onOpenDebtor, onPay }) {
       </div>
 
       {/* status filter chips */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 2 }}>
         {[{id:"ALL",label:"Todas"},{id:"OVERDUE",label:"Atrasadas"},{id:"PARTIAL",label:"Parciais"},{id:"PENDING",label:"Pendentes"},{id:"PAID",label:"Pagas"}].map(f => {
           const active = filter === f.id;
           const c = f.id==="ALL" ? "var(--primary)" : STATUS_META[f.id].color;
@@ -194,6 +198,55 @@ function InstallmentsView({ store, onOpenDebtor, onPay }) {
           );
         })}
       </div>
+
+      {/* debtor filter */}
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={()=>setDebtorPickerOpen(true)}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 99, cursor: "pointer", fontWeight: 700, fontSize: 13.5,
+            border: `1.5px solid ${debtorIds.length ? "var(--primary)" : "var(--border)"}`, background: debtorIds.length ? "var(--primary-weak)" : "var(--surface)",
+            color: debtorIds.length ? "var(--primary)" : "var(--text-muted)" }}>
+          <Icon name="user" size={15} />
+          {debtorIds.length === 0 ? "Todos os devedores" : debtorIds.length === 1 ? debtorById(store, debtorIds[0])?.name : `${debtorIds.length} devedores`}
+          <Icon name="chevronDown" size={13} />
+        </button>
+      </div>
+
+      <Sheet open={debtorPickerOpen} onClose={()=>{setDebtorPickerOpen(false); setDebtorSearch("");}} title="Filtrar por devedor"
+        footer={<>
+          <Button variant="ghost" onClick={()=>setDebtorIds([])}>Limpar</Button>
+          <Button onClick={()=>{setDebtorPickerOpen(false); setDebtorSearch("");}}>Aplicar</Button>
+        </>}>
+        <div style={{ marginBottom: 10 }}>
+          <Field value={debtorSearch} onChange={setDebtorSearch} placeholder="Buscar devedor..." autoFocus />
+        </div>
+        {debtorIds.length > 0 &&
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 8px" }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-faint)" }}>{debtorIds.length} selecionado{debtorIds.length>1?"s":""}</span>
+            <button onClick={()=>setDebtorIds([])} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "var(--primary)", padding: 0 }}>Limpar</button>
+          </div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: "44vh", overflowY: "auto" }}>
+          {store.debtors
+            .filter(dt => dt.name.toLowerCase().includes(debtorSearch.trim().toLowerCase()))
+            .map(dt => {
+            const checked = debtorIds.includes(dt.id);
+            return (
+              <button key={dt.id} type="button"
+                onClick={()=>setDebtorIds(ids => checked ? ids.filter(x=>x!==dt.id) : [...ids, dt.id])}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 8px", borderRadius: 12, border: "none",
+                  background: "transparent", cursor: "pointer", textAlign: "left" }}>
+                <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center",
+                  border: `1.5px solid ${checked ? "var(--primary)" : "var(--border-strong)"}`, background: checked ? "var(--primary)" : "transparent" }}>
+                  {checked && <Icon name="check" size={13} color="#fff" />}
+                </div>
+                <Avatar name={dt.name} size={34} avatar={dt.avatar} />
+                <span style={{ fontWeight: 700, fontSize: 14.5 }}>{dt.name}</span>
+              </button>
+            );
+          })}
+          {store.debtors.filter(dt => dt.name.toLowerCase().includes(debtorSearch.trim().toLowerCase())).length === 0 &&
+            <div style={{ padding: "18px 4px", textAlign: "center", color: "var(--text-faint)", fontSize: 13.5, fontWeight: 600 }}>Nenhum devedor encontrado.</div>}
+        </div>
+      </Sheet>
 
       {list.length === 0
         ? <Empty icon="calendar" title="Nenhuma parcela" sub="Não há parcelas para este período e filtro." />

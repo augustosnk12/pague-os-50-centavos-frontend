@@ -3,9 +3,11 @@ const { useState: useStateDebtors } = React;
 
 function DebtorsList({ store, onOpenDebtor, onNewDebtor }) {
   const [q, setQ] = useStateDebtors("");
+  const [reliabilityFilter, setReliabilityFilter] = useStateDebtors("ALL");
   const debtors = store.debtors
     .map(dt => ({ dt, out: debtorOutstanding(store, dt.id), overdue: debtorOverdueCount(store, dt.id), ratio: debtorPaidRatio(store, dt.id) }))
     .filter(x => x.dt.name.toLowerCase().includes(q.toLowerCase()))
+    .filter(x => reliabilityFilter === "ALL" || x.dt.reliability === reliabilityFilter)
     .sort((a,b) => b.overdue - a.overdue || b.out - a.out);
 
   const totalOut = store.debtors.reduce((s,dt)=>s+debtorOutstanding(store, dt.id), 0);
@@ -24,13 +26,36 @@ function DebtorsList({ store, onOpenDebtor, onNewDebtor }) {
         </div>
       </div>
 
+      {/* reliability filter chips */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", overflowY: "hidden", paddingBottom: 2 }}>
+        {[{ id: "ALL", label: "Todos", color: "var(--primary)" }, ...RELIABILITY_OPTIONS].map(f => {
+          const active = reliabilityFilter === f.id;
+          return (
+            <button key={f.id} onClick={()=>setReliabilityFilter(f.id)}
+              style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 99, cursor: "pointer", fontWeight: 700, fontSize: 13.5, transition: "all .15s", whiteSpace: "nowrap",
+                border: `1.5px solid ${active ? f.color : "var(--border)"}`, background: active ? f.color : "var(--surface)", color: active ? "#fff" : "var(--text-muted)" }}>
+              {f.icon && <Icon name={f.icon} size={14} strokeWidth={3} />}
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
       {debtors.length === 0
         ? <Empty icon="users" title={q ? "Nada encontrado" : "Nenhum devedor ainda"} sub={q ? "Tente outro nome." : "Adicione a primeira pessoa que te deve."} action={!q && <Button icon="plus" onClick={onNewDebtor}>Adicionar devedor</Button>} />
         : <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
             {debtors.map(({ dt, out, overdue, ratio }, idx) => (
               <div key={dt.id} onClick={()=>onOpenDebtor(dt.id)} className="lt-row-hover"
                 style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 15, boxShadow: "var(--shadow-sm)", cursor: "pointer", transition: "transform .15s, box-shadow .2s, border-color .2s", animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${idx*0.04}s both` }}>
-                <Avatar name={dt.name} size={48} />
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <Avatar name={dt.name} size={48} avatar={dt.avatar} />
+                  {dt.reliability && (() => { const opt = RELIABILITY_OPTIONS.find(o=>o.id===dt.reliability); return opt ? (
+                    <span title={opt.label} style={{ position: "absolute", bottom: -3, right: -3, width: 19, height: 19, borderRadius: "50%", display: "grid", placeItems: "center",
+                      background: opt.color, border: "2.5px solid var(--surface)" }}>
+                      <Icon name={opt.icon} size={11} color="#fff" strokeWidth={3} />
+                    </span>
+                  ) : null; })()}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dt.name}</span>
@@ -71,10 +96,18 @@ function DebtorDetail({ store, debtorId, onBack, onNewDebt, onPay, onEdit, onDel
           <IconButton name="trash" onClick={()=>onDelete(dt)} label="Excluir" />
         </div>} />
 
+      {dt.reliability && (() => { const opt = RELIABILITY_OPTIONS.find(o=>o.id===dt.reliability); return opt ? (
+        <div style={{ display: "flex", marginTop: -8, marginBottom: 16 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 99,
+            background: `color-mix(in oklch, ${opt.color} 14%, var(--surface))`, border: `1px solid ${opt.color}`, color: opt.color, fontWeight: 700, fontSize: 12.5 }}>
+            <Icon name={opt.icon} size={13} strokeWidth={3} />{opt.label}
+          </div>
+        </div>) : null; })()}
+
       {/* contact + summary card */}
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 15, alignItems: "center" }}>
-          <Avatar name={dt.name} size={58} />
+          <Avatar name={dt.name} size={58} avatar={dt.avatar} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 700 }}>Saldo devedor</div>
             <Money value={out} size={26} weight={800} color={debtorOverdueCount(store,debtorId)>0?"var(--overdue)":out>0?"var(--text)":"var(--paid)"} />
@@ -83,9 +116,10 @@ function DebtorDetail({ store, debtorId, onBack, onNewDebt, onPay, onEdit, onDel
         </div>
         {allInst.length > 0 && <div style={{ marginTop: 14 }}><Progress value={ratio} color="var(--paid)" height={7} /></div>}
 
-        {(dt.phone || dt.email || dt.notes) && <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+        {(dt.phone || dt.email || dt.notes || dt.address) && <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
           {dt.phone && <ContactLine icon="phone" text={dt.phone} action={<a href="#" onClick={e=>e.preventDefault()} style={{ color: "var(--paid)", fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="whatsapp" size={15}/>Lembrar</a>} />}
           {dt.email && <ContactLine icon="mail" text={dt.email} />}
+          {dt.address && <ContactLine icon="home" text={formatAddress(dt.address)} muted />}
           {dt.notes && <ContactLine icon="edit" text={dt.notes} muted />}
         </div>}
       </Card>
@@ -186,33 +220,108 @@ function debtorPaidRatioForList(insts) {
 }
 
 // Create / edit debtor form (in a Sheet)
+const DEBTOR_TABS = [{ id: "general", label: "Geral", icon: "user" }, { id: "address", label: "Endereço", icon: "home" }];
+const RELIABILITY_OPTIONS = [
+  { id: "good", label: "Bom pagador", color: "var(--paid)", icon: "check" },
+  { id: "late", label: "Atrasa, mas paga", color: "var(--pending)", icon: "clock" },
+  { id: "risky", label: "Veaco", color: "var(--overdue)", icon: "alert" },
+];
+
 function DebtorForm({ open, onClose, onSave, editing }) {
+  const [tab, setTab] = useStateDebtors("general");
   const [name, setName] = useStateDebtors("");
   const [email, setEmail] = useStateDebtors("");
   const [phone, setPhone] = useStateDebtors("");
   const [notes, setNotes] = useStateDebtors("");
+  const [avatar, setAvatar] = useStateDebtors(null);
+  const [reliability, setReliability] = useStateDebtors(null);
+  const [zip, setZip] = useStateDebtors("");
+  const [street, setStreet] = useStateDebtors("");
+  const [number, setNumber] = useStateDebtors("");
+  const [complement, setComplement] = useStateDebtors("");
+  const [neighborhood, setNeighborhood] = useStateDebtors("");
+  const [city, setCity] = useStateDebtors("");
+  const [state, setState] = useStateDebtors("");
   const [err, setErr] = useStateDebtors("");
 
   React.useEffect(() => {
     if (open) {
-      setName(editing?.name || ""); setEmail(editing?.email || ""); setPhone(editing?.phone || ""); setNotes(editing?.notes || ""); setErr("");
+      const a = editing?.address || {};
+      setName(editing?.name || ""); setEmail(editing?.email || ""); setPhone(editing?.phone || ""); setNotes(editing?.notes || ""); setAvatar(editing?.avatar || null); setReliability(editing?.reliability || null);
+      setZip(a.zip || ""); setStreet(a.street || ""); setNumber(a.number || ""); setComplement(a.complement || ""); setNeighborhood(a.neighborhood || ""); setCity(a.city || ""); setState(a.state || "");
+      setErr(""); setTab("general");
     }
   }, [open, editing]);
 
+  const addressFilled = [zip, street, number, complement, neighborhood, city, state].some(v => v.trim());
+
   function save() {
-    if (!name.trim()) return setErr("O nome é obrigatório.");
-    onSave({ id: editing?.id, name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, notes: notes.trim() || null });
+    if (!name.trim()) { setTab("general"); return setErr("O nome é obrigatório."); }
+    const address = addressFilled ? {
+      zip: zip.trim() || null, street: street.trim() || null, number: number.trim() || null, complement: complement.trim() || null,
+      neighborhood: neighborhood.trim() || null, city: city.trim() || null, state: state.trim() || null,
+    } : null;
+    onSave({ id: editing?.id, name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, notes: notes.trim() || null, avatar: avatar || null, reliability: reliability || null, address });
   }
 
   return (
     <Sheet open={open} onClose={onClose} title={editing ? "Editar devedor" : "Novo devedor"}
       footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button full icon="check" onClick={save}>{editing ? "Salvar" : "Adicionar"}</Button></>}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 4 }}>
+
+      {/* tabs */}
+      <div style={{ display: "flex", gap: 4, background: "var(--surface-2)", borderRadius: 13, padding: 4, marginBottom: 18 }}>
+        {DEBTOR_TABS.map(t => (
+          <button key={t.id} type="button" onClick={()=>setTab(t.id)}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
+              background: tab===t.id ? "var(--surface)" : "transparent", color: tab===t.id ? "var(--primary)" : "var(--text-muted)",
+              boxShadow: tab===t.id ? "var(--shadow-sm)" : "none", transition: "all .15s" }}>
+            <Icon name={t.icon} size={15} />
+            {t.label}
+            {t.id === "address" && addressFilled && <span style={{ width: 6, height: 6, borderRadius: "50%", background: tab===t.id ? "var(--primary)" : "var(--text-faint)" }} />}
+          </button>
+        ))}
+      </div>
+
+      {tab === "general" && <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 4 }}>
+        <AvatarPicker name={name} avatar={avatar} onChange={setAvatar} />
         <Field label="Nome" value={name} onChange={v=>{setName(v); setErr("");}} placeholder="Maria Souza" required error={err} autoFocus />
         <Field label="E-mail" value={email} onChange={setEmail} placeholder="maria@email.com" type="email" hint="Opcional" />
         <Field label="Telefone" value={phone} onChange={setPhone} placeholder="+55 11 91234-5678" inputMode="tel" hint="Opcional" />
         <Field label="Observações" value={notes} onChange={setNotes} placeholder="Vizinha do bloco B" textarea hint="Opcional" />
-      </div>
+
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 9 }}>Perfil de pagamento</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {RELIABILITY_OPTIONS.map(opt => {
+              const active = reliability === opt.id;
+              return (
+                <button key={opt.id} type="button" onClick={()=>setReliability(active ? null : opt.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: "calc(var(--radius)*0.6)", cursor: "pointer", textAlign: "left",
+                    background: active ? `color-mix(in oklch, ${opt.color} 14%, var(--surface))` : "var(--surface)", border: `1.5px solid ${active ? opt.color : "var(--border)"}`,
+                    color: active ? opt.color : "var(--text)", fontWeight: 700, fontSize: 14, transition: "all .15s" }}>
+                  <Icon name={opt.icon} size={16} strokeWidth={3} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>}
+
+      {tab === "address" && <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 4 }}>
+        <div style={{ fontSize: 12.5, color: "var(--text-faint)", fontWeight: 600, lineHeight: 1.4, marginTop: -6 }}>Todos os campos são opcionais.</div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ width: "40%" }}><Field label="CEP" value={zip} onChange={setZip} placeholder="01310-100" inputMode="numeric" /></div>
+          <div style={{ flex: 1 }}><Field label="Estado" value={state} onChange={setState} placeholder="SP" /></div>
+        </div>
+        <Field label="Rua" value={street} onChange={setStreet} placeholder="Av. Paulista" />
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ width: "35%" }}><Field label="Número" value={number} onChange={setNumber} placeholder="1000" inputMode="numeric" /></div>
+          <div style={{ flex: 1 }}><Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto 42" /></div>
+        </div>
+        <Field label="Bairro" value={neighborhood} onChange={setNeighborhood} placeholder="Bela Vista" />
+        <Field label="Cidade" value={city} onChange={setCity} placeholder="São Paulo" />
+      </div>}
     </Sheet>
   );
 }

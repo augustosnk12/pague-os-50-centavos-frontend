@@ -9,7 +9,7 @@ import { useDeleteDebt } from '../../hooks/debts/useDeleteDebt'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useToast } from '../../contexts/ToastContext'
-import { translateApiError, deriveInstStatus } from '../../lib/utils'
+import { translateApiError, deriveInstStatus, formatAddress } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
 import { Avatar } from '../../components/ui/Avatar'
 import { Money } from '../../components/ui/Money'
@@ -19,7 +19,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Modal } from '../../components/ui/Modal'
 import { Input } from '../../components/ui/Input'
-import { DebtorForm } from '../../components/shared/DebtorForm'
+import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
@@ -93,7 +93,7 @@ export function DebtorDetailPage() {
   const confirmDelDebtHasPayments = confirmDelDebt != null &&
     (confirmDelDebt.installments ?? []).some((i) => (i.payments?.length ?? 0) > 0)
 
-  const handleUpdate = (data: { id?: string; name: string; email: string | null; phone: string | null; notes: string | null }) => {
+  const handleUpdate = (data: DebtorFormPayload) => {
     updateDebtor.mutate(data, {
       onSuccess: () => { setEditOpen(false); showToast('Devedor atualizado') },
       onError: (e: unknown) => {
@@ -200,7 +200,7 @@ export function DebtorDetailPage() {
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{paidCount} de {allInsts.length} parcelas pagas</div>
           </div>
         </div>
-        {(debtor.phone ?? debtor.email ?? debtor.notes) && (
+        {(debtor.phone ?? debtor.email ?? debtor.notes ?? debtor.address) && (
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {debtor.phone && (
               <ContactLine
@@ -219,6 +219,9 @@ export function DebtorDetailPage() {
               />
             )}
             {debtor.email && <ContactLine icon="mail" text={debtor.email} />}
+            {debtor.address && formatAddress(debtor.address) && (
+              <ContactLine icon="home" text={formatAddress(debtor.address)} muted />
+            )}
             {debtor.notes && <ContactLine text={debtor.notes} muted />}
           </div>
         )}
