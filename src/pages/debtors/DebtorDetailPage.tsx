@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Modal } from '../../components/ui/Modal'
 import { Input } from '../../components/ui/Input'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
+import { getReliabilityOption } from '../../constants/reliability'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
@@ -184,6 +185,26 @@ export function DebtorDetailPage() {
         </div>
         <IconButton name="edit" onClick={() => setEditOpen(true)} label="Editar" />
       </div>
+
+      {/* Reliability pill */}
+      {(() => {
+        const opt = getReliabilityOption(debtor.reliability)
+        return opt ? (
+          <div style={{ display: 'flex', marginTop: -6, marginBottom: 16 }}>
+            <div
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px',
+                borderRadius: 99, fontWeight: 700, fontSize: 12.5,
+                background: `color-mix(in oklch, ${opt.color} 14%, var(--surface))`,
+                border: `1px solid ${opt.color}`, color: opt.color,
+              }}
+            >
+              <Icon name={opt.icon} size={13} strokeWidth={3} />
+              {opt.label}
+            </div>
+          </div>
+        ) : null
+      })()}
 
       {/* Summary card */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 18, boxShadow: 'var(--shadow-sm)', marginBottom: 16 }}>

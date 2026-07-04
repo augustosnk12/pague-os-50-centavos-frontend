@@ -10,12 +10,15 @@ export interface Address {
   debtorId: string
 }
 
+export type DebtorReliability = 'GOOD_PAYER' | 'LATE_BUT_PAYS' | 'VEACO'
+
 export interface Debtor {
   id: string
   name: string
   email: string | null
   phone: string | null
   notes: string | null
+  reliability: DebtorReliability | null
   lenderId: string
   createdAt: string
   address: Address | null

@@ -1,5 +1,5 @@
 import { api } from '../lib/axios'
-import type { Debtor } from '../types/debtor'
+import type { Debtor, DebtorReliability } from '../types/debtor'
 
 export interface AddressPayload {
   zip?: string | null
@@ -16,6 +16,7 @@ export interface CreateDebtorPayload {
   email?: string | null
   phone?: string | null
   notes?: string | null
+  reliability?: DebtorReliability | null
   address?: AddressPayload | null
 }
 
@@ -24,12 +25,13 @@ export interface UpdateDebtorPayload {
   email?: string | null
   phone?: string | null
   notes?: string | null
+  reliability?: DebtorReliability | null
   address?: AddressPayload | null
 }
 
 export const debtorsApi = {
-  list: () =>
-    api.get<Debtor[]>('/debtors'),
+  list: (reliability?: DebtorReliability) =>
+    api.get<Debtor[]>('/debtors', { params: reliability ? { reliability } : undefined }),
 
   get: (id: string) =>
     api.get<Debtor>(`/debtors/${id}`),

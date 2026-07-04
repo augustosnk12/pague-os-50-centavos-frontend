@@ -11,14 +11,17 @@ import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
+import { RELIABILITY_OPTIONS, getReliabilityOption } from '../../constants/reliability'
+import type { DebtorReliability } from '../../types/debtor'
 
 export function DebtorsPage() {
   const [q, setQ] = useState('')
+  const [reliabilityFilter, setReliabilityFilter] = useState<DebtorReliability | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  const { data: debtors = [], isLoading } = useDebtors()
+  const { data: debtors = [], isLoading } = useDebtors(reliabilityFilter ?? undefined)
   const createDebtor = useCreateDebtor()
 
   // For display, the API /debtors doesn't return outstanding/ratio natively
@@ -76,13 +79,38 @@ export function DebtorsPage() {
         </div>
       </div>
 
+      {/* Reliability filter chips */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', overflowY: 'hidden', paddingBottom: 2 }}>
+        {[{ id: null, label: 'Todos', color: 'var(--primary)', icon: undefined }, ...RELIABILITY_OPTIONS].map((f) => {
+          const active = reliabilityFilter === f.id
+          return (
+            <button
+              key={f.id ?? 'ALL'}
+              type="button"
+              onClick={() => setReliabilityFilter(f.id)}
+              style={{
+                flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '8px 14px', borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                fontWeight: 700, fontSize: 13.5, transition: 'all .15s', whiteSpace: 'nowrap',
+                border: `1.5px solid ${active ? f.color : 'var(--border)'}`,
+                background: active ? f.color : 'var(--surface)',
+                color: active ? '#fff' : 'var(--text-muted)',
+              }}
+            >
+              {f.icon && <Icon name={f.icon} size={14} strokeWidth={3} />}
+              {f.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState
           icon="users"
-          title={q ? 'Nada encontrado' : 'Nenhum devedor ainda'}
-          sub={q ? 'Tente outro nome.' : 'Adicione a primeira pessoa que te deve.'}
-          action={!q && <Button icon="plus" onClick={() => setFormOpen(true)}>Adicionar devedor</Button>}
+          title={q || reliabilityFilter ? 'Nada encontrado' : 'Nenhum devedor ainda'}
+          sub={q || reliabilityFilter ? 'Tente outro filtro.' : 'Adicione a primeira pessoa que te deve.'}
+          action={!q && !reliabilityFilter && <Button icon="plus" onClick={() => setFormOpen(true)}>Adicionar devedor</Button>}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -105,7 +133,24 @@ export function DebtorsPage() {
                 animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${idx * 0.04}s both`,
               }}
             >
-              <Avatar name={dt.name} size={48} />
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <Avatar name={dt.name} size={48} />
+                {(() => {
+                  const opt = getReliabilityOption(dt.reliability)
+                  return opt ? (
+                    <span
+                      title={opt.label}
+                      style={{
+                        position: 'absolute', bottom: -3, right: -3, width: 19, height: 19,
+                        borderRadius: '50%', display: 'grid', placeItems: 'center',
+                        background: opt.color, border: '2.5px solid var(--surface)',
+                      }}
+                    >
+                      <Icon name={opt.icon} size={11} color="#fff" strokeWidth={3} />
+                    </span>
+                  ) : null
+                })()}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>

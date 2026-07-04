@@ -9,7 +9,8 @@ import { Icon } from '../ui/Icon'
 import { zodResolver } from '../../lib/zodResolver'
 import { parseCep, formatCep } from '../../lib/cep'
 import { fetchCep } from '../../lib/viacep'
-import type { Debtor } from '../../types/debtor'
+import { RELIABILITY_OPTIONS } from '../../constants/reliability'
+import type { Debtor, DebtorReliability } from '../../types/debtor'
 import type { AddressPayload } from '../../api/debtors.api'
 
 export interface DebtorFormPayload {
@@ -18,6 +19,7 @@ export interface DebtorFormPayload {
   email: string | null
   phone: string | null
   notes: string | null
+  reliability: DebtorReliability | null
   address: AddressPayload | null
 }
 
@@ -45,6 +47,7 @@ const debtorFormSchema = z.object({
   ),
   phone: optional(20, 'O telefone'),
   notes: optional(500, 'As observações'),
+  reliability: z.enum(['GOOD_PAYER', 'LATE_BUT_PAYS', 'VEACO']).nullable(),
   zip: z
     .string()
     .refine((v) => v === '' || /^\d{8}$/.test(v), 'CEP deve conter 8 dígitos.'),
@@ -61,7 +64,7 @@ const debtorFormSchema = z.object({
 type DebtorFormValues = z.infer<typeof debtorFormSchema>
 
 const EMPTY: DebtorFormValues = {
-  name: '', email: '', phone: '', notes: '',
+  name: '', email: '', phone: '', notes: '', reliability: null,
   zip: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
 }
 
@@ -97,6 +100,7 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
       email: editing?.email ?? '',
       phone: editing?.phone ?? '',
       notes: editing?.notes ?? '',
+      reliability: editing?.reliability ?? null,
       zip: a?.zip ?? '',
       street: a?.street ?? '',
       number: a?.number ?? '',
@@ -149,6 +153,7 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
       email: v.email.trim() || null,
       phone: v.phone.trim() || null,
       notes: v.notes.trim() || null,
+      reliability: v.reliability,
       address,
     })
   }
@@ -209,6 +214,34 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
         )} />
         <Controller control={control} name="notes" render={({ field, fieldState }) => (
           <Input label="Observações" value={field.value} onChange={field.onChange} placeholder="Vizinha do bloco B" textarea maxLength={500} hint="Opcional" error={fieldState.error?.message} />
+        )} />
+        <Controller control={control} name="reliability" render={({ field }) => (
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 9 }}>Perfil de pagamento</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {RELIABILITY_OPTIONS.map((opt) => {
+                const active = field.value === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => field.onChange(active ? null : opt.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                      borderRadius: 'calc(var(--radius) * 0.6)', cursor: 'pointer', textAlign: 'left',
+                      fontFamily: 'inherit', fontWeight: 700, fontSize: 14, transition: 'all .15s',
+                      background: active ? `color-mix(in oklch, ${opt.color} 14%, var(--surface))` : 'var(--surface)',
+                      border: `1.5px solid ${active ? opt.color : 'var(--border)'}`,
+                      color: active ? opt.color : 'var(--text)',
+                    }}
+                  >
+                    <Icon name={opt.icon} size={16} strokeWidth={3} />
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         )} />
         {editing && onDelete && (
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 2 }}>
