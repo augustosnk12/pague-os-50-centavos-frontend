@@ -22,6 +22,8 @@ interface EnrichedInstallment {
   debtDescription: string | null
   debtorId: string
   debtorName: string
+  debtorAvatarHue?: number | null
+  debtorAvatarEmoji?: string | null
   status: InstallmentStatus
 }
 
@@ -34,7 +36,7 @@ interface InstallmentRowProps {
 }
 
 export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor = true, index = 0 }: InstallmentRowProps) {
-  const { inst, debtDescription, debtorId, debtorName } = enriched
+  const { inst, debtDescription, debtorId, debtorName, debtorAvatarHue, debtorAvatarEmoji } = enriched
   const now = new Date().toISOString()
   const days = daysBetween(now, inst.dueDate)
   const status = deriveInstStatus({ dueDate: inst.dueDate, paidAt: inst.paidAt, paidAmount: inst.paidAmount, amount: inst.amount })
@@ -76,7 +78,7 @@ export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor =
         onClick={() => onOpenDebtor?.(debtorId)}
         style={{ cursor: onOpenDebtor ? 'pointer' : 'default', flexShrink: 0 }}
       >
-        <Avatar name={debtorName} size={44} />
+        <Avatar name={debtorName} size={44} hue={debtorAvatarHue} emoji={debtorAvatarEmoji} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

@@ -170,6 +170,8 @@ export function DashboardPage() {
                 debtDescription: inst.debt?.description ?? null,
                 debtorId: inst.debt?.debtor?.id ?? inst.debt?.debtorId ?? '',
                 debtorName: inst.debt?.debtor?.name ?? '',
+                debtorAvatarHue: inst.debt?.debtor?.avatarHue,
+                debtorAvatarEmoji: inst.debt?.debtor?.avatarEmoji,
                 status: inst.status,
               }}
               onOpenDebtor={(id) => navigate(`/debtors/${id}`)}

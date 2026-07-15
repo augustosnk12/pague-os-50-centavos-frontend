@@ -17,6 +17,8 @@ export interface CreateDebtorPayload {
   phone?: string | null
   notes?: string | null
   reliability?: DebtorReliability | null
+  avatarHue?: number | null
+  avatarEmoji?: string | null
   address?: AddressPayload | null
 }
 
@@ -26,6 +28,8 @@ export interface UpdateDebtorPayload {
   phone?: string | null
   notes?: string | null
   reliability?: DebtorReliability | null
+  avatarHue?: number | null
+  avatarEmoji?: string | null
   address?: AddressPayload | null
 }
 

@@ -134,7 +134,7 @@ export function DebtorsPage() {
               }}
             >
               <div style={{ position: 'relative', flexShrink: 0 }}>
-                <Avatar name={dt.name} size={48} />
+                <Avatar name={dt.name} size={48} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
                 {(() => {
                   const opt = getReliabilityOption(dt.reliability)
                   return opt ? (

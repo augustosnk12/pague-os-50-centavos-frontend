@@ -19,6 +19,8 @@ export interface Debtor {
   phone: string | null
   notes: string | null
   reliability: DebtorReliability | null
+  avatarHue: number | null
+  avatarEmoji: string | null
   lenderId: string
   createdAt: string
   address: Address | null

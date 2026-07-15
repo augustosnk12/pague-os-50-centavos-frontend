@@ -209,7 +209,7 @@ export function DebtorDetailPage() {
       {/* Summary card */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 18, boxShadow: 'var(--shadow-sm)', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
-          <Avatar name={debtor.name} size={58} />
+          <Avatar name={debtor.name} size={58} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 700 }}>Saldo devedor</div>
             <Money

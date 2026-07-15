@@ -271,7 +271,7 @@ export function InstallmentsPage() {
                 >
                   {checked && <Icon name="check" size={13} color="var(--on-primary)" strokeWidth={3} />}
                 </div>
-                <Avatar name={dt.name} size={34} />
+                <Avatar name={dt.name} size={34} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
                 <span style={{ fontWeight: 700, fontSize: 14.5 }}>{dt.name}</span>
               </button>
             )
@@ -299,6 +299,8 @@ export function InstallmentsPage() {
                 debtDescription: inst.debt?.description ?? null,
                 debtorId: inst.debt?.debtor?.id ?? inst.debt?.debtorId ?? '',
                 debtorName: inst.debt?.debtor?.name ?? '',
+                debtorAvatarHue: inst.debt?.debtor?.avatarHue,
+                debtorAvatarEmoji: inst.debt?.debtor?.avatarEmoji,
                 status: inst.status,
               }}
               onOpenDebtor={(id) => navigate(`/debtors/${id}`)}

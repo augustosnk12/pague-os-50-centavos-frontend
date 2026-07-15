@@ -10,6 +10,7 @@ import { zodResolver } from '../../lib/zodResolver'
 import { parseCep, formatCep } from '../../lib/cep'
 import { fetchCep } from '../../lib/viacep'
 import { RELIABILITY_OPTIONS } from '../../constants/reliability'
+import { AvatarPicker } from './AvatarPicker'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
 import type { AddressPayload } from '../../api/debtors.api'
 
@@ -20,6 +21,8 @@ export interface DebtorFormPayload {
   phone: string | null
   notes: string | null
   reliability: DebtorReliability | null
+  avatarHue: number | null
+  avatarEmoji: string | null
   address: AddressPayload | null
 }
 
@@ -48,6 +51,8 @@ const debtorFormSchema = z.object({
   phone: optional(20, 'O telefone'),
   notes: optional(500, 'As observações'),
   reliability: z.enum(['GOOD_PAYER', 'LATE_BUT_PAYS', 'VEACO']).nullable(),
+  avatarHue: z.number().int().min(0).max(360).nullable(),
+  avatarEmoji: z.string().nullable(),
   zip: z
     .string()
     .refine((v) => v === '' || /^\d{8}$/.test(v), 'CEP deve conter 8 dígitos.'),
@@ -64,7 +69,7 @@ const debtorFormSchema = z.object({
 type DebtorFormValues = z.infer<typeof debtorFormSchema>
 
 const EMPTY: DebtorFormValues = {
-  name: '', email: '', phone: '', notes: '', reliability: null,
+  name: '', email: '', phone: '', notes: '', reliability: null, avatarHue: null, avatarEmoji: null,
   zip: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '',
 }
 
@@ -101,6 +106,8 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
       phone: editing?.phone ?? '',
       notes: editing?.notes ?? '',
       reliability: editing?.reliability ?? null,
+      avatarHue: editing?.avatarHue ?? null,
+      avatarEmoji: editing?.avatarEmoji ?? null,
       zip: a?.zip ?? '',
       street: a?.street ?? '',
       number: a?.number ?? '',
@@ -154,6 +161,8 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
       phone: v.phone.trim() || null,
       notes: v.notes.trim() || null,
       reliability: v.reliability,
+      avatarHue: v.avatarHue,
+      avatarEmoji: v.avatarEmoji,
       address,
     })
   }
@@ -203,6 +212,15 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
       </div>
 
       <div style={{ display: tab === 'general' ? 'flex' : 'none', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
+        <AvatarPicker
+          name={watch('name')}
+          hue={watch('avatarHue')}
+          emoji={watch('avatarEmoji')}
+          onChange={({ hue, emoji }) => {
+            setValue('avatarHue', hue)
+            setValue('avatarEmoji', emoji)
+          }}
+        />
         <Controller control={control} name="name" render={({ field, fieldState }) => (
           <Input label="Nome" value={field.value} onChange={field.onChange} placeholder="Maria Souza" required maxLength={100} error={fieldState.error?.message} autoFocus />
         )} />
