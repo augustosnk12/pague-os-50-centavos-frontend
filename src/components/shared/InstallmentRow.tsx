@@ -22,6 +22,8 @@ interface EnrichedInstallment {
   debtDescription: string | null
   debtorId: string
   debtorName: string
+  debtorAvatarHue?: number | null
+  debtorAvatarEmoji?: string | null
   status: InstallmentStatus
 }
 
@@ -34,7 +36,7 @@ interface InstallmentRowProps {
 }
 
 export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor = true, index = 0 }: InstallmentRowProps) {
-  const { inst, debtDescription, debtorId, debtorName } = enriched
+  const { inst, debtDescription, debtorId, debtorName, debtorAvatarHue, debtorAvatarEmoji } = enriched
   const now = new Date().toISOString()
   const days = daysBetween(now, inst.dueDate)
   const status = deriveInstStatus({ dueDate: inst.dueDate, paidAt: inst.paidAt, paidAmount: inst.paidAmount, amount: inst.amount })
@@ -76,7 +78,7 @@ export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor =
         onClick={() => onOpenDebtor?.(debtorId)}
         style={{ cursor: onOpenDebtor ? 'pointer' : 'default', flexShrink: 0 }}
       >
-        <Avatar name={debtorName} size={44} />
+        <Avatar name={debtorName} size={44} hue={debtorAvatarHue} emoji={debtorAvatarEmoji} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -114,14 +116,14 @@ export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor =
           <Money value={inst.amount} size={16.5} weight={800} />
         )}
         {status === 'PAID' ? (
-          (inst.payments?.length ?? 0) > 1 ? (
+          (inst.payments?.length ?? 0) > 0 ? (
             <button
               type="button"
               onClick={onReceive}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--paid-weak)', color: 'var(--paid)', border: 'none', padding: '5px 11px', borderRadius: 99, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              <Icon name="clock" size={13} strokeWidth={2.6} />
-              {inst.payments!.length} pagamentos
+              <Icon name="check" size={13} strokeWidth={2.6} />
+              Pago
             </button>
           ) : (
             <StatusBadge status="PAID" size="sm" />

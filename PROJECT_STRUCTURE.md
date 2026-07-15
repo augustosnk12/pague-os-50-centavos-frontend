@@ -36,6 +36,9 @@ All protected routes require `Authorization: Bearer <accessToken>`.
 | email | string \| null | unique per lender when present |
 | phone | string \| null | |
 | notes | string \| null | free-text observations |
+| avatar | object \| null | `{ hue: number, emoji: string \| null }` — placeholder avatar until real photo upload ships; render initials when null (see Avatar below) |
+| reliability | `"good"` \| `"late"` \| `"risky"` \| null | lender's own read on how this debtor pays: Bom pagador / Atrasa, mas paga / Veaco |
+| address | object \| null | `{ zip, street, number, complement, neighborhood, city, state }` — all sub-fields optional strings; whole object is null when nothing was entered |
 | lenderId | string | FK → Lender |
 | createdAt | Date | |
 
@@ -161,13 +164,19 @@ Creates a new debtor.
   "name": "Maria Souza",
   "email": "maria@example.com",
   "phone": "+55 11 91234-5678",
-  "notes": "Vizinha do bloco B"
+  "notes": "Vizinha do bloco B",
+  "avatar": { "hue": 20, "emoji": "\ud83c\udf38" },
+  "reliability": "good",
+  "address": { "zip": "01310-100", "street": "Av. Paulista", "number": "1000", "complement": null, "neighborhood": "Bela Vista", "city": "São Paulo", "state": "SP" }
 }
 ```
 - `name`: required, max 100 chars, unique per lender
 - `email`: optional, valid email, max 254 chars, unique per lender when present
 - `phone`: optional, max 20 chars
 - `notes`: optional, max 500 chars
+- `avatar`: optional, `{ hue, emoji }` — `hue` an OKLCH hue 0–360, `emoji` a single emoji string or null
+- `reliability`: optional enum, one of `good` \| `late` \| `risky`
+- `address`: optional object, all sub-fields optional strings, max ~120 chars each
 
 **Responses**
 - `201` — Debtor object
@@ -296,7 +305,7 @@ Lists installments for a given period.
 **Query params**
 - `period`: required — `day` | `week` | `month`
 - `date`: required — `YYYY-MM-DD` (any date within the desired period)
-- `debtorId`: optional — filter by a specific debtor
+- `debtorId`: optional — filter by a specific debtor. **The Parcelas screen now supports multi-select** (the lender can pick several debtors at once); when more than one is selected the prototype filters client-side over the unfiltered period result, so the API can stay single-`debtorId` — either add repeatable `debtorId` params / a comma-separated list, or leave as-is and let the client keep filtering locally.
 
 **Period ranges**
 - `day` → only the given date

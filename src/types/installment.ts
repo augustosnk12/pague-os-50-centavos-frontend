@@ -24,6 +24,8 @@ export interface InstallmentEnriched extends Installment {
     debtor?: {
       id: string
       name: string
+      avatarHue: number | null
+      avatarEmoji: string | null
     }
   }
 }

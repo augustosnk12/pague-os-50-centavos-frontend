@@ -160,9 +160,14 @@ export function PaymentSheet({ open, onClose, context, onConfirm, onDeletePaymen
       setDateISO(todayISO())
       setErr('')
       setQuick('total')
-      setHistOpen(remainingBefore <= 0)
     }
   }, [open, inst?.id, inst?.paidAmount])
+
+  useEffect(() => {
+    if (open && inst) {
+      setHistOpen(remainingBefore <= 0)
+    }
+  }, [open, inst?.id])
 
   if (!context || !inst) return null
 

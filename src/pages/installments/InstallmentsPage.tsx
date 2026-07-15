@@ -2,9 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
+import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
+import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useToast } from '../../contexts/ToastContext'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { IconButton } from '../../components/ui/IconButton'
+import { Icon } from '../../components/ui/Icon'
+import { Avatar } from '../../components/ui/Avatar'
+import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
+import { Modal } from '../../components/ui/Modal'
 import { InstallmentRow } from '../../components/shared/InstallmentRow'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { money, translateApiError, deriveInstStatus } from '../../lib/utils'
@@ -35,26 +42,50 @@ export function InstallmentsPage() {
   const [period, setPeriod] = useState<Period>('month')
   const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10))
   const [filter, setFilter] = useState<Filter>('ALL')
+  const [debtorIds, setDebtorIds] = useState<string[]>([]) // empty = all debtors
+  const [debtorPickerOpen, setDebtorPickerOpen] = useState(false)
+  const [debtorSearch, setDebtorSearch] = useState('')
   const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
 
   const { data: allItems = [], isLoading } = useInstallmentsByPeriod({ period, date: dateKey })
+  const { data: debtors = [] } = useDebtors()
   const registerPayment = useRegisterPayment()
+  const deletePayment = useDeletePayment()
 
   const derivedItems = allItems.map((i) => ({
     ...i,
     status: deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount }),
   }))
 
-  const filtered: InstallmentEnriched[] = (filter === 'ALL' ? derivedItems : derivedItems.filter((i) => i.status === filter))
+  // Debtor filter (client-side). Empty selection = all debtors.
+  const debtorItems = debtorIds.length > 0
+    ? derivedItems.filter((i) => debtorIds.includes(i.debt?.debtor?.id ?? i.debt?.debtorId ?? ''))
+    : derivedItems
+
+  const filtered: InstallmentEnriched[] = (filter === 'ALL' ? debtorItems : debtorItems.filter((i) => i.status === filter))
     .sort((a, b) => (a.status === 'PAID' ? 1 : 0) - (b.status === 'PAID' ? 1 : 0))
 
   const counts: Record<Filter, number> = {
-    ALL: derivedItems.length,
-    OVERDUE: derivedItems.filter((i) => i.status === 'OVERDUE').length,
-    PENDING: derivedItems.filter((i) => i.status === 'PENDING').length,
-    PARTIALLY_PAID: derivedItems.filter((i) => i.status === 'PARTIALLY_PAID').length,
-    PAID: derivedItems.filter((i) => i.status === 'PAID').length,
+    ALL: debtorItems.length,
+    OVERDUE: debtorItems.filter((i) => i.status === 'OVERDUE').length,
+    PENDING: debtorItems.filter((i) => i.status === 'PENDING').length,
+    PARTIALLY_PAID: debtorItems.filter((i) => i.status === 'PARTIALLY_PAID').length,
+    PAID: debtorItems.filter((i) => i.status === 'PAID').length,
   }
+
+  const debtorFilterLabel = debtorIds.length === 0
+    ? 'Todos os devedores'
+    : debtorIds.length === 1
+      ? debtors.find((d) => d.id === debtorIds[0])?.name ?? '1 devedor'
+      : `${debtorIds.length} devedores`
+
+  const debtorMatches = debtors.filter((d) => d.name.toLowerCase().includes(debtorSearch.trim().toLowerCase()))
+
+  const toggleDebtor = (id: string) =>
+    setDebtorIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
+
+  const closeDebtorPicker = () => { setDebtorPickerOpen(false); setDebtorSearch('') }
 
   const totalDue = filtered.filter((i) => i.status !== 'PAID').reduce((s, i) => {
     return s + (Number(i.amount) - Number(i.paidAmount ?? '0'))
@@ -89,6 +120,22 @@ export function InstallmentsPage() {
       onError: (e: unknown) => {
         const msg = getApiError(e)
         showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
+      },
+    })
+  }
+
+  const handleDeletePayment = (installmentId: string, paymentId: string) => {
+    setDeletingPaymentId(paymentId)
+    deletePayment.mutate({ installmentId, paymentId }, {
+      onSuccess: (updatedInstallment) => {
+        setDeletingPaymentId(undefined)
+        showToast('Pagamento removido')
+        setPaymentContext((ctx) => ctx ? { ...ctx, installment: { ...ctx.installment, ...updatedInstallment } } : null)
+      },
+      onError: (e: unknown) => {
+        setDeletingPaymentId(undefined)
+        const msg = getApiError(e)
+        showToast(translateApiError(msg, 'Erro ao excluir pagamento.'), { icon: 'alert' })
       },
     })
   }
@@ -148,7 +195,7 @@ export function InstallmentsPage() {
                 fontWeight: 700, fontSize: 13.5, transition: 'all .15s',
                 border: `1.5px solid ${active ? c : 'var(--border)'}`,
                 background: active ? c : 'var(--surface)',
-                color: active ? '#fff' : 'var(--text-muted)',
+                color: active ? 'var(--on-primary)' : 'var(--text-muted)',
               }}
             >
               {f.label} <span style={{ opacity: 0.7 }}>{counts[f.id]}</span>
@@ -156,6 +203,86 @@ export function InstallmentsPage() {
           )
         })}
       </div>
+
+      {/* Debtor filter */}
+      <div style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => setDebtorPickerOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 99,
+            cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13.5,
+            border: `1.5px solid ${debtorIds.length ? 'var(--primary)' : 'var(--border)'}`,
+            background: debtorIds.length ? 'var(--primary-weak)' : 'var(--surface)',
+            color: debtorIds.length ? 'var(--primary)' : 'var(--text-muted)',
+          }}
+        >
+          <Icon name="user" size={15} />
+          {debtorFilterLabel}
+          <Icon name="chevronDown" size={13} />
+        </button>
+      </div>
+
+      {/* Debtor picker */}
+      <Modal
+        open={debtorPickerOpen}
+        onClose={closeDebtorPicker}
+        title="Filtrar por devedor"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDebtorIds([])}>Limpar</Button>
+            <Button full onClick={closeDebtorPicker}>Aplicar</Button>
+          </>
+        }
+      >
+        <div style={{ marginBottom: 10, paddingTop: 4 }}>
+          <Input value={debtorSearch} onChange={setDebtorSearch} placeholder="Buscar devedor…" autoFocus />
+        </div>
+        {debtorIds.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-faint)' }}>
+              {debtorIds.length} selecionado{debtorIds.length > 1 ? 's' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setDebtorIds([])}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', padding: 0, fontFamily: 'inherit' }}
+            >
+              Limpar
+            </button>
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '44vh', overflowY: 'auto' }}>
+          {debtorMatches.map((dt) => {
+            const checked = debtorIds.includes(dt.id)
+            return (
+              <button
+                key={dt.id}
+                type="button"
+                onClick={() => toggleDebtor(dt.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 8px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: 'var(--text)' }}
+              >
+                <div
+                  style={{
+                    width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: 'grid', placeItems: 'center',
+                    border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border-strong)'}`,
+                    background: checked ? 'var(--primary)' : 'transparent',
+                  }}
+                >
+                  {checked && <Icon name="check" size={13} color="var(--on-primary)" strokeWidth={3} />}
+                </div>
+                <Avatar name={dt.name} size={34} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
+                <span style={{ fontWeight: 700, fontSize: 14.5 }}>{dt.name}</span>
+              </button>
+            )
+          })}
+          {debtorMatches.length === 0 && (
+            <div style={{ padding: '18px 4px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13.5, fontWeight: 600 }}>
+              Nenhum devedor encontrado.
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* List */}
       {isLoading ? (
@@ -172,6 +299,8 @@ export function InstallmentsPage() {
                 debtDescription: inst.debt?.description ?? null,
                 debtorId: inst.debt?.debtor?.id ?? inst.debt?.debtorId ?? '',
                 debtorName: inst.debt?.debtor?.name ?? '',
+                debtorAvatarHue: inst.debt?.debtor?.avatarHue,
+                debtorAvatarEmoji: inst.debt?.debtor?.avatarEmoji,
                 status: inst.status,
               }}
               onOpenDebtor={(id) => navigate(`/debtors/${id}`)}
@@ -188,6 +317,8 @@ export function InstallmentsPage() {
         onClose={() => setPaymentContext(null)}
         context={paymentContext}
         onConfirm={handleConfirmPayment}
+        onDeletePayment={handleDeletePayment}
+        deletingPaymentId={deletingPaymentId}
         loading={registerPayment.isPending}
       />
     </main>

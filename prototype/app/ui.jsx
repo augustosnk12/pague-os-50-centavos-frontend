@@ -161,16 +161,89 @@ function Field({ label, value, onChange, placeholder, type = "text", required, h
 }
 
 // ---------- Avatar ----------
-function Avatar({ name, size = 44 }) {
-  const initials = (name || "?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
-  // deterministic hue offset from name
+// Preset avatar options (placeholder until real photo upload ships)
+const AVATAR_COLORS = [
+  { id: "sky",    hue: 235 },
+  { id: "teal",   hue: 185 },
+  { id: "green",  hue: 150 },
+  { id: "lime",   hue: 128 },
+  { id: "amber",  hue: 75 },
+  { id: "orange", hue: 45 },
+  { id: "rose",   hue: 20 },
+  { id: "violet", hue: 300 },
+];
+const AVATAR_EMOJIS = ["😀","😎","🤝","🦊","🐱","🐶","🐼","🦁","🐧","🌟","🍀","🌸","🔥","⚽","🎸","🚗","💼","🍕","☕","🏠"];
+
+function avatarBg(name, avatar) {
+  if (avatar && avatar.hue != null) return `oklch(0.62 0.13 ${avatar.hue})`;
   let h = 0; for (const c of (name||"")) h = (h + c.charCodeAt(0)) % 360;
-  const hue = `calc(var(--accent-h) + ${(h % 60) - 30})`;
+  return `oklch(0.62 0.13 calc(var(--accent-h) + ${(h % 60) - 30}))`;
+}
+
+function Avatar({ name, size = 44, avatar }) {
+  const initials = (name || "?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  const emoji = avatar && avatar.emoji;
   return (
     <div style={{ width: size, height: size, borderRadius: "30%", flexShrink: 0, display: "grid", placeItems: "center",
-      background: `oklch(0.62 0.13 ${hue})`, color: "#fff", fontWeight: 800, fontSize: size * 0.36, letterSpacing: "-0.02em",
-      boxShadow: "var(--shadow-sm)" }}>
-      {initials}
+      background: avatarBg(name, avatar), color: "#fff", fontWeight: 800, fontSize: emoji ? size * 0.5 : size * 0.36, letterSpacing: "-0.02em",
+      boxShadow: "var(--shadow-sm)", lineHeight: 1 }}>
+      {emoji ? <span style={{ filter: "saturate(1.05)" }}>{emoji}</span> : initials}
+    </div>
+  );
+}
+
+// Avatar picker used in create/edit forms
+function AvatarPicker({ name, avatar, onChange }) {
+  const hue = (avatar && avatar.hue != null) ? avatar.hue : AVATAR_COLORS[0].hue;
+  const emoji = (avatar && avatar.emoji) || null;
+  const set = (patch) => onChange({ hue, emoji, ...patch });
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 9 }}>Avatar</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+        <Avatar name={name} size={58} avatar={{ hue, emoji }} />
+        <div style={{ fontSize: 12.5, color: "var(--text-faint)", fontWeight: 600, lineHeight: 1.4 }}>
+          {emoji ? "Toque em um emoji de novo para voltar às iniciais." : "Escolha uma cor e, se quiser, um emoji."}
+        </div>
+      </div>
+
+      <button type="button" onClick={()=>setExpanded(v=>!v)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 12px",
+          borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", cursor: "pointer",
+          fontWeight: 700, fontSize: 13.5, color: "var(--text-muted)" }}>
+        Personalizar cor e emoji
+        <Icon name="chevronDown" size={15} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+      </button>
+
+      {expanded && <div style={{ marginTop: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+          {AVATAR_COLORS.map(c => {
+            const active = c.hue === hue;
+            return (
+              <button key={c.id} type="button" onClick={()=>set({ hue: c.hue })} aria-label={c.id}
+                style={{ width: 30, height: 30, borderRadius: "30%", cursor: "pointer", flexShrink: 0,
+                  background: `oklch(0.62 0.13 ${c.hue})`, border: active ? "2.5px solid var(--text)" : "2.5px solid transparent",
+                  boxShadow: active ? "0 0 0 2px var(--surface) inset" : "var(--shadow-sm)", transition: "border-color .15s, transform .15s",
+                  transform: active ? "scale(1.06)" : "none" }} />
+            );
+          })}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(38px, 1fr))", gap: 6 }}>
+          {AVATAR_EMOJIS.map(e => {
+            const active = e === emoji;
+            return (
+              <button key={e} type="button" onClick={()=>set({ emoji: active ? null : e })}
+                style={{ aspectRatio: "1", display: "grid", placeItems: "center", fontSize: 19, cursor: "pointer", borderRadius: 10, minWidth: 0,
+                  background: active ? "var(--primary-weak)" : "var(--surface-2)", border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
+                  transition: "background .12s, border-color .12s", lineHeight: 1 }}>
+                {e}
+              </button>
+            );
+          })}
+        </div>
+      </div>}
     </div>
   );
 }
@@ -202,11 +275,11 @@ function Sheet({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "oklch(0.2 0.03 var(--accent-h) / 0.5)",
-      backdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center", animation: "ltFade .2s ease" }}
+      backdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center", animation: "ltFade .2s ease forwards" }}
       className="lt-sheet-wrap">
       <div onClick={e=>e.stopPropagation()} className="lt-sheet"
         style={{ background: "var(--surface)", width: "100%", maxWidth: 460, borderRadius: "calc(var(--radius) * 1.2) calc(var(--radius) * 1.2) 0 0",
-          boxShadow: "var(--shadow-lg)", maxHeight: "92vh", display: "flex", flexDirection: "column", animation: "ltScaleIn .28s cubic-bezier(0.22,1,0.36,1)" }}>
+          boxShadow: "var(--shadow-lg)", maxHeight: "92vh", display: "flex", flexDirection: "column", animation: "ltScaleIn .28s cubic-bezier(0.22,1,0.36,1) forwards" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 18px 12px" }}>
           <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>{title}</div>
           <IconButton name="x" onClick={onClose} label="Fechar" />
@@ -255,4 +328,4 @@ function Empty({ icon = "wallet", title, sub, action }) {
   );
 }
 
-Object.assign(window, { Icon, Button, IconButton, StatusBadge, TypeChip, Money, Field, Avatar, Card, Sheet, Toast, Progress, Empty });
+Object.assign(window, { Icon, Button, IconButton, StatusBadge, TypeChip, Money, Field, Avatar, AvatarPicker, Card, Sheet, Toast, Progress, Empty });

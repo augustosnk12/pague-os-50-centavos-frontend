@@ -33,7 +33,7 @@ export function DebtFormPage() {
   const createDebtor = useCreateDebtor()
 
   const [debtorId, setDebtorId] = useState(presetDebtorId || (debtors[0]?.id ?? ''))
-  const [type, setType] = useState<DebtType>('PIX_INSTALLMENT')
+  const [type, setType] = useState<DebtType>('PIX')
   const [amountCents, setAmountCents] = useState('')
   const [count, setCount] = useState('')
   const [firstDue, setFirstDue] = useState(() => {
