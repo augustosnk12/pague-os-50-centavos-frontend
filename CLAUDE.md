@@ -15,6 +15,20 @@ npm run dev        # http://localhost:5174
 npm run dev        # http://localhost:3000
 ```
 
+## Checks (CI runs all of them)
+
+```bash
+npm run typecheck     # app + e2e code
+npm run lint          # ESLint (jsx-a11y rules are warnings until UI v2 replaces the old screens)
+npm test              # Vitest + Testing Library (jsdom) — src/**/*.test.ts(x)
+npm run build && npm run check:bundle   # initial JS must stay < 170 KB gzip
+npm run e2e           # Playwright vs the REAL API (../pague-os-50-centavos, or API_DIR)
+                      # on an empty <db>_e2e_test database; axe report attached per page
+```
+
+- Smoke tests for every route live in `src/test/routes.smoke.test.tsx` (API faked in `src/test/fakeApi.ts`). When a screen is redesigned, update its smoke/e2e assertions in the same PR.
+- E2E sessions are created in the DB and signed with the suite's JWT secret; only the dedicated magic-link tests call `/auth/verify` (the API rate-limits it to 10 per 15 min).
+
 ## Stack
 
 React 19 + Vite + TypeScript 5 strict, React Router v7, TanStack Query v5, Axios, js-cookie. No CSS framework — inline styles + OKLCH CSS custom properties in `src/styles/index.css`.
