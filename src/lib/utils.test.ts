@@ -1,0 +1,76 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { deriveInstStatus, genInstallments, money } from './utils'
+import { formatCents, parseCurrencyDigits } from './currency'
+import { formatCep, parseCep } from './cep'
+import { periodLabel, shiftDate } from './period'
+
+afterEach(() => vi.useRealTimers())
+
+describe('deriveInstStatus', () => {
+  const today = new Date('2026-11-05T12:00:00Z')
+  const at = (d: string) => `${d}T00:00:00.000Z`
+
+  it('is PAID when paidAt is set, regardless of the API status', () => {
+    vi.setSystemTime(today)
+    expect(deriveInstStatus({ dueDate: at('2026-10-01'), paidAt: at('2026-10-02') })).toBe('PAID')
+  })
+
+  it('is OVERDUE after the due day, but not on the due day itself', () => {
+    vi.setSystemTime(today)
+    expect(deriveInstStatus({ dueDate: at('2026-11-04'), paidAt: null })).toBe('OVERDUE')
+    expect(deriveInstStatus({ dueDate: at('2026-11-05'), paidAt: null })).toBe('PENDING')
+    expect(deriveInstStatus({ dueDate: at('2026-11-06'), paidAt: null })).toBe('PENDING')
+  })
+
+  it('is PARTIALLY_PAID while something but not everything was paid', () => {
+    vi.setSystemTime(today)
+    expect(deriveInstStatus({ dueDate: at('2026-12-01'), paidAt: null, paidAmount: '40', amount: '100' })).toBe(
+      'PARTIALLY_PAID',
+    )
+  })
+})
+
+describe('genInstallments (mirrors the API rule)', () => {
+  it('splits the total and gives the cent remainder to installment #1', () => {
+    const out = genInstallments(100, 3, '2026-12-10T00:00:00.000Z')
+    expect(out.map((i) => i.amount)).toEqual(['33.34', '33.33', '33.33'])
+    expect(out.map((i) => i.dueDate.slice(0, 10))).toEqual(['2026-12-10', '2027-01-10', '2027-02-10'])
+  })
+
+  it('returns nothing for an invalid date', () => {
+    expect(genInstallments(100, 2, 'not a date')).toEqual([])
+  })
+})
+
+describe('money and currency input', () => {
+  it('formats BRL', () => {
+    expect(money(1234.5).replace(/\s/g, ' ')).toBe('R$ 1.234,50')
+  })
+
+  it('keeps digits only, at most 10', () => {
+    expect(parseCurrencyDigits('R$ 1.234,56abc')).toBe('123456')
+    expect(parseCurrencyDigits('123456789012')).toBe('1234567890')
+    expect(formatCents('123456')).toBe('1.234,56')
+    expect(formatCents('')).toBe('')
+  })
+})
+
+describe('CEP', () => {
+  it('stores digits and displays 00000-000', () => {
+    expect(parseCep('01310-100x')).toBe('01310100')
+    expect(formatCep('01310100')).toBe('01310-100')
+    expect(formatCep('0131')).toBe('0131')
+  })
+})
+
+describe('period navigation', () => {
+  it('shifts day, week and month (UTC-safe across month ends)', () => {
+    expect(shiftDate('day', '2026-11-30', 1)).toBe('2026-12-01')
+    expect(shiftDate('week', '2026-11-05', -1)).toBe('2026-10-29')
+    expect(shiftDate('month', '2026-01-15', 1)).toBe('2026-02-15')
+  })
+
+  it('labels a week from Monday to Sunday', () => {
+    expect(periodLabel('week', '2026-11-05')).toMatch(/02.*08/)
+  })
+})
