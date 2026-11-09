@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import type React from 'react'
 
 interface InputProps {
@@ -45,7 +45,16 @@ export function Input({
   onKeyDown,
 }: InputProps) {
   const [focus, setFocus] = useState(false)
-  const ring = error ? 'var(--overdue)' : focus ? 'var(--primary)' : 'var(--border-strong)'
+  const id = useId()
+  const msgId = `${id}-msg`
+  // Field ↔ label ↔ message wiring for screen readers (improvement 20).
+  const a11y = {
+    id,
+    'aria-invalid': error ? true : undefined,
+    'aria-required': required || undefined,
+    'aria-describedby': hint || error ? msgId : undefined,
+  }
+  const ring = error ? 'var(--overdue)' : focus ? 'var(--primary)' : 'var(--border-input)'
 
   const fieldStyle: CSSProperties = {
     width: '100%',
@@ -60,11 +69,12 @@ export function Input({
   }
 
   return (
-    <label style={{ display: 'block', ...style }} className={className}>
+    // The whole box stays clickable (focuses the field); htmlFor makes the link explicit.
+    <label htmlFor={id} style={{ display: 'block', ...style }} className={className}>
       {label && (
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
-          {label} {required && <span style={{ color: 'var(--primary)' }}>*</span>}
-        </div>
+        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+          {label} {required && <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>}
+        </span>
       )}
       <div
         style={{
@@ -82,6 +92,7 @@ export function Input({
         {prefix && <span style={{ color: 'var(--text-faint)', fontWeight: 700, fontSize: 15 }}>{prefix}</span>}
         {textarea ? (
           <textarea
+            {...a11y}
             rows={rows}
             value={value}
             placeholder={placeholder}
@@ -95,6 +106,7 @@ export function Input({
           />
         ) : (
           <input
+            {...a11y}
             type={type}
             inputMode={inputMode}
             value={value}
@@ -112,9 +124,9 @@ export function Input({
         )}
       </div>
       {(hint ?? error) && (
-        <div style={{ fontSize: 12.5, marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
+        <span id={msgId} role={error ? 'alert' : undefined} style={{ display: 'block', fontSize: 12.5, marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
           {error ?? hint}
-        </div>
+        </span>
       )}
     </label>
   )

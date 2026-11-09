@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { LinkButton } from '../../components/ui/LinkButton'
+import { Link } from 'react-router-dom'
 import { Logo } from '../../components/layout/Logo'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
@@ -18,7 +19,6 @@ export function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
-  const navigate = useNavigate()
   const register = useRegister()
   const { cooldown, start: startCooldown } = useCooldown(60, 'lt_cd_register_resend')
 
@@ -82,9 +82,9 @@ export function RegisterPage() {
             </div>
             <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
               Já tem conta?{' '}
-              <a onClick={() => navigate('/login')} style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>
+              <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700 }}>
                 Entrar
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -104,14 +104,14 @@ export function RegisterPage() {
             </p>
             <div style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--text-muted)', animation: 'ltRise 0.4s cubic-bezier(0.22,1,0.36,1) 0.28s both' }}>
               Não recebeu?{' '}
-              <a
+              <LinkButton
                 onClick={() => { if (startCooldown()) void authApi.resendConfirmation({ email }) }}
                 style={{ color: cooldown > 0 ? 'var(--text-faint)' : 'var(--primary)', fontWeight: 700, cursor: cooldown > 0 ? 'default' : 'pointer' }}
               >
                 {cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Reenviar'}
-              </a>
+              </LinkButton>
               <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-              <a onClick={() => setStep('form')} style={{ color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Voltar</a>
+              <LinkButton onClick={() => setStep('form')} style={{ color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Voltar</LinkButton>
             </div>
           </div>
         )}

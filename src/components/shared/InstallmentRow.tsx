@@ -3,6 +3,7 @@ import { Money } from '../ui/Money'
 import { Button } from '../ui/Button'
 import { StatusBadge } from '../ui/Badge'
 import { Icon } from '../ui/Icon'
+import { PlainButton } from '../ui/LinkButton'
 import { fmtDate, daysBetween, STATUS_META, deriveInstStatus, money } from '../../lib/utils'
 import type { InstallmentStatus } from '../../types/installment'
 
@@ -74,21 +75,32 @@ export function InstallmentRow({ enriched, onOpenDebtor, onReceive, showDebtor =
         animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${index * 0.04}s both`,
       }}
     >
-      <div
-        onClick={() => onOpenDebtor?.(debtorId)}
-        style={{ cursor: onOpenDebtor ? 'pointer' : 'default', flexShrink: 0 }}
-      >
-        <Avatar name={debtorName} size={44} hue={debtorAvatarHue} emoji={debtorAvatarEmoji} />
-      </div>
+      {onOpenDebtor ? (
+        // When the name is shown it is the keyboard stop; the avatar is a mouse shortcut.
+        <PlainButton
+          onClick={() => onOpenDebtor(debtorId)}
+          aria-label={`Abrir perfil de ${debtorName}`}
+          tabIndex={showDebtor ? -1 : undefined}
+          aria-hidden={showDebtor ? true : undefined}
+          style={{ flexShrink: 0, borderRadius: '30%' }}
+        >
+          <Avatar name={debtorName} size={44} hue={debtorAvatarHue} emoji={debtorAvatarEmoji} />
+        </PlainButton>
+      ) : (
+        <div style={{ flexShrink: 0 }}>
+          <Avatar name={debtorName} size={44} hue={debtorAvatarHue} emoji={debtorAvatarEmoji} />
+        </div>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {showDebtor && (
-            <span
+            <PlainButton
               onClick={() => onOpenDebtor?.(debtorId)}
-              style={{ fontWeight: 800, fontSize: 15, cursor: onOpenDebtor ? 'pointer' : 'default', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              disabled={!onOpenDebtor}
+              style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
             >
               {debtorName}
-            </span>
+            </PlainButton>
           )}
           <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 600 }}>Parcela {inst.number}</span>
         </div>

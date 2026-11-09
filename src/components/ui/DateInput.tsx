@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type CSSProperties } from 'react'
+import { useState, useRef, useEffect, useId, type CSSProperties } from 'react'
 import type React from 'react'
 import { MESLONG } from '../../lib/utils'
 import { Icon } from './Icon'
@@ -54,6 +54,7 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
     const n = new Date()
     return new Date(Date.UTC(n.getFullYear(), n.getMonth(), 1))
   })
+  const fieldId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -114,12 +115,16 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
   return (
     <div ref={containerRef} style={{ position: 'relative', ...style }}>
       {label && (
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
-          {label} {required && <span style={{ color: 'var(--primary)' }}>*</span>}
-        </div>
+        <label htmlFor={fieldId} style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+          {label} {required && <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>}
+        </label>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: `1.5px solid ${invalid ? 'var(--overdue)' : 'var(--border-strong)'}`, borderRadius: 'calc(var(--radius) * 0.6)', padding: '13px 15px', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: `1.5px solid ${invalid ? 'var(--overdue)' : 'var(--border-input)'}`, borderRadius: 'calc(var(--radius) * 0.6)', padding: '13px 15px', gap: 8 }}>
         <input
+          id={fieldId}
+          aria-required={required || undefined}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${fieldId}-msg` : undefined}
           type="text"
           value={display}
           onChange={handleChange}
@@ -140,13 +145,14 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
           }}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: calOpen ? 'var(--primary)' : 'var(--text-faint)' }}
           aria-label="Abrir calendário"
+          aria-expanded={calOpen}
         >
           <Icon name="calendar" size={18} />
         </button>
       </div>
 
       {invalid && (
-        <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--overdue)' }}>Data inválida.</div>
+        <div id={`${fieldId}-msg`} role="alert" style={{ fontSize: 12.5, marginTop: 6, color: 'var(--overdue)' }}>Data inválida.</div>
       )}
 
       {calOpen && (

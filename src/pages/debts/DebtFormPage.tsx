@@ -73,12 +73,12 @@ export function DebtFormPage() {
       },
       {
         onSuccess: (data) => {
-          showToast(`Cobrança criada · ${data.installments.length}× parcela${data.installments.length > 1 ? 's' : ''}`, { status: 'PENDING', icon: 'check' })
+          showToast(`Dívida criada · ${data.installments.length}× parcela${data.installments.length > 1 ? 's' : ''}`, { status: 'PENDING', icon: 'check' })
           navigate(`/debtors/${debtorId}`)
         },
         onError: (e: unknown) => {
           const msg = getApiError(e)
-          setErr(translateApiError(msg, 'Erro ao criar cobrança.'))
+          setErr(translateApiError(msg, 'Erro ao criar dívida.'))
         },
       },
     )
@@ -109,7 +109,7 @@ export function DebtFormPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
         <IconButton name="arrowLeft" onClick={() => navigate(-1)} label="Voltar" style={{ marginLeft: -8, marginTop: 2 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Nova cobrança</h1>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Nova dívida</h1>
           <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>Registre uma dívida e gere as parcelas.</p>
         </div>
       </div>
@@ -117,15 +117,17 @@ export function DebtFormPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* Debtor */}
         <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
-            Devedor <span style={{ color: 'var(--primary)' }}>*</span>
-          </div>
+          <label htmlFor="debt-debtor" style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+            Devedor <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>
+          </label>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <select
+                id="debt-debtor"
+                aria-required="true"
                 value={debtorId}
                 onChange={(e) => { setDebtorId(e.target.value); setErr('') }}
-                style={{ width: '100%', appearance: 'none', background: 'var(--surface)', border: '1.5px solid var(--border-strong)', borderRadius: 'calc(var(--radius)*0.6)', padding: '14px 40px 14px 15px', fontSize: 16, fontWeight: 600, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
+                style={{ width: '100%', appearance: 'none', background: 'var(--surface)', border: '1.5px solid var(--border-input)', borderRadius: 'calc(var(--radius)*0.6)', padding: '14px 40px 14px 15px', fontSize: 16, fontWeight: 600, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
               >
                 {debtors.length === 0 && <option value="">Nenhum devedor</option>}
                 {debtors.map((dt) => <option key={dt.id} value={dt.id}>{dt.name}</option>)}
@@ -221,7 +223,7 @@ export function DebtFormPage() {
           <Button full size="lg" icon="check" onClick={handleSubmit} disabled={createDebt.isPending}>
             {createDebt.isPending
               ? 'Criando…'
-              : `Criar cobrança${selectedDebtor ? ` p/ ${selectedDebtor.name.split(' ')[0]}` : ''}`}
+              : `Criar dívida${selectedDebtor ? ` p/ ${selectedDebtor.name.split(' ')[0]}` : ''}`}
           </Button>
         </div>
       </div>

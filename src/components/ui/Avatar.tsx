@@ -18,7 +18,11 @@ export function Avatar({ name, size = 44, hue, emoji, className }: AvatarProps) 
     .toUpperCase()
 
   // Explicit preset hue wins; otherwise derive a stable hue from the name.
-  const background = hue != null ? `oklch(0.62 0.13 ${hue})` : `oklch(0.62 0.13 ${avatarHue(name)})`
+  // Light tint + dark initials (inverted in dark mode via --av-l/--av-t):
+  // white on a mid tone was 3.8:1, below WCAG AA (improvement 20).
+  const h = hue != null ? String(hue) : avatarHue(name)
+  const background = `oklch(var(--av-l) 0.08 ${h})`
+  const color = `oklch(var(--av-t) 0.11 ${h})`
 
   return (
     <div
@@ -31,7 +35,7 @@ export function Avatar({ name, size = 44, hue, emoji, className }: AvatarProps) 
         display: 'grid',
         placeItems: 'center',
         background,
-        color: '#fff',
+        color,
         fontWeight: 800,
         fontSize: emoji ? size * 0.5 : size * 0.36,
         letterSpacing: '-0.02em',

@@ -1,25 +1,29 @@
-import { useState, type CSSProperties } from 'react'
+import { useState, type ButtonHTMLAttributes, type CSSProperties, type Ref } from 'react'
 import { Icon } from './Icon'
 
-interface IconButtonProps {
+interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'children' | 'name'> {
   name: string
-  onClick?: () => void
+  /** Required: an icon-only button has no other accessible name (improvement 20). */
+  label: string
   size?: number
-  label?: string
   active?: boolean
   style?: CSSProperties
-  className?: string
+  ref?: Ref<HTMLButtonElement>
 }
 
-export function IconButton({ name, onClick, size = 20, label, active, style, className }: IconButtonProps) {
+export function IconButton({ name, onClick, size = 20, label, active, style, className, ref, type = 'button', ...rest }: IconButtonProps) {
   const [hover, setHover] = useState(false)
   return (
     <button
+      ref={ref}
+      type={type}
       aria-label={label}
+      title={rest.title ?? label}
       onClick={onClick}
       className={className}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      {...rest}
       style={{
         display: 'grid',
         placeItems: 'center',

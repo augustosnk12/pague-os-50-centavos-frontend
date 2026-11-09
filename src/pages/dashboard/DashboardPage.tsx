@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { useNavigate, Link } from 'react-router-dom'
 import { useDashboard } from '../../hooks/dashboard/useDashboard'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
@@ -23,8 +24,10 @@ export function DashboardPage() {
   const { showToast } = useToast()
 
   const today = new Date().toISOString().slice(0, 10)
-  const { data: dashData, isLoading: dashLoading } = useDashboard(mKey)
-  const { data: monthInstallments = [] } = useInstallmentsByPeriod({ period: 'month', date: today })
+  const { data: dashData, isLoading: dashLoading, isError: dashError, refetch: refetchDash, isFetching: dashFetching } = useDashboard(mKey)
+  const monthQuery = useInstallmentsByPeriod({ period: 'month', date: today })
+  const monthInstallments = monthQuery.data ?? []
+  const loadFailed = (dashError && !dashData) || (monthQuery.isError && !monthQuery.data)
   const registerPayment = useRegisterPayment()
 
   const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
@@ -99,7 +102,7 @@ export function DashboardPage() {
           overflow: 'hidden',
           borderRadius: 'calc(var(--radius)*1.15)',
           padding: '24px 24px 22px',
-          background: 'linear-gradient(135deg, var(--primary), oklch(0.42 0.2 calc(var(--accent-h) + 25)))',
+          background: 'linear-gradient(135deg, var(--hero-from), oklch(0.42 0.2 calc(var(--accent-h) + 25)))',
           color: '#fff',
           boxShadow: 'var(--shadow-primary)',
           marginBottom: 14,
@@ -129,6 +132,12 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {loadFailed && (
+        <div style={{ marginBottom: 14 }}>
+          <ErrorState onRetry={() => { void refetchDash(); void monthQuery.refetch() }} retrying={dashFetching || monthQuery.isFetching} />
+        </div>
+      )}
+
       {/* Month summary */}
       {!dashLoading && dashData && (
         <Card style={{ marginBottom: 14 }}>
@@ -155,7 +164,7 @@ export function DashboardPage() {
       {/* Action list */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>Precisa de atenção</h2>
-        <a onClick={() => navigate('/installments')} style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--primary)', cursor: 'pointer' }}>Ver tudo</a>
+        <Link to="/installments" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--primary)' }}>Ver tudo</Link>
       </div>
 
       {actionItems.length === 0 ? (
