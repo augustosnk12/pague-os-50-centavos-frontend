@@ -86,6 +86,15 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
     syncInert()
     returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previousOverflow = document.body.style.overflow
+
+    // Esc closes the TOP dialog wherever the focus is (it moves inside one frame
+    // after opening; an early Esc used to be lost on slow devices).
+    const onEsc = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape' || stack[stack.length - 1] !== host) return
+      e.preventDefault()
+      onCloseRef.current()
+    }
+    document.addEventListener('keydown', onEsc)
     document.body.style.overflow = 'hidden'
 
     // Initial focus: keep an element that already took it (e.g. an autofocused
@@ -99,6 +108,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
     })
 
     return () => {
+      document.removeEventListener('keydown', onEsc)
       stack.splice(stack.indexOf(host), 1)
       syncInert()
       host.remove()
@@ -111,11 +121,6 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   if (!mounted || !host) return null
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation()
-      onCloseRef.current()
-      return
-    }
     if (e.key !== 'Tab' || !dialogRef.current) return
     const items = focusables(dialogRef.current)
     if (items.length === 0) {

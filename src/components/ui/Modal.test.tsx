@@ -108,3 +108,27 @@ describe('Modal (accessible dialog)', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+describe('Modal: Esc right after opening', () => {
+  it('closes even before focus has moved inside (slow devices)', async () => {
+    const onClose = vi.fn()
+    render(<Modal open title="Folha" onClose={onClose}><input aria-label="Campo" /></Modal>)
+    // No waiting for the initial focus: the key goes to <body>.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('with nested dialogs, Esc closes only the top one', () => {
+    const outer = vi.fn()
+    const inner = vi.fn()
+    render(
+      <>
+        <Modal open title="Fora" onClose={outer}><p>a</p></Modal>
+        <Modal open title="Dentro" onClose={inner}><p>b</p></Modal>
+      </>,
+    )
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(inner).toHaveBeenCalledOnce()
+    expect(outer).not.toHaveBeenCalled()
+  })
+})
