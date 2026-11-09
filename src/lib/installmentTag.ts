@@ -1,5 +1,4 @@
 import { fmtList, fmtMoney } from './format'
-import type { InstallmentEnriched } from '../types/installment'
 
 /** Whole days from `today` to the due day (negative = overdue). Both read as calendar days. */
 export function daysUntil(dueDate: string, today: string): number {
@@ -54,8 +53,7 @@ export function installmentTag(
 }
 
 /** "7/12", "mensal" for recurring debts, or "parcela 7" on an API that does not send the count. */
-export function installmentPosition(inst: Pick<InstallmentEnriched, 'number' | 'debt'>): string {
-  if (inst.debt?.recurrence === 'MONTHLY') return '↻ mensal'
-  const n = inst.debt?.installmentCount
-  return n ? `${inst.number}/${n}` : `parcela ${inst.number}`
+export function installmentPosition(number: number, count?: number | null, recurrence?: string | null): string {
+  if (recurrence === 'MONTHLY') return '↻ mensal'
+  return count ? `${number}/${count}` : `parcela ${number}`
 }

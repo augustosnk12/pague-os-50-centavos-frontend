@@ -281,3 +281,30 @@ test.describe('Painel (S1)', () => {
     await expect(page).toHaveURL(/\/debts\/new\?debtorId=/)
   })
 })
+
+test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the payment', async ({ page, session, a11y }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Davi Desfaz', phone: '11912345678' })
+  const now = new Date()
+  const due = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 2)).toISOString()
+  await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Bicicleta', totalAmount: 300, numberOfInstallments: 3, firstDueDate: due })
+  const paid = async () => (await session.api('GET', `/debtors/${d.id}/debts`))[0].installments[0].payments.length
+
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: /^Davi Desfaz, Bicicleta/ }).click()
+  const sheet = page.getByRole('dialog', { name: 'Registrar pagamento de Davi Desfaz' })
+  await expect(sheet).toContainText('Bicicleta · 1/3 · atrasada há 2 dias')
+  await expect(sheet.getByRole('link', { name: 'Lembrar Davi no WhatsApp' })).toHaveAttribute('href', /^https:\/\/wa\.me\/5511912345678\?text=/)
+  await a11y('payment-sheet-overdue')
+
+  await sheet.getByRole('button', { name: 'Ontem' }).click()
+  await sheet.getByRole('button', { name: /^Quitar parcela · R\$\s100,00$/ }).click()
+  await expect(sheet).toHaveCount(0)
+  await expect.poll(paid).toBe(1)
+  const payment = (await session.api('GET', `/debtors/${d.id}/debts`))[0].installments[0].payments[0]
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  expect(payment.paidAt.slice(0, 10)).toBe(`${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`)
+
+  await page.getByRole('button', { name: 'Desfazer' }).click()
+  await expect(page.getByText('Pagamento desfeito')).toBeVisible()
+  await expect.poll(paid).toBe(0)
+})

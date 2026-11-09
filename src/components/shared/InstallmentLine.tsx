@@ -33,7 +33,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true }: Instal
   const left = remainingCents(inst)
   const paid = left === 0
   const tag = installmentTag(inst, today, { showDate })
-  const position = installmentPosition(inst)
+  const position = installmentPosition(inst.number, inst.debt?.installmentCount, inst.debt?.recurrence)
   const what = [inst.debt?.description, position].filter(Boolean).join(' · ')
   const value = paid ? Number(inst.amount) : left / 100
   const spokenPosition = position.startsWith('↻') ? 'mensal' : position.includes('/') ? `parcela ${position.replace('/', ' de ')}` : position

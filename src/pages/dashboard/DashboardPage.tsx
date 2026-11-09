@@ -6,17 +6,13 @@ import { Icon } from '../../components/ui/Icon'
 import { Money } from '../../components/ui/Money'
 import { GroupLabel, ListGroup } from '../../components/ui/ListGroup'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
-import { PaymentSheet } from '../../components/shared/PaymentSheet'
+import { PaymentSheet, paymentTarget, type PaymentTarget } from '../../components/shared/PaymentSheet'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
-import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useAuth } from '../../contexts/AuthContext'
-import { useToast } from '../../contexts/ToastContext'
 import { usePreferences } from '../../contexts/PreferencesContext'
 import { localToday } from '../../lib/date'
 import { fmtMoney, fmtSentence } from '../../lib/format'
-import { translateApiError } from '../../lib/utils'
-import { getApiError } from '../../lib/api'
 import { GettingStarted } from './GettingStarted'
 import type { DashboardOverview } from '../../types/dashboard'
 import type { InstallmentEnriched } from '../../types/installment'
@@ -41,31 +37,17 @@ function looksEmpty(o: DashboardOverview) {
 export function DashboardPage() {
   const today = localToday()
   const { lender } = useAuth()
-  const { showToast } = useToast()
   const { detail } = usePreferences()
   const overview = useDashboardOverview(today)
   const o = overview.data
   const summary = useAccountSummary({ enabled: !!o && looksEmpty(o) })
   const firstUse = !!o && looksEmpty(o) && summary.data?.debts === 0
-  const registerPayment = useRegisterPayment()
   const [showWeek, setShowWeek] = useState(false)
-  const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
+  const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
 
   const firstName = lender?.name?.split(' ')[0] ?? 'você'
 
-  const openPayment = (inst: InstallmentEnriched) =>
-    setPaymentContext({ installment: inst, debtorName: inst.debt?.debtor?.name ?? '', debtDescription: inst.debt?.description ?? null })
-
-  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
-    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
-      onSuccess: ({ installment }) => {
-        setPaymentContext(null)
-        const full = installment.status === 'PAID'
-        showToast(full ? 'Parcela quitada' : `Pagamento de ${fmtMoney(amount)} registrado`, { status: full ? 'PAID' : undefined, icon: full ? 'check' : undefined })
-      },
-      onError: (e: unknown) => showToast(translateApiError(getApiError(e), 'Erro ao registrar pagamento.'), { icon: 'alert' }),
-    })
-  }
+  const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
 
   const subtitle = firstUse
     ? 'Vamos começar?'
@@ -93,13 +75,7 @@ export function DashboardPage() {
         </>
       )}
 
-      <PaymentSheet
-        open={!!paymentContext}
-        onClose={() => setPaymentContext(null)}
-        context={paymentContext}
-        onConfirm={handleConfirmPayment}
-        loading={registerPayment.isPending}
-      />
+      <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
     </main>
   )
 }

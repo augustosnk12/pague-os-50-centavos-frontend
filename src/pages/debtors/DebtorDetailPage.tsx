@@ -7,8 +7,6 @@ import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { useUpdateDebt } from '../../hooks/debts/useUpdateDebt'
 import { useDeleteDebt } from '../../hooks/debts/useDeleteDebt'
-import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
-import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useToast } from '../../contexts/ToastContext'
 import { translateApiError, deriveInstStatus, formatAddress } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
@@ -24,7 +22,7 @@ import { DebtorForm, type DebtorFormPayload } from '../../components/shared/Debt
 import { getReliabilityOption } from '../../constants/reliability'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
-import { PaymentSheet } from '../../components/shared/PaymentSheet'
+import { PaymentSheet, type PaymentTarget } from '../../components/shared/PaymentSheet'
 import type { Installment } from '../../types/installment'
 import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
 import type { DebtType } from '../../types/debt'
@@ -52,8 +50,7 @@ export function DebtorDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
-  const [paymentContext, setPaymentContext] = useState<{ installment: Installment; debtorName: string; debtDescription: string | null } | null>(null)
-  const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
+  const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
   const [confirmDelDebt, setConfirmDelDebt] = useState<DebtWithInstallments | null>(null)
 
@@ -64,8 +61,6 @@ export function DebtorDetailPage() {
   const deleteDebtor = useDeleteDebtor()
   const updateDebt = useUpdateDebt(id!)
   const deleteDebt = useDeleteDebt(id!)
-  const registerPayment = useRegisterPayment()
-  const deletePayment = useDeletePayment()
 
   if (isLoading) {
     return (
@@ -146,47 +141,13 @@ export function DebtorDetailPage() {
     })
   }
 
-  const handleReceive = (inst: Installment, debt: { description: string | null }) => {
-    setPaymentContext({ installment: inst, debtorName: debtor.name, debtDescription: debt.description })
-  }
-
-  const handleDeletePayment = (installmentId: string, paymentId: string) => {
-    setDeletingPaymentId(paymentId)
-    deletePayment.mutate({ installmentId, paymentId }, {
-      onSuccess: (updatedInstallment) => {
-        setDeletingPaymentId(undefined)
-        showToast('Pagamento removido')
-        setPaymentContext((ctx) => ctx ? { ...ctx, installment: updatedInstallment } : null)
-      },
-      onError: (e: unknown) => {
-        setDeletingPaymentId(undefined)
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao excluir pagamento.'), { icon: 'alert' })
-      },
+  const handleReceive = (inst: Installment, debt: { description: string | null; installments?: unknown[] }) =>
+    setPayTarget({
+      installment: inst,
+      debtor: { id: debtor.id, name: debtor.name, avatarHue: debtor.avatarHue, avatarEmoji: debtor.avatarEmoji },
+      debtDescription: debt.description,
+      installmentCount: debt.installments?.length,
     })
-  }
-
-  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
-    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
-      onSuccess: ({ installment }) => {
-        setPaymentContext(null)
-        const wasFullyPaid = deriveInstStatus({
-          dueDate: installment.dueDate,
-          paidAt: installment.paidAt,
-          paidAmount: installment.paidAmount,
-          amount: installment.amount,
-        }) === 'PAID'
-        showToast(
-          wasFullyPaid ? 'Parcela quitada' : `Pagamento de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} registrado`,
-          { status: wasFullyPaid ? 'PAID' : undefined, icon: wasFullyPaid ? 'check' : undefined }
-        )
-      },
-      onError: (e: unknown) => {
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
-      },
-    })
-  }
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
@@ -371,15 +332,7 @@ export function DebtorDetailPage() {
       </Modal>
 
       {/* Payment sheet */}
-      <PaymentSheet
-        open={!!paymentContext}
-        onClose={() => setPaymentContext(null)}
-        context={paymentContext}
-        onConfirm={handleConfirmPayment}
-        onDeletePayment={handleDeletePayment}
-        deletingPaymentId={deletingPaymentId}
-        loading={registerPayment.isPending}
-      />
+      <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
     </main>
   )
 }

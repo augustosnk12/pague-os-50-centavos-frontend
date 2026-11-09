@@ -8,6 +8,11 @@ interface ModalProps {
   title: string
   children: ReactNode
   footer?: ReactNode
+  /**
+   * Replaces the default title row. Receives the id that labels the dialog:
+   * put it on the element holding the visible name (and include a close button).
+   */
+  head?: (titleId: string, close: () => void) => ReactNode
 }
 
 import { MODAL_EXIT_MS } from '../../lib/timing'
@@ -51,7 +56,7 @@ const focusables = (root: HTMLElement) =>
  * returns to the element that opened it. Background is inert. Enters by
  * translating (never from opacity 0) and leaves with a short animation.
  */
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, head }: ModalProps) {
   const titleId = useId()
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
@@ -182,10 +187,14 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
           outline: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 18px 12px' }}>
-          <h2 id={titleId} style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
-          <IconButton name="x" onClick={() => onCloseRef.current()} label="Fechar" />
-        </div>
+        {head ? (
+          head(titleId, () => onCloseRef.current())
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 18px 12px' }}>
+            <h2 id={titleId} style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
+            <IconButton name="x" onClick={() => onCloseRef.current()} label="Fechar" />
+          </div>
+        )}
         <div data-modal-content style={{ padding: '0 18px 18px', overflowY: 'auto', flex: 1 }}>{children}</div>
         {footer && (
           <div style={{ padding: 18, borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>

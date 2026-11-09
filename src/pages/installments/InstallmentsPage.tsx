@@ -2,10 +2,7 @@ import { useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
-import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
-import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
-import { useToast } from '../../contexts/ToastContext'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { IconButton } from '../../components/ui/IconButton'
 import { Icon } from '../../components/ui/Icon'
@@ -14,10 +11,9 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { InstallmentRow } from '../../components/shared/InstallmentRow'
-import { PaymentSheet } from '../../components/shared/PaymentSheet'
-import { money, translateApiError, deriveInstStatus } from '../../lib/utils'
+import { PaymentSheet, paymentTarget, type PaymentTarget } from '../../components/shared/PaymentSheet'
+import { money, deriveInstStatus } from '../../lib/utils'
 import { periodLabel, shiftDate, type Period } from '../../lib/period'
-import { getApiError } from '../../lib/api'
 import type { InstallmentEnriched, InstallmentStatus } from '../../types/installment'
 
 type Filter = 'ALL' | InstallmentStatus
@@ -38,7 +34,6 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 export function InstallmentsPage() {
   const navigate = useNavigate()
-  const { showToast } = useToast()
 
   const [period, setPeriod] = useState<Period>('month')
   const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10))
@@ -48,13 +43,10 @@ export function InstallmentsPage() {
   const [debtorIds, setDebtorIds] = useState<string[]>([]) // empty = all debtors
   const [debtorPickerOpen, setDebtorPickerOpen] = useState(false)
   const [debtorSearch, setDebtorSearch] = useState('')
-  const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
-  const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
+  const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
 
   const { data: allItems = [], isLoading, isError, refetch, isFetching } = useInstallmentsByPeriod({ period, date: dateKey })
   const { data: debtors = [] } = useDebtors()
-  const registerPayment = useRegisterPayment()
-  const deletePayment = useDeletePayment()
 
   const derivedItems = allItems.map((i) => ({
     ...i,
@@ -102,46 +94,7 @@ export function InstallmentsPage() {
     PAID: 'var(--paid)',
   }
 
-  const handleReceive = (inst: InstallmentEnriched) => {
-    setPaymentContext({
-      installment: inst,
-      debtorName: inst.debt?.debtor?.name ?? '',
-      debtDescription: inst.debt?.description ?? null,
-    })
-  }
-
-  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
-    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
-      onSuccess: ({ installment }) => {
-        setPaymentContext(null)
-        const wasFullyPaid = installment.status === 'PAID'
-        showToast(
-          wasFullyPaid ? 'Parcela quitada' : `Pagamento de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} registrado`,
-          { status: wasFullyPaid ? 'PAID' : undefined, icon: wasFullyPaid ? 'check' : undefined }
-        )
-      },
-      onError: (e: unknown) => {
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
-      },
-    })
-  }
-
-  const handleDeletePayment = (installmentId: string, paymentId: string) => {
-    setDeletingPaymentId(paymentId)
-    deletePayment.mutate({ installmentId, paymentId }, {
-      onSuccess: (updatedInstallment) => {
-        setDeletingPaymentId(undefined)
-        showToast('Pagamento removido')
-        setPaymentContext((ctx) => ctx ? { ...ctx, installment: { ...ctx.installment, ...updatedInstallment } } : null)
-      },
-      onError: (e: unknown) => {
-        setDeletingPaymentId(undefined)
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao excluir pagamento.'), { icon: 'alert' })
-      },
-    })
-  }
+  const handleReceive = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
@@ -317,15 +270,7 @@ export function InstallmentsPage() {
       )}
 
       {/* Payment sheet */}
-      <PaymentSheet
-        open={!!paymentContext}
-        onClose={() => setPaymentContext(null)}
-        context={paymentContext}
-        onConfirm={handleConfirmPayment}
-        onDeletePayment={handleDeletePayment}
-        deletingPaymentId={deletingPaymentId}
-        loading={registerPayment.isPending}
-      />
+      <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
     </main>
   )
 }
