@@ -28,6 +28,8 @@ interface InstallmentLineProps {
   showDate?: boolean
   /** Swipe right (touch) opens "Receber". The row's button does the same for everyone. */
   swipe?: boolean
+  /** Swipe left (touch, overdue only) opens the WhatsApp reminder; the payment sheet has the same button. */
+  onRemind?: () => void
 }
 
 /**
@@ -35,7 +37,7 @@ interface InstallmentLineProps {
  * payment sheet (one stretched button), the avatar opens the debtor. Amount
  * shown is what is still owed.
  */
-export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false }: InstallmentLineProps) {
+export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind }: InstallmentLineProps) {
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
   const debtorId = debtor?.id ?? inst.debt?.debtorId
@@ -52,6 +54,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
   const start = useRef<{ x: number; y: number; id: number; horizontal: boolean | null } | null>(null)
   const swiped = useRef(false)
   const canSwipe = swipe && !paid
+  const canRemind = canSwipe && !!onRemind && tag?.tone === 'overdue'
   const onPointerDown = (e: PointerEvent<HTMLLIElement>) => {
     if (!canSwipe || e.pointerType !== 'touch') return
     start.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: null }
@@ -62,23 +65,23 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
     const mx = e.clientX - s.x
     const my = e.clientY - s.y
     if (s.horizontal === null && Math.abs(mx) + Math.abs(my) > 8) s.horizontal = Math.abs(mx) > Math.abs(my)
-    if (s.horizontal) setDx(Math.max(0, Math.min(SWIPE_MAX, mx)))
+    if (s.horizontal) setDx(Math.max(canRemind ? -SWIPE_MAX : 0, Math.min(SWIPE_MAX, mx)))
   }
   const onPointerEnd = () => {
-    const confirmed = dx >= SWIPE_CONFIRM
+    const receive = dx >= SWIPE_CONFIRM
+    const remind = canRemind && dx <= -SWIPE_CONFIRM
     start.current = null
     setDx(0)
-    if (confirmed) {
-      swiped.current = true // the click that follows the gesture must not open it twice
-      onOpen(inst)
-    }
+    if (receive || remind) swiped.current = true // the click that follows the gesture must not open it twice
+    if (receive) onOpen(inst)
+    if (remind) onRemind?.()
   }
 
   return (
     <li
       className="lt-lrow"
       data-paid={paid || undefined}
-      data-swiping={dx > 0 || undefined}
+      data-swiping={dx !== 0 || undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
@@ -88,9 +91,14 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
       }}
       style={canSwipe ? { touchAction: 'pan-y' } : undefined}
     >
-      {canSwipe && (
+      {canSwipe && dx >= 0 && (
         <div className="lt-sw-hint" aria-hidden="true" data-ready={dx >= SWIPE_CONFIRM || undefined}>
           <Icon name="wallet" size={16} /> Receber
+        </div>
+      )}
+      {canRemind && dx < 0 && (
+        <div className="lt-sw-hint" data-side="remind" aria-hidden="true" data-ready={dx <= -SWIPE_CONFIRM || undefined}>
+          Cobrar <Icon name="whatsapp" size={16} />
         </div>
       )}
       <div className="lt-lrow-in" style={dx ? { transform: `translateX(${dx}px)` } : undefined}>

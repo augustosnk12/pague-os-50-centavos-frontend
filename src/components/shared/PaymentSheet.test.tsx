@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '../../contexts/ToastContext'
 import { PreferencesProvider } from '../../contexts/PreferencesContext'
+import { AuthProvider } from '../../contexts/AuthContext'
+import { MemoryRouter } from 'react-router-dom'
 import { PaymentSheet } from './PaymentSheet'
 import type { PaymentTarget } from '../../lib/paymentTarget'
 import { api } from '../../lib/axios'
@@ -39,13 +41,17 @@ function Harness({ initial }: { initial: PaymentTarget }) {
 function renderSheet(t: PaymentTarget) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
+    <MemoryRouter>
     <QueryClientProvider client={qc}>
       <PreferencesProvider>
-        <ToastProvider>
-          <Harness initial={t} />
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Harness initial={t} />
+          </ToastProvider>
+        </AuthProvider>
       </PreferencesProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+    </MemoryRouter>,
   )
 }
 
@@ -53,7 +59,12 @@ describe('PaymentSheet (S2)', () => {
   beforeEach(() => {
     vi.setSystemTime(new Date('2026-11-09T12:00:00-03:00'))
     vi.clearAllMocks()
-    mocked.get.mockResolvedValue({ data: { id: 'd1', name: 'João Araújo', phone: '(11) 91234-5678' } })
+    mocked.get.mockImplementation((url: string) => {
+      if (url === '/debtors/d1') return Promise.resolve({ data: { id: 'd1', name: 'João Araújo', phone: '(11) 91234-5678', notes: null } })
+      if (url === '/debtors/d1/debts') return Promise.resolve({ data: [{ id: 'debt1', description: 'Notebook', installments: [installment()] }] })
+      if (url === '/settings') return Promise.resolve({ data: { pixKey: null, pixKeyType: null } })
+      return Promise.reject(new Error(`unexpected ${url}`))
+    })
   })
 
   it('header gives the context: who, what and how late (improvement 6)', async () => {
@@ -67,9 +78,11 @@ describe('PaymentSheet (S2)', () => {
 
   it('WhatsApp reminder only for an overdue installment of someone with a phone', async () => {
     renderSheet(target())
-    const wa = await screen.findByRole('link', { name: 'Lembrar João no WhatsApp' })
-    expect(wa.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/5511912345678\?text=Oi%2C%20Jo%C3%A3o!/)
-    expect(wa).toHaveAttribute('target', '_blank')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Lembrar João no WhatsApp' }))
+    // Opens the reminder sheet on top of the payment sheet (S5).
+    const remind = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    expect(((await within(remind).findByRole('textbox', { name: 'Mensagem' })) as HTMLTextAreaElement).value).toContain('Oi, João!')
   })
 
   it('no WhatsApp when the installment is not overdue', async () => {

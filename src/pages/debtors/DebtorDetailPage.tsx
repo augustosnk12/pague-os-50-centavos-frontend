@@ -23,6 +23,7 @@ import { getReliabilityOption } from '../../constants/reliability'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
+import { RemindSheet } from '../../components/shared/RemindSheet'
 import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
@@ -52,6 +53,7 @@ export function DebtorDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
+  const [remindId, setRemindId] = useState<string | null>(null)
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
   const [confirmDelDebt, setConfirmDelDebt] = useState<DebtWithInstallments | null>(null)
 
@@ -203,14 +205,13 @@ export function DebtorDetailPage() {
                 icon="phone"
                 text={debtor.phone}
                 action={
-                  <a
-                    href={`https://wa.me/${debtor.phone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--paid)', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  <button
+                    type="button"
+                    onClick={() => setRemindId(debtor.id)}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'var(--wa)', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Icon name="whatsapp" size={15} />Lembrar
-                  </a>
+                  </button>
                 }
               />
             )}
@@ -334,6 +335,7 @@ export function DebtorDetailPage() {
 
       {/* Payment sheet */}
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
+      <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
     </main>
   )
 }

@@ -15,6 +15,7 @@ import { localToday } from '../../lib/date'
 import { fmtList, fmtMoney, fmtTitle } from '../../lib/format'
 import { daysUntil, installmentPosition, remainingCents } from '../../lib/installmentTag'
 import { whatsappLink } from '../../lib/whatsapp'
+import { RemindSheet } from './RemindSheet'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
 import type { PaymentTarget } from '../../lib/paymentTarget'
@@ -75,6 +76,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const [otherDate, setOtherDate] = useState('')
   const [histOpen, setHistOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [remindId, setRemindId] = useState<string | null>(null)
 
   // Fresh state each time the sheet opens (or opens for another installment).
   useEffect(() => {
@@ -103,8 +105,8 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const due = dueText(inst, today)
   const position = installmentPosition(inst.number, t.installmentCount, t.recurrence)
   const name = t.debtor.name
-  const waText = `Oi, ${firstName(name)}! Passando para lembrar da parcela ${[t.debtDescription, position].filter(Boolean).join(' · ')} de ${fmtMoney(left / 100)}, que venceu em ${fmtList(inst.dueDate)}.`
-  const wa = overdue ? whatsappLink(debtorFull?.phone, waText) : null
+  // WhatsApp reminder (S5): for an overdue installment of someone with a valid phone.
+  const canRemind = overdue && !!whatsappLink(debtorFull?.phone)
 
   const setAmount = (raw: string) => {
     const digits = parseCurrencyDigits(raw)
@@ -201,6 +203,8 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   )
 
   return (
+    <>
+    <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
     <Modal
       open={!!target}
       onClose={onClose}
@@ -217,10 +221,10 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               {[t.debtDescription, position].filter(Boolean).join(' · ')} · <span style={{ color: due.color }}>{due.text}</span>
             </div>
           </div>
-          {wa && (
-            <a className="lt-wa-mini" href={wa} target="_blank" rel="noopener noreferrer" aria-label={`Lembrar ${firstName(name)} no WhatsApp`} title="Lembrar no WhatsApp">
+          {canRemind && (
+            <button type="button" className="lt-wa-mini" onClick={() => setRemindId(t.debtor.id)} aria-label={`Lembrar ${firstName(name)} no WhatsApp`} title="Lembrar no WhatsApp">
               <Icon name="whatsapp" size={16} />
-            </a>
+            </button>
           )}
           <IconButton name="x" onClick={close} label="Fechar" />
         </div>
@@ -312,5 +316,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
         )}
       </div>
     </Modal>
+    </>
   )
 }

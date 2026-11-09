@@ -293,7 +293,8 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
   await page.getByRole('button', { name: /^Davi Desfaz, Bicicleta/ }).click()
   const sheet = page.getByRole('dialog', { name: 'Registrar pagamento de Davi Desfaz' })
   await expect(sheet).toContainText('Bicicleta · 1/3 · atrasada há 2 dias')
-  await expect(sheet.getByRole('link', { name: 'Lembrar Davi no WhatsApp' })).toHaveAttribute('href', /^https:\/\/wa\.me\/5511912345678\?text=/)
+  // S5: the button opens the reminder sheet (covered by its own scenario).
+  await expect(sheet.getByRole('button', { name: 'Lembrar Davi no WhatsApp' })).toBeVisible()
   await a11y('payment-sheet-overdue')
 
   // "Outra": DD/MM/AAAA field + the app's calendar (not the browser's).
@@ -386,4 +387,31 @@ test.describe('Parcelas (S3)', () => {
     await expect(strip.locator('[aria-current="date"]')).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByText('Hoje mesmo')).toBeVisible()
   })
+})
+
+test('WhatsApp reminder (S5): message with the overdue total and a Pix copia e cola', async ({ page, session, a11y }) => {
+  await session.api('PUT', '/settings', { pixKey: '11987654321', pixKeyType: 'PHONE' })
+  const d = await session.api('POST', '/debtors', { name: 'Rita Lembrete', phone: '11912345678', notes: 'Prefere à noite' })
+  const n = new Date()
+  const due = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() - 3)).toISOString()
+  await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Empréstimo', totalAmount: 150, numberOfInstallments: 1, firstDueDate: due })
+
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: /^Rita Lembrete, Empréstimo/ }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Lembrar Rita no WhatsApp' }).click()
+  const sheet = page.getByRole('dialog', { name: 'Lembrar Rita' })
+  const text = sheet.getByRole('textbox', { name: 'Mensagem' })
+  await expect(text).toHaveValue(/Total: R\$\s150,00\./)
+  await expect(sheet).toContainText('Prefere à noite')
+  await sheet.getByRole('switch', { name: 'Incluir Pix copia e cola' }).click()
+  // Key normalized by the API (+55…) and the exact amount in the BR Code.
+  await expect(text).toHaveValue(/Pix copia e cola \(R\$\s150,00\):\n00020126.*\+5511987654321.*5406150\.00/)
+  await a11y('remind-sheet')
+
+  const popup = page.waitForEvent('popup')
+  await sheet.getByRole('button', { name: 'Abrir WhatsApp' }).click()
+  const wa = await popup
+  expect(wa.url()).toMatch(/wa\.me\/5511912345678|api\.whatsapp\.com\/send/)
+  await wa.close()
+  await expect(sheet).toHaveCount(0)
 })

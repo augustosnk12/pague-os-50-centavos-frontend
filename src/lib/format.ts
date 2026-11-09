@@ -61,3 +61,11 @@ export function maskBR(digits: string): string {
   const d = digits.slice(0, 8)
   return [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)].filter(Boolean).join('/')
 }
+
+/** "11912345678" → "(11) 91234-5678"; anything else is shown as typed. */
+export function fmtPhone(phone: string): string {
+  const d = phone.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return phone
+}

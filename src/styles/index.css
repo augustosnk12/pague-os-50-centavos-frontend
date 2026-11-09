@@ -662,3 +662,52 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-pick[aria-pressed="true"] .lt-check { background: var(--primary); border-color: var(--primary); }
 .lt-pick-name { font-weight: 700; font-size: 0.90625rem; }
 .lt-pick-empty { padding: 18px 4px; text-align: center; color: var(--text-muted); font-size: 0.84375rem; font-weight: 600; }
+
+/* ===== Lembrar no WhatsApp (S5) ===== */
+.lt-remind-head { display: flex; align-items: center; gap: 10px; padding: 16px 12px 12px 18px; border-bottom: 1px solid var(--border); }
+.lt-remind-title { flex: 1; min-width: 0; margin: 0; font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.02em; }
+.lt-icon-close {
+  width: 36px; height: 36px; display: grid; place-items: center; border: none; border-radius: 10px; cursor: pointer;
+  background: transparent; color: var(--text-muted);
+}
+.lt-icon-close:hover { background: var(--surface-hover); color: var(--text); }
+.lt-remind-body { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
+.lt-remind-info { margin: 0; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); line-height: 1.45; }
+.lt-remind-info b { color: var(--text); }
+.lt-remind-blocked {
+  display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--pending-weak); color: var(--text); font-size: 0.8125rem; font-weight: 700;
+}
+.lt-remind-note {
+  display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text-muted); font-size: 0.8125rem; font-weight: 600; line-height: 1.4;
+}
+.lt-remind-note svg { flex-shrink: 0; margin-top: 1px; color: var(--pending); }
+.lt-remind-text {
+  width: 100%; min-height: 190px; resize: vertical; padding: 12px 14px; border-radius: var(--r-md);
+  border: 1.5px solid var(--border-input); background: var(--surface); color: var(--text);
+  font: inherit; font-size: 0.875rem; line-height: 1.5;
+}
+.lt-remind-text:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+.lt-remind-hint { margin: 0; padding: 10px 12px; border-radius: var(--r-md); border: 1px dashed var(--border-strong); font-size: 0.78125rem; font-weight: 700; color: var(--text-muted); }
+
+/* Switch row (role="switch"). */
+.lt-switch-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: var(--r-md); cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit;
+}
+.lt-switch-row:hover { background: var(--surface-hover); }
+.lt-switch-t { display: block; font-weight: 800; font-size: 0.875rem; }
+.lt-switch-s { display: block; font-weight: 600; font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+.lt-switch { position: relative; flex-shrink: 0; width: 42px; height: 24px; border-radius: 99px; background: var(--border-input); transition: background-color var(--dur) var(--ease-std); }
+.lt-switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-sm); transition: transform var(--dur) var(--ease-out); }
+.lt-switch-row[aria-checked="true"] .lt-switch { background: var(--primary); }
+.lt-switch-row[aria-checked="true"] .lt-switch span { transform: translateX(18px); }
+
+.lt-btn-lg[data-variant="wa"] { background: var(--wa); color: var(--surface); }
+.lt-btn-lg[data-variant="wa"]:hover:not(:disabled) { background: color-mix(in oklch, var(--wa) 88%, black); }
+button.lt-wa-mini { cursor: pointer; padding: 0; }
+
+/* Swipe left to "Cobrar" (overdue rows with a phone). */
+.lt-sw-hint[data-side="remind"] { justify-content: flex-end; padding: 0 16px 0 0; background: var(--wa); }
+.lt-sw-hint[data-side="remind"][data-ready] { background: color-mix(in oklch, var(--wa) 85%, black); }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmtList, fmtTitle, fmtSentence, fmtMoney } from './format'
+import { fmtList, fmtTitle, fmtSentence, fmtMoney, fmtPhone } from './format'
 
 describe('glossary date formats (improvement 30)', () => {
   it('list / title / sentence', () => {
@@ -16,5 +16,13 @@ describe('glossary date formats (improvement 30)', () => {
 
   it('money', () => {
     expect(fmtMoney(1234.5).replace(/\s/g, ' ')).toBe('R$ 1.234,50')
+  })
+})
+
+describe('fmtPhone', () => {
+  it('formats Brazilian numbers, leaves others as typed', () => {
+    expect(fmtPhone('11912345678')).toBe('(11) 91234-5678')
+    expect(fmtPhone('+55 11 3456-7890')).toBe('(11) 3456-7890')
+    expect(fmtPhone('+351 912 345 678')).toBe('+351 912 345 678')
   })
 })
