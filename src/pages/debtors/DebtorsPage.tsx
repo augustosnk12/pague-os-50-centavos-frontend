@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorState } from '../../components/ui/ErrorState'
 import { Link } from 'react-router-dom'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
@@ -20,7 +21,7 @@ export function DebtorsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const { showToast } = useToast()
 
-  const { data: debtors = [], isLoading } = useDebtors(reliabilityFilter ?? undefined)
+  const { data: debtors = [], isLoading, isError, refetch, isFetching } = useDebtors(reliabilityFilter ?? undefined)
   const createDebtor = useCreateDebtor()
 
   // For display, the API /debtors doesn't return outstanding/ratio natively
@@ -45,6 +46,16 @@ export function DebtorsPage() {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
         <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 60 }}>Carregando…</div>
+      </main>
+    )
+  }
+
+  // A failed load must not look like an empty account ("Nenhum devedor ainda").
+  if (isError && debtors.length === 0) {
+    return (
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
+        <h1 style={{ margin: '0 0 16px', fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
+        <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
   }

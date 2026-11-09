@@ -26,6 +26,7 @@ export function LoginPage() {
 
   const confirmed = searchParams.get('confirmed') === 'true'
   const urlError = searchParams.get('error')
+  const sessionExpired = searchParams.get('expired') === '1'
 
   const handleSubmit = () => {
     setErr('')
@@ -80,6 +81,12 @@ export function LoginPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--paid-weak)', color: 'var(--paid)', borderRadius: 'calc(var(--radius)*0.6)', padding: '11px 14px', marginBottom: 18, fontSize: 13.5, fontWeight: 700 }}>
                 <Icon name="check" size={16} strokeWidth={2.6} />
                 Conta confirmada! Agora é só entrar.
+              </div>
+            )}
+            {sessionExpired && !urlError && (
+              <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--pending-weak)', color: 'var(--text)', borderRadius: 'calc(var(--radius)*0.6)', padding: '11px 14px', marginBottom: 18, fontSize: 13.5, fontWeight: 700 }}>
+                <Icon name="alert" size={16} strokeWidth={2.6} color="var(--pending)" />
+                Sua sessão expirou. Entre de novo e você volta para onde estava.
               </div>
             )}
             {urlError && (

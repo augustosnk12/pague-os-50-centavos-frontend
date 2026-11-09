@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { takeReturnPath } from '../../lib/returnPath'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Logo } from '../../components/layout/Logo'
@@ -7,6 +8,7 @@ import { Icon } from '../../components/ui/Icon'
 export function CallbackPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const returnTo = useRef<string | null | undefined>(undefined)
   const { authenticate } = useAuth()
   const [error, setError] = useState('')
 
@@ -27,8 +29,12 @@ export function CallbackPage() {
       name: lenderName ?? null,
     })
 
-    // Clean URL before navigating so the token isn't visible in history
-    navigate('/dashboard', { replace: true })
+    // Clean URL before navigating so the token isn't visible in history.
+    // After an expired session, go back to the screen the user was on.
+    // Read once and keep it in a ref: StrictMode runs this effect twice, and the
+    // second takeReturnPath() would find nothing and send the user to the Painel.
+    if (returnTo.current === undefined) returnTo.current = takeReturnPath()
+    navigate(returnTo.current ?? '/dashboard', { replace: true })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorState } from '../../components/ui/ErrorState'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDashboard } from '../../hooks/dashboard/useDashboard'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
@@ -23,8 +24,10 @@ export function DashboardPage() {
   const { showToast } = useToast()
 
   const today = new Date().toISOString().slice(0, 10)
-  const { data: dashData, isLoading: dashLoading } = useDashboard(mKey)
-  const { data: monthInstallments = [] } = useInstallmentsByPeriod({ period: 'month', date: today })
+  const { data: dashData, isLoading: dashLoading, isError: dashError, refetch: refetchDash, isFetching: dashFetching } = useDashboard(mKey)
+  const monthQuery = useInstallmentsByPeriod({ period: 'month', date: today })
+  const monthInstallments = monthQuery.data ?? []
+  const loadFailed = (dashError && !dashData) || (monthQuery.isError && !monthQuery.data)
   const registerPayment = useRegisterPayment()
 
   const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
@@ -128,6 +131,12 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {loadFailed && (
+        <div style={{ marginBottom: 14 }}>
+          <ErrorState onRetry={() => { void refetchDash(); void monthQuery.refetch() }} retrying={dashFetching || monthQuery.isFetching} />
+        </div>
+      )}
 
       {/* Month summary */}
       {!dashLoading && dashData && (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorState } from '../../components/ui/ErrorState'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
@@ -56,8 +57,9 @@ export function DebtorDetailPage() {
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
   const [confirmDelDebt, setConfirmDelDebt] = useState<DebtWithInstallments | null>(null)
 
-  const { data: debtor, isLoading } = useDebtor(id!)
-  const { data: debts = [] } = useDebtsByDebtor(id!)
+  const { data: debtor, isLoading, isError, error, refetch, isFetching } = useDebtor(id!)
+  const debtsQuery = useDebtsByDebtor(id!)
+  const debts = debtsQuery.data ?? []
   const updateDebtor = useUpdateDebtor(id!)
   const deleteDebtor = useDeleteDebtor()
   const updateDebt = useUpdateDebt(id!)
@@ -69,6 +71,17 @@ export function DebtorDetailPage() {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
         <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 60 }}>Carregando…</div>
+      </main>
+    )
+  }
+
+  // Network/server failure ≠ "Devedor não encontrado" (only a 404 is).
+  const notFound = (error as { response?: { status?: number } } | null)?.response?.status === 404
+  if (isError && !debtor && !notFound) {
+    return (
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
+        <h1 style={{ margin: '0 0 16px', fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Devedor</h1>
+        <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
   }
@@ -256,7 +269,9 @@ export function DebtorDetailPage() {
         <Button size="sm" icon="plus" onClick={() => navigate(`/debts/new?debtorId=${id}`)}>Nova dívida</Button>
       </div>
 
-      {debts.length === 0 ? (
+      {debtsQuery.isError && debts.length === 0 ? (
+        <ErrorState title="Não foi possível carregar as dívidas" onRetry={() => void debtsQuery.refetch()} retrying={debtsQuery.isFetching} />
+      ) : debts.length === 0 ? (
         <EmptyState
           icon="wallet"
           title="Sem dívidas"

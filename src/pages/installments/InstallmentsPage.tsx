@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ErrorState } from '../../components/ui/ErrorState'
 import { useNavigate } from 'react-router-dom'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
@@ -48,7 +49,7 @@ export function InstallmentsPage() {
   const [paymentContext, setPaymentContext] = useState<{ installment: InstallmentEnriched; debtorName: string; debtDescription: string | null } | null>(null)
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
 
-  const { data: allItems = [], isLoading } = useInstallmentsByPeriod({ period, date: dateKey })
+  const { data: allItems = [], isLoading, isError, refetch, isFetching } = useInstallmentsByPeriod({ period, date: dateKey })
   const { data: debtors = [] } = useDebtors()
   const registerPayment = useRegisterPayment()
   const deletePayment = useDeletePayment()
@@ -287,6 +288,8 @@ export function InstallmentsPage() {
       {/* List */}
       {isLoading ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>Carregando…</div>
+      ) : isError && allItems.length === 0 ? (
+        <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       ) : filtered.length === 0 ? (
         <EmptyState icon="calendar" title="Nenhuma parcela" sub="Não há parcelas para este período e filtro." />
       ) : (

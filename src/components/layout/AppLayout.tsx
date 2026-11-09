@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal'
 import { Calculator } from '../shared/Calculator'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
 import { useRouteAnnouncer } from '../../hooks/useRouteAnnouncer'
+import { OfflineBanner } from './OfflineBanner'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -27,6 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <>
       {/* First Tab stop: jump over the header and navigation (WCAG 2.4.1). */}
       <a href="#conteudo" className="lt-skip-link">Pular para o conteúdo</a>
+      <OfflineBanner />
       <Header onCalc={openCalc} />
       <BottomTabs onAccount={() => setAccountOpen(true)} overdueCount={overdueCount} />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} onCalc={openCalc} />

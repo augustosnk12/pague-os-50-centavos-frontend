@@ -157,3 +157,53 @@ test('Back restores the scroll position; a new screen starts at the top', async 
   await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeFocused()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500)
 })
+
+test.describe('failures (F4)', () => {
+  test('offline: banner, and a payment is blocked with "nada foi salvo"', async ({ page, session, context, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Sem Rede' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Offline', totalAmount: 50, numberOfInstallments: 1, firstDueDate: thisMonthISO(28) })
+    await page.goto('/installments')
+    await expect(page.getByText('Offline').first()).toBeVisible()
+
+    await context.setOffline(true)
+    await expect(page.getByRole('status').filter({ hasText: 'Sem conexão' })).toBeVisible()
+    await a11y('offline-banner')
+    await page.getByRole('button', { name: 'Receber' }).first().click()
+    await page.getByRole('button', { name: 'Quitar parcela' }).click()
+    await expect(page.getByText(/nada foi salvo/).first()).toBeVisible()
+
+    await context.setOffline(false)
+    // Nothing was queued to be sent later either.
+    await page.waitForTimeout(1500)
+    const debts = await session.api('GET', `/debtors/${d.id}/debts`)
+    expect(debts[0].installments[0].status).toBe('PENDING')
+  })
+
+  test('expired session: log in again and come back to the same screen', async ({ page, session }) => {
+    const l = createLenderWithLoginToken('Volta Pra Cá')
+    // A token for an account that does not exist → the API answers 401 (lender guard).
+    await page.context().addCookies([{ name: 'pague50_token', value: session.token.replace(/\.[^.]+$/, '.x'), url: 'http://localhost:5199' }])
+    await page.goto('/installments?period=week')
+    await expect(page).toHaveURL(/\/login\?expired=1$/)
+    await expect(page.getByText('Sua sessão expirou')).toBeVisible()
+
+    await page.goto(`${API_URL}/auth/verify?token=${l.token}`)
+    await expect(page).toHaveURL(/\/installments\?period=week$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
+  })
+
+  test('API down: the screen says it could not load (not "no data") and retries', async ({ page, session, a11y }) => {
+    void session
+    let fail = true
+    // Only the API call (the page itself is also at /debtors).
+    await page.route(`${API_URL}/debtors`, (route) => (fail ? route.fulfill({ status: 503, body: '{"error":"down"}', contentType: 'application/json' }) : route.continue()))
+    await page.goto('/debtors')
+    await expect(page.getByRole('alert').filter({ hasText: 'Não foi possível carregar' })).toBeVisible()
+    await expect(page.getByText('Nenhum devedor ainda')).toHaveCount(0)
+    await a11y('load-error')
+    fail = false
+    await page.getByRole('button', { name: 'Tentar de novo' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Devedores' })).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: 'Não foi possível carregar' })).toHaveCount(0)
+  })
+})
