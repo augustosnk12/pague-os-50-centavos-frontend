@@ -294,7 +294,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                 {dateMode === 'other' ? (
                   <DateInput
                     compact
-                    autoOpen
+                    autoFocus
                     ariaLabel="Outra data do pagamento"
                     value={otherDate}
                     onChange={setOtherDate}

@@ -107,8 +107,16 @@ describe('PaymentSheet (S2)', () => {
     const field = within(dates).getByRole('textbox', { name: 'Outra data do pagamento' })
     expect(field).toHaveValue('07/11/2026')
     expect(field).not.toHaveAttribute('type', 'date')
+    // First the field, ready to type over (no calendar yet).
+    await waitFor(() => expect(field).toHaveFocus())
+    expect(screen.queryByRole('dialog', { name: /Calendário/ })).toBeNull()
+    await user.keyboard('05112026')
+    expect(field).toHaveValue('05/11/2026')
+    expect(dates).toHaveTextContent('qui, 05 nov')
+    // The calendar opens from the trailing icon.
+    await user.click(within(dates).getByRole('button', { name: 'Abrir calendário' }))
     const cal = await screen.findByRole('dialog', { name: 'Calendário: Outra data do pagamento' })
-    await waitFor(() => expect(within(cal).getByRole('button', { name: 'sábado, 7 de novembro de 2026' })).toHaveFocus())
+    await waitFor(() => expect(within(cal).getByRole('button', { name: 'quinta, 5 de novembro de 2026' })).toHaveFocus())
     // Future days are disabled (max = today).
     expect(within(cal).getByRole('button', { name: 'terça, 10 de novembro de 2026' })).toBeDisabled()
     await user.click(within(cal).getByRole('button', { name: 'quarta, 4 de novembro de 2026' }))
@@ -124,6 +132,7 @@ describe('PaymentSheet (S2)', () => {
     renderSheet(target())
     const dates = await screen.findByRole('group', { name: 'Data do pagamento' })
     await user.click(within(dates).getByRole('button', { name: 'Outra' }))
+    await user.click(within(dates).getByRole('button', { name: 'Abrir calendário' }))
     await screen.findByRole('dialog', { name: /Calendário/ })
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: /Calendário/ })).toBeNull()

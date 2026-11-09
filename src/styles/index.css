@@ -425,10 +425,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-partial-note { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-size: 0.78125rem; font-weight: 700; color: var(--partial); }
 .lt-partial-note b { color: var(--text); }
 .lt-paid-before { margin-top: 8px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
-.lt-date-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); }
+/* When the chips do not fit beside "Pago em" (small phones, larger text, "Outra" field), they go to a second line. */
+.lt-date-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.lt-date-row > :first-child { flex: 1 0 auto; }
 .lt-date-k { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
 .lt-date-v { font-size: 0.875rem; font-weight: 800; white-space: nowrap; }
-.lt-date-chips { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+.lt-date-chips { display: flex; gap: 5px; align-items: center; flex-shrink: 0; margin-left: auto; }
 .lt-date-chips .lt-chip { padding: 0 10px; }
 .lt-chip-date {
   height: var(--chip-h); width: 136px; padding: 0 8px; border-radius: 99px; border: 1.5px solid var(--primary);
@@ -444,7 +446,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-hist-row { display: flex; align-items: center; gap: 10px; padding: 4px 2px; }
 .lt-hist-ok { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--paid-weak); color: var(--paid); flex-shrink: 0; }
 .lt-paid-box { display: flex; gap: 11px; align-items: center; padding: 12px 14px; border-radius: var(--r-md); background: var(--paid-weak); color: var(--paid); }
-@media (max-width: 360px) { .lt-date-row { flex-wrap: wrap; } }
 
 /* Date field (DD/MM/AAAA) + calendar popover, replacing the browser's native picker. */
 .lt-field-label { display: block; font-size: 0.84375rem; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; }

@@ -16,8 +16,11 @@ interface DateInputProps {
   max?: string
   /** Chip-sized field (payment sheet "Outra"). */
   compact?: boolean
-  /** Open the calendar as soon as the field appears. */
-  autoOpen?: boolean
+  /**
+   * Focus the field as soon as it appears, with the date selected so typing
+   * replaces it. The calendar only opens from the trailing icon.
+   */
+  autoFocus?: boolean
   style?: CSSProperties
 }
 
@@ -30,7 +33,7 @@ const POP_H = 352
  * popover in the app's style, never the browser's native picker (which
  * follows the browser language, e.g. MM/DD/YYYY).
  */
-export function DateInput({ label, ariaLabel, value, onChange, required, min, max, compact, autoOpen, style }: DateInputProps) {
+export function DateInput({ label, ariaLabel, value, onChange, required, min, max, compact, autoFocus, style }: DateInputProps) {
   const today = localToday()
   const [text, setText] = useState(() => fmtBR(value))
   const [error, setError] = useState('')
@@ -50,11 +53,11 @@ export function DateInput({ label, ariaLabel, value, onChange, required, min, ma
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (autoOpen) {
+    if (autoFocus) {
       inputRef.current?.focus()
-      setOpen(true)
+      inputRef.current?.select()
     }
-  }, [autoOpen])
+  }, [autoFocus])
 
   // Fixed position from the field, inside the viewport (below, or above when there is no room).
   useLayoutEffect(() => {
