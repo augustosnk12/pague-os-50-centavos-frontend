@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Logo } from './Logo'
 import { Button } from '../ui/Button'
 import { IconButton } from '../ui/IconButton'
@@ -143,9 +143,9 @@ export function Header({ onCalc }: HeaderProps) {
           gap: 10,
         }}
       >
-        <div onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <Link to="/dashboard" aria-label="Pague os 50 centavos — ir para o Painel" style={{ display: 'flex', alignItems: 'center' }}>
           <Logo size={26} />
-        </div>
+        </Link>
 
         <nav className="lt-desktop-nav" style={{ marginLeft: 18, gap: 4 }}>
           {NAV.map((n) => (

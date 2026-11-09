@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
 import { useToast } from '../../contexts/ToastContext'
@@ -18,7 +18,6 @@ export function DebtorsPage() {
   const [q, setQ] = useState('')
   const [reliabilityFilter, setReliabilityFilter] = useState<DebtorReliability | null>(null)
   const [formOpen, setFormOpen] = useState(false)
-  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const { data: debtors = [], isLoading } = useDebtors(reliabilityFilter ?? undefined)
@@ -70,6 +69,8 @@ export function DebtorsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 99, padding: '11px 16px', boxShadow: 'var(--shadow-sm)' }}>
           <Icon name="search" size={18} color="var(--text-faint)" />
           <input
+            type="search"
+            aria-label="Buscar devedor"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar devedor…"
@@ -115,9 +116,10 @@ export function DebtorsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           {filtered.map((dt, idx) => (
-            <div
+            // The row opens the profile: a real link (keyboard, middle-click, screen readers).
+            <Link
               key={dt.id}
-              onClick={() => navigate(`/debtors/${dt.id}`)}
+              to={`/debtors/${dt.id}`}
               className="lt-row-hover"
               style={{
                 display: 'flex',
@@ -128,7 +130,7 @@ export function DebtorsPage() {
                 borderRadius: 'var(--radius)',
                 padding: 15,
                 boxShadow: 'var(--shadow-sm)',
-                cursor: 'pointer',
+                color: 'inherit',
                 transition: 'transform .15s, box-shadow .2s, border-color .2s',
                 animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${idx * 0.04}s both`,
               }}
@@ -162,7 +164,7 @@ export function DebtorsPage() {
               <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                 <Icon name="chevronRight" size={18} color="var(--text-faint)" />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

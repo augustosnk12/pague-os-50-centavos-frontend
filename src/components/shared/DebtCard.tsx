@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PlainButton } from '../ui/LinkButton'
 import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
 import { Button } from '../ui/Button'
@@ -33,7 +34,7 @@ export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-      <div onClick={() => setOpen((o) => !o)} style={{ padding: 16, cursor: 'pointer', display: 'flex', gap: 13, alignItems: 'center' }}>
+      <PlainButton onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ width: '100%', padding: 16, display: 'flex', gap: 13, alignItems: 'center' }}>
         <span style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--primary-weak)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <Icon name={m?.icon ?? 'wallet'} size={20} color="var(--primary)" />
         </span>
@@ -57,7 +58,7 @@ export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
             <Icon name="chevronDown" size={16} color="var(--text-faint)" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }} />
           </div>
         </div>
-      </div>
+      </PlainButton>
 
       {open && (
         <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, animation: 'ltFade .25s ease' }}>

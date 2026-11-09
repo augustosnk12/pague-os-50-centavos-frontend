@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useDashboard } from '../../hooks/dashboard/useDashboard'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
@@ -155,7 +155,7 @@ export function DashboardPage() {
       {/* Action list */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>Precisa de atenção</h2>
-        <a onClick={() => navigate('/installments')} style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--primary)', cursor: 'pointer' }}>Ver tudo</a>
+        <Link to="/installments" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--primary)' }}>Ver tudo</Link>
       </div>
 
       {actionItems.length === 0 ? (

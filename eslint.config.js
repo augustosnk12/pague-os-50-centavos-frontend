@@ -5,12 +5,18 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
 
-// jsx-a11y starts as warnings: the current screens predate the accessibility
-// scheme (improvement 20). Each rule becomes an error as the UI v2 screens
-// replace the old ones (see the implementation plan, phase 2).
-const a11yAsWarnings = Object.fromEntries(
-  Object.keys(jsxA11y.flatConfigs.recommended.rules).map((rule) => [rule, 'warn']),
-)
+// Accessibility rules are errors (improvement 20; the existing warnings were
+// fixed in F2). Two rules are tuned, both covered at runtime by axe in the
+// e2e suite, which sees the real DOM:
+// - control-has-associated-label cannot follow labels linked by useId()
+//   (htmlFor/id) and flags correctly labelled fields, so inputs are skipped;
+// - no-autofocus: focus is managed on purpose (Modal moves it to the first
+//   field; single-purpose screens like Entrar focus their only field).
+const a11yRules = {
+  ...Object.fromEntries(Object.keys(jsxA11y.flatConfigs.recommended.rules).map((rule) => [rule, 'error'])),
+  'jsx-a11y/control-has-associated-label': ['error', { ignoreElements: ['input', 'textarea', 'select'] }],
+  'jsx-a11y/no-autofocus': 'off',
+}
 
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'prototype', 'node_modules'] },
@@ -25,7 +31,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      ...a11yAsWarnings,
+      ...a11yRules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // Deprecated in jsx-a11y; label-has-associated-control covers it.
       'jsx-a11y/label-has-for': 'off',

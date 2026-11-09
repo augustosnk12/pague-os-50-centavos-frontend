@@ -11,9 +11,11 @@ interface CardProps {
 
 export function Card({ children, onClick, style, hover: enableHover, pad = 18, className }: CardProps) {
   const [hover, setHover] = useState(false)
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div
-      onClick={onClick}
+    // A clickable card is a real <button> (keyboard and screen readers); otherwise a <div>.
+    <Tag
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={className}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -27,10 +29,11 @@ export function Card({ children, onClick, style, hover: enableHover, pad = 18, c
         cursor: onClick ? 'pointer' : 'default',
         transform: enableHover && hover ? 'translateY(-2px)' : 'none',
         borderColor: enableHover && hover ? 'var(--border-strong)' : 'var(--border)',
+        ...(onClick ? { display: 'block', width: '100%', font: 'inherit', color: 'inherit', textAlign: 'left' as const } : {}),
         ...style,
       }}
     >
       {children}
-    </div>
+    </Tag>
   )
 }

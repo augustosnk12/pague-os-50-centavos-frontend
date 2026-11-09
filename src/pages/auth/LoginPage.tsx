@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { LinkButton } from '../../components/ui/LinkButton'
+import { useSearchParams, Link } from 'react-router-dom'
 import { Logo } from '../../components/layout/Logo'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
@@ -18,7 +19,6 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
   const [unconfirmed, setUnconfirmed] = useState(false)
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const login = useLogin()
   const { cooldown, start: startCooldown } = useCooldown(60, 'lt_cd_login_resend')
@@ -110,20 +110,20 @@ export function LoginPage() {
               </Button>
               {unconfirmed && (
                 <div style={{ textAlign: 'center', fontSize: 13 }}>
-                  <a
+                  <LinkButton
                     onClick={() => { if (startResendCooldown()) void authApi.resendConfirmation({ email }) }}
                     style={{ color: resendCooldown > 0 ? 'var(--text-faint)' : 'var(--primary)', fontWeight: 700, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
                   >
                     {resendCooldown > 0 ? `E-mail reenviado · aguarde ${resendCooldown}s` : 'Reenviar e-mail de confirmação'}
-                  </a>
+                  </LinkButton>
                 </div>
               )}
             </div>
             <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
               Ainda não tem conta?{' '}
-              <a onClick={() => navigate('/register')} style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>
+              <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>
                 Criar conta
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -143,14 +143,14 @@ export function LoginPage() {
             </p>
             <div style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--text-muted)', animation: 'ltRise 0.4s cubic-bezier(0.22,1,0.36,1) 0.28s both' }}>
               Não recebeu?{' '}
-              <a
+              <LinkButton
                 onClick={() => { if (startCooldown()) void authApi.login({ email }) }}
                 style={{ color: cooldown > 0 ? 'var(--text-faint)' : 'var(--primary)', fontWeight: 700, cursor: cooldown > 0 ? 'default' : 'pointer' }}
               >
                 {cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Reenviar'}
-              </a>
+              </LinkButton>
               <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-              <a onClick={() => setStep('form')} style={{ color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Voltar</a>
+              <LinkButton onClick={() => setStep('form')} style={{ color: 'var(--text-muted)', fontWeight: 700, cursor: 'pointer' }}>Voltar</LinkButton>
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Logo } from '../../components/layout/Logo'
 import { Icon } from '../../components/ui/Icon'
@@ -51,9 +51,9 @@ export function CallbackPage() {
           </div>
           <div style={{ fontSize: 17, fontWeight: 800 }}>Link inválido</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{error}</div>
-          <a onClick={() => navigate('/login')} style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14 }}>
             Voltar para o login
-          </a>
+          </Link>
         </>
       ) : (
         <>
