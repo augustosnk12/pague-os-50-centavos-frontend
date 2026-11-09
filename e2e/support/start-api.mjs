@@ -15,6 +15,8 @@ const env = {
   PORT: String(API_PORT),
   // "production" makes CORS accept FRONTEND_URL (development hard-codes :5173).
   NODE_ENV: 'production',
+  // The suite drives many requests from one IP; production keeps the default of 100/min.
+  RATE_LIMIT_MAX: '10000',
 }
 
 execSync('npx prisma migrate reset --force --skip-seed', { cwd: API_DIR, env, stdio: 'inherit' })

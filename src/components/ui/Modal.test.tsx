@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useState } from 'react'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Modal } from './Modal'
 import { MODAL_EXIT_MS } from '../../lib/timing'
@@ -26,7 +26,8 @@ function Harness({ onClose = vi.fn() }: { onClose?: () => void }) {
   )
 }
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, MODAL_EXIT_MS + 30)))
+// Wait for the close (exit animation + unmount) instead of a fixed delay: CI runners are slower.
+const settle = () => waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: MODAL_EXIT_MS + 2000 })
 
 describe('Modal (accessible dialog)', () => {
   it('is a labelled modal dialog and moves focus to the first field', async () => {
@@ -59,7 +60,7 @@ describe('Modal (accessible dialog)', () => {
     expect(container).toHaveAttribute('inert')
     await user.keyboard('{Escape}')
     await settle()
-    expect(container).not.toHaveAttribute('inert')
+    await waitFor(() => expect(container).not.toHaveAttribute('inert'))
   })
 
   it('Esc, the close button and a click on the backdrop close it; focus returns to the opener', async () => {
@@ -102,7 +103,7 @@ describe('Modal (accessible dialog)', () => {
     await user.click(screen.getByRole('button', { name: 'Abrir' }))
     const dialog = await screen.findByRole('dialog')
     await user.keyboard('{Escape}')
-    expect(dialog.parentElement).toHaveAttribute('data-closing')
+    await waitFor(() => expect(dialog.parentElement).toHaveAttribute('data-closing'))
     await settle()
     expect(screen.queryByRole('dialog')).toBeNull()
   })
