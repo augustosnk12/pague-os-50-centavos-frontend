@@ -95,7 +95,8 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
     // Esc closes the TOP dialog wherever the focus is (it moves inside one frame
     // after opening; an early Esc used to be lost on slow devices).
     const onEsc = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== 'Escape' || stack[stack.length - 1] !== host) return
+      // defaultPrevented: an inner popover (calendar) already used this Esc.
+      if (e.key !== 'Escape' || e.defaultPrevented || stack[stack.length - 1] !== host) return
       e.preventDefault()
       onCloseRef.current()
     }

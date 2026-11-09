@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../ui/Modal'
+import { DateInput } from '../ui/DateInput'
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
 import { IconButton } from '../ui/IconButton'
@@ -74,7 +75,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const [otherDate, setOtherDate] = useState('')
   const [histOpen, setHistOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const dateRef = useRef<HTMLInputElement>(null)
 
   // Fresh state each time the sheet opens (or opens for another installment).
   useEffect(() => {
@@ -86,10 +86,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
     setOtherDate('')
     setHistOpen(remainingCents(i) === 0)
   }, [target])
-
-  useEffect(() => {
-    if (dateMode === 'other') dateRef.current?.focus()
-  }, [dateMode])
 
   const overdue = !!inst && remainingCents(inst) > 0 && daysUntil(inst.dueDate, today) < 0
   // The phone only matters for the WhatsApp reminder of an overdue installment.
@@ -296,14 +292,13 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                 <button type="button" className="lt-chip" aria-pressed={dateMode === 'today'} onClick={() => setDateMode('today')}>Hoje</button>
                 <button type="button" className="lt-chip" aria-pressed={dateMode === 'yesterday'} onClick={() => setDateMode('yesterday')}>Ontem</button>
                 {dateMode === 'other' ? (
-                  <input
-                    ref={dateRef}
-                    type="date"
-                    className="lt-chip-date"
+                  <DateInput
+                    compact
+                    autoOpen
+                    ariaLabel="Outra data do pagamento"
                     value={otherDate}
+                    onChange={setOtherDate}
                     max={today}
-                    onChange={(e) => setOtherDate(e.target.value)}
-                    aria-label="Outra data do pagamento"
                   />
                 ) : (
                   <button type="button" className="lt-chip" onClick={() => { setOtherDate(addDays(today, -2)); setDateMode('other') }}>

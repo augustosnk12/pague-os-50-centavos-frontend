@@ -296,6 +296,15 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
   await expect(sheet.getByRole('link', { name: 'Lembrar Davi no WhatsApp' })).toHaveAttribute('href', /^https:\/\/wa\.me\/5511912345678\?text=/)
   await a11y('payment-sheet-overdue')
 
+  // "Outra": DD/MM/AAAA field + the app's calendar (not the browser's).
+  await sheet.getByRole('button', { name: 'Outra' }).click()
+  await expect(page.getByRole('dialog', { name: 'Calendário: Outra data do pagamento' })).toBeVisible()
+  await expect(sheet.getByRole('textbox', { name: 'Outra data do pagamento' })).toHaveValue(/^\d{2}\/\d{2}\/\d{4}$/)
+  await a11y('payment-sheet-calendar')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: /Calendário/ })).toHaveCount(0)
+  await expect(sheet).toBeVisible()
+
   await sheet.getByRole('button', { name: 'Ontem' }).click()
   await sheet.getByRole('button', { name: /^Quitar parcela · R\$\s100,00$/ }).click()
   await expect(sheet).toHaveCount(0)

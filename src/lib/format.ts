@@ -39,3 +39,25 @@ export function fmtSentence(value: string | Date, currentYear: number = new Date
 export function fmtMoney(value: number | string): string {
   return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
+
+/** "2026-11-09" → "09/11/2026" (Brazilian format, always). */
+export function fmtBR(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+/** "09/11/2026" → "2026-11-09"; '' when incomplete or not a real day. */
+export function parseBR(text: string): string {
+  const digits = text.replace(/\D/g, '')
+  if (digits.length !== 8) return ''
+  const d = Number(digits.slice(0, 2)), m = Number(digits.slice(2, 4)), y = Number(digits.slice(4, 8))
+  if (y < 1900 || m < 1 || m > 12 || d < 1 || d > new Date(Date.UTC(y, m, 0)).getUTCDate()) return ''
+  return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`
+}
+
+/** Digits typed in a date field → "09/11/2026" as they come. */
+export function maskBR(digits: string): string {
+  const d = digits.slice(0, 8)
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)].filter(Boolean).join('/')
+}

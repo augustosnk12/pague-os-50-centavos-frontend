@@ -103,9 +103,32 @@ describe('PaymentSheet (S2)', () => {
     await user.click(within(dates).getByRole('button', { name: 'Ontem' }))
     expect(dates).toHaveTextContent('dom, 08 nov')
     await user.click(within(dates).getByRole('button', { name: 'Outra' }))
-    const field = within(dates).getByLabelText('Outra data do pagamento')
-    await waitFor(() => expect(field).toHaveFocus())
-    expect(field).toHaveAttribute('max', '2026-11-09')
+    // Brazilian format, never the browser's native picker.
+    const field = within(dates).getByRole('textbox', { name: 'Outra data do pagamento' })
+    expect(field).toHaveValue('07/11/2026')
+    expect(field).not.toHaveAttribute('type', 'date')
+    const cal = await screen.findByRole('dialog', { name: 'Calendário: Outra data do pagamento' })
+    await waitFor(() => expect(within(cal).getByRole('button', { name: 'sábado, 7 de novembro de 2026' })).toHaveFocus())
+    // Future days are disabled (max = today).
+    expect(within(cal).getByRole('button', { name: 'terça, 10 de novembro de 2026' })).toBeDisabled()
+    await user.click(within(cal).getByRole('button', { name: 'quarta, 4 de novembro de 2026' }))
+    expect(screen.queryByRole('dialog', { name: /Calendário/ })).toBeNull()
+    expect(field).toHaveValue('04/11/2026')
+    expect(dates).toHaveTextContent('qua, 04 nov')
+    // The sheet is still open.
+    expect(screen.getByRole('dialog', { name: /Registrar pagamento/ })).toBeInTheDocument()
+  })
+
+  it('Esc closes the calendar only, not the sheet', async () => {
+    const user = userEvent.setup()
+    renderSheet(target())
+    const dates = await screen.findByRole('group', { name: 'Data do pagamento' })
+    await user.click(within(dates).getByRole('button', { name: 'Outra' }))
+    await screen.findByRole('dialog', { name: /Calendário/ })
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: /Calendário/ })).toBeNull()
+    expect(screen.getByRole('dialog', { name: /Registrar pagamento/ })).toBeInTheDocument()
+    expect(within(dates).getByRole('textbox', { name: 'Outra data do pagamento' })).toHaveFocus()
   })
 
   it('confirm registers, closes and offers "Desfazer", which deletes that payment (improvement 7)', async () => {

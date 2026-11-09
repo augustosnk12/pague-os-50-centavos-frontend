@@ -1,205 +1,191 @@
-import { useState, useRef, useEffect, useId, type CSSProperties } from 'react'
-import type React from 'react'
-import { MESLONG } from '../../lib/utils'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { Icon } from './Icon'
+import { Calendar } from './Calendar'
+import { localToday } from '../../lib/date'
+import { fmtBR, maskBR, parseBR } from '../../lib/format'
 
 interface DateInputProps {
+  /** Visible label; or `ariaLabel` when the context already names the field. */
   label?: string
+  ariaLabel?: string
+  /** YYYY-MM-DD, or '' while empty/incomplete. */
   value: string
   onChange: (value: string) => void
   required?: boolean
+  min?: string
+  max?: string
+  /** Chip-sized field (payment sheet "Outra"). */
+  compact?: boolean
+  /** Open the calendar as soon as the field appears. */
+  autoOpen?: boolean
   style?: CSSProperties
 }
 
-const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const POP_W = 296
+const POP_H = 352
 
-function toDisplay(iso: string): string {
-  if (!iso || iso.length !== 10) return ''
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
-}
+/**
+ * Date field in the Brazilian format (DD/MM/AAAA): type the digits (the
+ * slashes come by themselves) or pick in the calendar. The calendar is a
+ * popover in the app's style, never the browser's native picker (which
+ * follows the browser language, e.g. MM/DD/YYYY).
+ */
+export function DateInput({ label, ariaLabel, value, onChange, required, min, max, compact, autoOpen, style }: DateInputProps) {
+  const today = localToday()
+  const [text, setText] = useState(() => fmtBR(value))
+  const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const id = useId()
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
 
-function applyMask(digits: string): string {
-  const d = digits.slice(0, 8)
-  let r = d.slice(0, 2)
-  if (d.length > 2) r += '/' + d.slice(2, 4)
-  if (d.length > 4) r += '/' + d.slice(4, 8)
-  return r
-}
-
-function toISO(display: string): string {
-  const digits = display.replace(/\D/g, '')
-  if (digits.length !== 8) return ''
-  const d = digits.slice(0, 2), m = digits.slice(2, 4), y = digits.slice(4, 8)
-  const date = new Date(`${y}-${m}-${d}T12:00:00Z`)
-  if (isNaN(date.getTime())) return ''
-  const dd = parseInt(d, 10), mm = parseInt(m, 10)
-  if (mm < 1 || mm > 12 || dd < 1 || dd > new Date(parseInt(y, 10), mm, 0).getDate()) return ''
-  return `${y}-${m}-${d}`
-}
-
-const navBtnStyle: CSSProperties = {
-  background: 'none', border: 'none', cursor: 'pointer',
-  fontSize: 18, lineHeight: 1, color: 'var(--text-muted)',
-  padding: '2px 8px', borderRadius: 6,
-}
-
-export function DateInput({ label, value, onChange, required, style }: DateInputProps) {
-  const [display, setDisplay] = useState(() => toDisplay(value))
-  const [invalid, setInvalid] = useState(false)
-  const [calOpen, setCalOpen] = useState(false)
-  const [dropUp, setDropUp] = useState(false)
-  const [viewDate, setViewDate] = useState<Date>(() => {
-    if (value) return new Date(value + 'T12:00:00Z')
-    const n = new Date()
-    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), 1))
-  })
-  const fieldId = useId()
-  const containerRef = useRef<HTMLDivElement>(null)
-
+  // Follow outside changes (e.g. a default date) without fighting the typing.
   useEffect(() => {
-    if (value) { setDisplay(toDisplay(value)); setInvalid(false) }
-  }, [value])
-
-  useEffect(() => {
-    if (!calOpen) return
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node))
-        setCalOpen(false)
+    if (value && value !== parseBR(text)) {
+      setText(fmtBR(value))
+      setError('')
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [calOpen])
+  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (autoOpen) {
+      inputRef.current?.focus()
+      setOpen(true)
+    }
+  }, [autoOpen])
+
+  // Fixed position from the field, inside the viewport (below, or above when there is no room).
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => {
+      const r = fieldRef.current?.getBoundingClientRect()
+      if (!r) return
+      const below = window.innerHeight - r.bottom >= POP_H + 8 || r.top < POP_H + 8
+      const left = Math.min(Math.max(8, r.right - POP_W), window.innerWidth - POP_W - 8)
+      setPos({ top: below ? r.bottom + 6 : r.top - POP_H - 6, left: Math.max(8, left) })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open])
+
+  // A press outside the field and the calendar closes it.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (!fieldRef.current?.contains(t) && !popRef.current?.contains(t)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [open])
+
+  const validate = (iso: string) => {
+    if (min && iso < min) return `A data não pode ser antes de ${fmtBR(min)}.`
+    if (max && iso > max) return `A data não pode ser depois de ${fmtBR(max)}.`
+    return ''
+  }
+
+  const onType = (e: ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, '')
-    const masked = applyMask(digits)
-    setDisplay(masked)
-    const complete = digits.length === 8
-    const iso = toISO(masked)
-    if (iso) {
-      setInvalid(false)
-      onChange(iso)
-      setViewDate(new Date(iso + 'T12:00:00Z'))
-    } else {
-      if (complete) setInvalid(true)
-      else setInvalid(false)
-      if (complete) onChange('')
+    const masked = maskBR(digits)
+    setText(masked)
+    if (digits.length < 8) {
+      setError('')
+      return
     }
+    const iso = parseBR(masked)
+    const problem = iso ? validate(iso) : 'Data inválida. Use DD/MM/AAAA.'
+    setError(problem)
+    onChange(problem ? '' : iso)
   }
 
-  const handleDayClick = (day: number) => {
-    const y = viewDate.getUTCFullYear()
-    const m = viewDate.getUTCMonth() + 1
-    const iso = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    setDisplay(toDisplay(iso))
+  const pick = (iso: string) => {
+    setText(fmtBR(iso))
+    setError('')
     onChange(iso)
-    setCalOpen(false)
+    setOpen(false)
+    inputRef.current?.focus()
   }
 
-  const year = viewDate.getUTCFullYear()
-  const month = viewDate.getUTCMonth()
-  const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay()
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-
-  const selDay = value ? parseInt(value.slice(8, 10), 10) : 0
-  const selMonth = value ? parseInt(value.slice(5, 7), 10) - 1 : -1
-  const selYear = value ? parseInt(value.slice(0, 4), 10) : 0
-
-  const cells: (number | null)[] = [
-    ...Array<null>(firstDow).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
-  while (cells.length % 7 !== 0) cells.push(null)
+  const msgId = `${id}-msg`
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', ...style }}>
+    <div style={{ position: 'relative', ...style }}>
       {label && (
-        <label htmlFor={fieldId} style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+        <label htmlFor={id} className="lt-field-label">
           {label} {required && <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>}
         </label>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: `1.5px solid ${invalid ? 'var(--overdue)' : 'var(--border-input)'}`, borderRadius: 'calc(var(--radius) * 0.6)', padding: '13px 15px', gap: 8 }}>
+      <div ref={fieldRef} className="lt-date-field" data-compact={compact || undefined} data-invalid={!!error || undefined}>
         <input
-          id={fieldId}
-          aria-required={required || undefined}
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? `${fieldId}-msg` : undefined}
+          ref={inputRef}
+          id={id}
           type="text"
-          value={display}
-          onChange={handleChange}
-          placeholder="dd/mm/aaaa"
-          maxLength={10}
           inputMode="numeric"
-          style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: 16, fontWeight: 500, fontFamily: 'inherit' }}
+          autoComplete="off"
+          placeholder="DD/MM/AAAA"
+          maxLength={10}
+          value={text}
+          onChange={onType}
+          aria-label={label ? undefined : ariaLabel}
+          aria-required={required || undefined}
+          aria-invalid={!!error || undefined}
+          aria-describedby={error ? msgId : undefined}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown' && e.altKey) {
+              e.preventDefault()
+              setOpen(true)
+            }
+          }}
         />
         <button
           type="button"
-          onClick={() => {
-            if (!calOpen && containerRef.current) {
-              const rect = containerRef.current.getBoundingClientRect()
-              const spaceBelow = window.innerHeight - rect.bottom
-              setDropUp(spaceBelow < 300)
-            }
-            setCalOpen(o => !o)
-          }}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: calOpen ? 'var(--primary)' : 'var(--text-faint)' }}
-          aria-label="Abrir calendário"
-          aria-expanded={calOpen}
+          className="lt-date-btn"
+          aria-label={open ? 'Fechar calendário' : 'Abrir calendário'}
+          aria-expanded={open}
+          aria-controls={open ? `${id}-cal` : undefined}
+          onClick={() => setOpen((o) => !o)}
         >
-          <Icon name="calendar" size={18} />
+          <Icon name="calendar" size={compact ? 15 : 18} />
         </button>
       </div>
-
-      {invalid && (
-        <div id={`${fieldId}-msg`} role="alert" style={{ fontSize: 12.5, marginTop: 6, color: 'var(--overdue)' }}>Data inválida.</div>
+      {error && (
+        <div id={msgId} role="alert" className="lt-field-error">
+          {error}
+        </div>
       )}
-
-      {calOpen && (
-        <div style={{
-          position: 'absolute',
-          ...(dropUp ? { bottom: 'calc(100% + 6px)' } : { top: 'calc(100% + 6px)' }),
-          left: 0, zIndex: 300,
-          background: 'var(--surface)', border: '1.5px solid var(--border)',
-          borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', padding: 14, width: 270,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <button onClick={() => setViewDate(d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)))} style={navBtnStyle}>‹</button>
-            <span style={{ fontWeight: 800, fontSize: 14 }}>{MESLONG[month]} {year}</span>
-            <button onClick={() => setViewDate(d => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)))} style={navBtnStyle}>›</button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
-            {DAYS_SHORT.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', padding: '2px 0' }}>{d}</div>
-            ))}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-            {cells.map((day, i) => {
-              const isSel = day !== null && day === selDay && month === selMonth && year === selYear
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  disabled={day === null}
-                  onClick={() => day && handleDayClick(day)}
-                  style={{
-                    aspectRatio: '1', border: 'none', borderRadius: 7,
-                    fontSize: 13, fontWeight: isSel ? 800 : 500,
-                    cursor: day ? 'pointer' : 'default',
-                    background: isSel ? 'var(--primary)' : 'transparent',
-                    color: day === null ? 'transparent' : isSel ? '#fff' : 'var(--text)',
-                    transition: 'background .1s',
-                  }}
-                  onMouseEnter={e => { if (day && !isSel) e.currentTarget.style.background = 'var(--surface-2)' }}
-                  onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}
-                >
-                  {day ?? ''}
-                </button>
-              )
-            })}
-          </div>
+      {open && pos && (
+        // Non-modal dialog (date picker pattern); Esc and focus leaving close it.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+        <div
+          ref={popRef}
+          id={`${id}-cal`}
+          role="dialog"
+          aria-label={`Calendário: ${label ?? ariaLabel ?? 'data'}`}
+          className="lt-cal-pop"
+          style={{ top: pos.top, left: pos.left, width: POP_W }}
+          onKeyDown={(e) => {
+            // Esc closes only the calendar, never the sheet behind it.
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              e.stopPropagation()
+              setOpen(false)
+              inputRef.current?.focus()
+            }
+          }}
+          onBlur={(e) => {
+            const to = e.relatedTarget as Node | null
+            if (to && !popRef.current?.contains(to) && !fieldRef.current?.contains(to)) setOpen(false)
+          }}
+        >
+          <Calendar value={value} onSelect={pick} today={today} min={min} max={max} autoFocus label={`Escolher ${(label ?? ariaLabel ?? 'data').toLowerCase()}`} />
         </div>
       )}
     </div>
