@@ -11,6 +11,8 @@ test('magic link: the API verifies the token and the app lands on the dashboard'
   await page.goto(`${API_URL}/auth/verify?token=${l.token}`)
   await expect(page).toHaveURL(/\/dashboard$/)
   await expect(page.getByRole('heading', { level: 1, name: /olá, maria/i })).toBeVisible()
+  // Brand-new account: the Painel guides the first steps (improvement 48).
+  await expect(page.getByRole('region', { name: 'Comece em 2 passos' })).toBeVisible()
   await a11y('dashboard-empty')
 })
 
@@ -135,6 +137,8 @@ test('keyboard: first Tab is the skip link; overdue badge counts previous months
   const badge = page.getByRole('link', { name: 'Parcelas, 1 atrasada' })
   // The bottom tabs exist only on small screens; on desktop the header nav has no badge yet (S1).
   if ((page.viewportSize()?.width ?? 0) < 880) await expect(badge).toBeVisible()
+  // S1: the hero pill sums every overdue amount, including previous months.
+  await expect(page.getByRole('link', { name: /R\$\s90,00 em atraso · 1 de meses anteriores/ })).toBeVisible()
   await a11y('dashboard-with-overdue')
 })
 
@@ -227,4 +231,53 @@ test('user menu: keyboard (Enter, arrows, Esc returns focus) and accessible', as
   await page.keyboard.press('Escape')
   await expect(menu).toHaveCount(0)
   await expect(button).toBeFocused()
+})
+
+test.describe('Painel (S1)', () => {
+  /** A calendar day relative to the browser's today, as the API stores due dates (UTC midnight). */
+  const dayFromToday = (offset: number) => {
+    const now = new Date()
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset)).toISOString()
+  }
+
+  test('agenda grouped by due date; a row opens the payment; paying updates the hero', async ({ page, session, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Bia Agenda', phone: '11999990000' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Atrasada', totalAmount: 40, numberOfInstallments: 1, firstDueDate: dayFromToday(-3) })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'De hoje', totalAmount: 25, numberOfInstallments: 1, firstDueDate: dayFromToday(0) })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Celular', totalAmount: 300, numberOfInstallments: 3, firstDueDate: dayFromToday(3) })
+
+    await page.goto('/dashboard')
+    await expect(page.getByRole('heading', { level: 2, name: 'Em atraso · 1' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Hoje · 1' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Próximos 7 dias · 1' })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Em atraso' })).toContainText('3d atraso')
+    // installmentCount comes from the API (feat/ui-v2): "1/3".
+    await expect(page.getByRole('list', { name: 'Próximos 7 dias' })).toContainText('Celular · 1/3')
+    await a11y('dashboard-agenda')
+    await page.evaluate(() => localStorage.setItem('lt-theme', 'dark'))
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await expect(page.getByRole('list', { name: 'Em atraso' })).toBeVisible()
+    await a11y('dark-dashboard-agenda')
+
+    await page.getByRole('button', { name: /^Bia Agenda, De hoje, .*vence hoje\. Registrar pagamento$/ }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByRole('button', { name: 'Quitar parcela' }).click()
+    await expect(page.getByRole('heading', { level: 2, name: /^Hoje/ })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: /A receber em/ })).toContainText('recebido')
+  })
+
+  test('first use: add the first person, then step 2 opens the new debt for them', async ({ page, session, a11y }) => {
+    void session
+    await page.goto('/dashboard')
+    const card = page.getByRole('region', { name: 'Comece em 2 passos' })
+    await expect(card.getByRole('button', { name: 'Nova dívida' })).toHaveAttribute('aria-disabled', 'true')
+    await card.getByRole('button', { name: 'Adicionar' }).click()
+    await page.getByLabel('Nome').fill('Maria Primeira')
+    await page.getByRole('dialog').getByRole('button', { name: 'Adicionar' }).click()
+    await expect(card.getByText('✓ Maria cadastrada')).toBeVisible()
+    await a11y('dashboard-first-use-step2')
+    await card.getByRole('button', { name: 'Nova dívida' }).click()
+    await expect(page).toHaveURL(/\/debts\/new\?debtorId=/)
+  })
 })

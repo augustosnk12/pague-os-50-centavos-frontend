@@ -21,6 +21,9 @@ export interface InstallmentEnriched extends Installment {
     description: string | null
     type: string
     debtorId: string
+    /** Since API 1.3 (S1); absent on older APIs. */
+    installmentCount?: number | null
+    recurrence?: 'MONTHLY' | null
     debtor?: {
       id: string
       name: string

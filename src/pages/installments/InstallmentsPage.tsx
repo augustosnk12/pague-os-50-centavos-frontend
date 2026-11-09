@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
@@ -42,7 +42,9 @@ export function InstallmentsPage() {
 
   const [period, setPeriod] = useState<Period>('month')
   const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10))
-  const [filter, setFilter] = useState<Filter>('ALL')
+  // The Painel links here with ?status=overdue (S1); S3 moves all filters to the URL.
+  const [searchParams] = useSearchParams()
+  const [filter, setFilter] = useState<Filter>(() => (searchParams.get('status') === 'overdue' ? 'OVERDUE' : 'ALL'))
   const [debtorIds, setDebtorIds] = useState<string[]>([]) // empty = all debtors
   const [debtorPickerOpen, setDebtorPickerOpen] = useState(false)
   const [debtorSearch, setDebtorSearch] = useState('')
