@@ -6,6 +6,7 @@ import { queryClient } from './lib/queryClient'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { PreferencesProvider } from './contexts/PreferencesContext'
 import { AppRouter } from './router'
 import './styles/index.css'
 
@@ -14,11 +15,13 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <PreferencesProvider>
           <AuthProvider>
             <ToastProvider>
               <AppRouter />
             </ToastProvider>
           </AuthProvider>
+          </PreferencesProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </BrowserRouter>

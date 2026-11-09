@@ -73,12 +73,12 @@ export function DebtFormPage() {
       },
       {
         onSuccess: (data) => {
-          showToast(`Cobrança criada · ${data.installments.length}× parcela${data.installments.length > 1 ? 's' : ''}`, { status: 'PENDING', icon: 'check' })
+          showToast(`Dívida criada · ${data.installments.length}× parcela${data.installments.length > 1 ? 's' : ''}`, { status: 'PENDING', icon: 'check' })
           navigate(`/debtors/${debtorId}`)
         },
         onError: (e: unknown) => {
           const msg = getApiError(e)
-          setErr(translateApiError(msg, 'Erro ao criar cobrança.'))
+          setErr(translateApiError(msg, 'Erro ao criar dívida.'))
         },
       },
     )
@@ -109,7 +109,7 @@ export function DebtFormPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
         <IconButton name="arrowLeft" onClick={() => navigate(-1)} label="Voltar" style={{ marginLeft: -8, marginTop: 2 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Nova cobrança</h1>
+          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Nova dívida</h1>
           <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>Registre uma dívida e gere as parcelas.</p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export function DebtFormPage() {
           <Button full size="lg" icon="check" onClick={handleSubmit} disabled={createDebt.isPending}>
             {createDebt.isPending
               ? 'Criando…'
-              : `Criar cobrança${selectedDebtor ? ` p/ ${selectedDebtor.name.split(' ')[0]}` : ''}`}
+              : `Criar dívida${selectedDebtor ? ` p/ ${selectedDebtor.name.split(' ')[0]}` : ''}`}
           </Button>
         </div>
       </div>

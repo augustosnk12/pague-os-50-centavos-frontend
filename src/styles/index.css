@@ -240,3 +240,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
+
+/* User menu (improvements 20 and 52): items rise in one after another (never
+   from opacity 0); each icon makes a gesture tied to its meaning on hover or
+   keyboard focus. Transforms only; all off with prefers-reduced-motion. */
+@keyframes ltMenuIn { from { transform: translateY(-6px) scale(0.98); } to { transform: none; } }
+@keyframes ltItemIn { from { transform: translateY(6px); } to { transform: none; } }
+@keyframes ltSwing { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-14deg); } 65% { transform: rotate(10deg); } }
+@keyframes ltTap { 0%, 100% { transform: scale(1); } 40% { transform: scale(0.82); } }
+.lt-user-menu { animation: ltMenuIn var(--dur) var(--ease-out); transform-origin: top right; }
+.lt-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 11px 14px; border: none; border-radius: 10px; background: transparent;
+  font: inherit; font-weight: 700; font-size: 14px; text-align: left; white-space: nowrap; cursor: pointer;
+  animation: ltItemIn var(--dur) var(--ease-out) both;
+  transition: background-color var(--dur-fast) var(--ease-std);
+}
+.lt-menu-item:hover, .lt-menu-item:focus-visible { background: var(--surface-hover); }
+.lt-user-menu > .lt-menu-item:nth-of-type(1) { animation-delay: 30ms; }
+.lt-user-menu > .lt-menu-item:nth-of-type(2) { animation-delay: 60ms; }
+.lt-menu-ic { display: grid; place-items: center; transition: transform var(--dur) var(--ease-out); }
+@media (hover: hover) {
+  .lt-menu-item[data-gesture="theme"]:is(:hover, :focus-visible) .lt-menu-ic { animation: ltSwing 420ms var(--ease-out); }
+  .lt-menu-item[data-gesture="calc"]:is(:hover, :focus-visible) .lt-menu-ic { animation: ltTap var(--dur-slow) var(--ease-out); }
+  .lt-menu-item[data-gesture="logout"]:is(:hover, :focus-visible) .lt-menu-ic { transform: translateX(3px); }
+}

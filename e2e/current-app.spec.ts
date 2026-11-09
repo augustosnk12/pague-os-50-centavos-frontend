@@ -207,3 +207,24 @@ test.describe('failures (F4)', () => {
     await expect(page.getByRole('alert').filter({ hasText: 'Não foi possível carregar' })).toHaveCount(0)
   })
 })
+
+test('user menu: keyboard (Enter, arrows, Esc returns focus) and accessible', async ({ page, session, a11y }) => {
+  void session
+  test.skip((page.viewportSize()?.width ?? 0) < 880, 'header menu is desktop-only')
+  await page.goto('/dashboard')
+  const button = page.getByRole('button', { name: 'Conta' })
+  await button.focus()
+  await page.keyboard.press('Enter')
+  const menu = page.getByRole('menu', { name: 'Conta' })
+  await expect(menu).toBeVisible()
+  await expect(button).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('menuitem', { name: /Tema/ })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('menuitem', { name: 'Sair' })).toBeFocused()
+  await page.keyboard.press('ArrowDown') // wraps
+  await expect(page.getByRole('menuitem', { name: /Tema/ })).toBeFocused()
+  await a11y('user-menu')
+  await page.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+  await expect(button).toBeFocused()
+})

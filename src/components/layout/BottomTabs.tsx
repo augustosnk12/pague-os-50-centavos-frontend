@@ -43,7 +43,7 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
       <div style={{ flex: 1, display: 'grid', placeItems: 'center', position: 'relative' }}>
         <button
           onClick={() => navigate('/debts/new')}
-          aria-label="Nova cobrança"
+          aria-label="Nova dívida"
           style={{
             position: 'absolute',
             top: -22,

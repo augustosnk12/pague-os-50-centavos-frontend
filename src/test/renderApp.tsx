@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { AuthProvider } from '../contexts/AuthContext'
 import { ToastProvider } from '../contexts/ToastContext'
+import { PreferencesProvider } from '../contexts/PreferencesContext'
 import { AppRouter } from '../router'
 import { setLenderInStorage, setToken } from '../lib/cookies'
 
@@ -22,11 +23,13 @@ export function renderApp(route: string, { loggedIn = true } = {}) {
     <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <PreferencesProvider>
           <AuthProvider>
             <ToastProvider>
               <AppRouter />
             </ToastProvider>
           </AuthProvider>
+          </PreferencesProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </MemoryRouter>,
