@@ -8,6 +8,10 @@ export interface GetInstallmentsParams {
   period: InstallmentPeriod
   date: string
   debtorId?: string
+  /** UI v2 (API B5): also the overdue installments from before the period. */
+  includeOverdueBefore?: boolean
+  /** Local date used by the API to tell overdue apart. */
+  today?: string
 }
 
 export interface RegisterPaymentBody {

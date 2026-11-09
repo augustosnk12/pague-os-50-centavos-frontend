@@ -46,6 +46,7 @@ export function useRouteAnnouncer() {
   // StrictMode runs effects twice, and a flag would treat the 2nd run as a navigation.
   const initialKey = useRef(location.key)
   const navigated = useRef(false)
+  const last = useRef<{ key: string; path: string } | null>(null)
 
   // Remember where each history entry was scrolled to — only from scroll
   // events while it is the current entry. (Reading scrollY when leaving would
@@ -58,6 +59,13 @@ export function useRouteAnnouncer() {
   }, [location.key])
 
   useEffect(() => {
+    // A screen replacing its own query (Parcelas: tab, period, filter) is not a
+    // new screen: no scroll to the top, no focus move. (Same key again = the
+    // StrictMode re-run of this effect, which must behave as the first run.)
+    const prev = last.current
+    last.current = { key: location.key, path: location.pathname }
+    if (prev && prev.key !== location.key && prev.path === location.pathname && navType === 'REPLACE') return
+
     if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.scrollRestoration = 'manual'
     if (location.key !== initialKey.current) navigated.current = true
     // Coming BACK to the entry the app was opened on is a navigation too.

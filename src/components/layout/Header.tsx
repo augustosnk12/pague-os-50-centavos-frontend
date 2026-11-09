@@ -154,8 +154,19 @@ export function Header({ onCalc }: HeaderProps) {
 
   const activeRoute = NAV.find((n) => location.pathname.startsWith(n.path))?.path
 
+  // Its height as --app-head-h, so sticky bars inside pages sit right below it.
+  const headerRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--app-head-h', `${el.offsetHeight}px`))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
     <header
+      ref={headerRef}
       style={{
         position: 'sticky',
         top: 0,

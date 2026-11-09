@@ -95,7 +95,7 @@ function Hero({ o }: { o: DashboardOverview }) {
         <Money value={o.month.remaining} size={38} color="#fff" />
       </div>
       <Link
-        to="/installments?period=month"
+        to="/installments?resumo=1"
         className="lt-hero-month"
         aria-label={`${fmtMoney(o.month.received)} recebido de ${fmtMoney(o.month.expected)}, ${pct}%. Ver parcelas de ${month}`}
       >
@@ -113,7 +113,7 @@ function Hero({ o }: { o: DashboardOverview }) {
       </Link>
       {hasOverdue && (
         <div className="lt-hero-pills">
-          <Link to="/installments?status=overdue" className="lt-late-pill">
+          <Link to="/installments?aba=atrasadas" className="lt-late-pill">
             <Icon name="alert" size={14} />
             <span>
               {fmtMoney(o.overdue.amount)} em atraso
@@ -160,7 +160,7 @@ function Agenda({ o, today, lean, showWeek, onShowWeek, onOpen }: AgendaProps) {
           <GroupLabel color="var(--overdue)" count={o.counts.overdue}>Em atraso</GroupLabel>
           {rows(overdue.slice(0, OVERDUE_SHOWN), 'Em atraso')}
           {moreOverdue > 0 && (
-            <Link to="/installments?status=overdue" className="lt-more-link">
+            <Link to="/installments?aba=atrasadas" className="lt-more-link">
               + {plural(moreOverdue, 'atrasada', 'atrasadas')}
             </Link>
           )}

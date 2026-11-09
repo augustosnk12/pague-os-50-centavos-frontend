@@ -67,7 +67,7 @@ test.describe('with data', () => {
     await expect(page.getByText('Curso de inglês').first()).toBeVisible()
     await a11y('installments')
 
-    await page.getByRole('button', { name: 'Receber' }).first().click()
+    await page.getByRole('button', { name: /Registrar pagamento$/ }).first().click()
     await expect(page.getByText('Registrar pagamento').first()).toBeVisible()
     await a11y('payment-sheet')
     await page.getByRole('button', { name: 'Quitar parcela' }).click()
@@ -117,7 +117,7 @@ test('dark theme passes the same accessibility checks', async ({ page, session, 
   await page.goto('/installments')
   await expect(page.getByText('Notebook').first()).toBeVisible()
   await a11y('dark-installments')
-  await page.getByRole('button', { name: 'Receber' }).first().click()
+  await page.getByRole('button', { name: /Registrar pagamento$/ }).first().click()
   await expect(page.getByText('Registrar pagamento').first()).toBeVisible()
   await a11y('dark-payment-sheet')
 })
@@ -172,7 +172,7 @@ test.describe('failures (F4)', () => {
     await context.setOffline(true)
     await expect(page.getByRole('status').filter({ hasText: 'Sem conexão' })).toBeVisible()
     await a11y('offline-banner')
-    await page.getByRole('button', { name: 'Receber' }).first().click()
+    await page.getByRole('button', { name: /Registrar pagamento$/ }).first().click()
     await page.getByRole('button', { name: 'Quitar parcela' }).click()
     await expect(page.getByText(/nada foi salvo/).first()).toBeVisible()
 
@@ -321,4 +321,69 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
   await page.getByRole('button', { name: 'Desfazer' }).click()
   await expect(page.getByText('Pagamento desfeito')).toBeVisible()
   await expect.poll(paid).toBe(0)
+})
+
+test.describe('Parcelas (S3)', () => {
+  const day = (offset: number, monthOffset = 0) => {
+    const n = new Date()
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth() + monthOffset, n.getDate() + offset)).toISOString()
+  }
+
+  test('tabs and filters live in the URL; earlier overdue folded; compact bar; filter sheet', async ({ page, session, a11y }) => {
+    const ana = await session.api('POST', '/debtors', { name: 'Ana Abril' })
+    const bia = await session.api('POST', '/debtors', { name: 'Bia Brito' })
+    // One overdue from two months ago (before this month) and several this month.
+    await session.api('POST', '/debts', { debtorId: ana.id, type: 'PIX', description: 'Antiga', totalAmount: 70, numberOfInstallments: 1, firstDueDate: day(0, -2) })
+    for (let k = 0; k < 14; k++) {
+      await session.api('POST', '/debts', { debtorId: k % 2 ? ana.id : bia.id, type: 'PIX', description: `Conta ${k}`, totalAmount: 10 + k, numberOfInstallments: 1, firstDueDate: thisMonthISO(1 + (k % 27)) })
+    }
+
+    await page.goto('/installments')
+    await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
+    const prev = page.getByRole('button', { name: /1 atrasada de antes deste período/ })
+    await expect(prev).toBeVisible()
+    await a11y('parcelas')
+
+    // Tab → URL; reload keeps it; the earlier overdue is now inside the list.
+    await page.getByRole('tab', { name: /Atrasadas/ }).click()
+    await expect(page).toHaveURL(/\/installments\?aba=atrasadas$/)
+    await page.reload()
+    await expect(page.getByRole('tab', { name: /Atrasadas/ })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByText('Antiga').first()).toBeVisible()
+    await page.getByRole('tab', { name: /Todas/ }).click()
+
+    // Debtor filter.
+    await page.getByRole('button', { name: 'Filtrar por devedor: todos os devedores' }).click()
+    const sheet = page.getByRole('dialog', { name: 'Filtrar por devedor' })
+    await sheet.getByRole('button', { name: /Bia Brito/ }).click()
+    await a11y('parcelas-filtro')
+    await sheet.getByRole('button', { name: 'Ver 1 devedor' }).click()
+    await expect(page).toHaveURL(new RegExp(`devedores=${bia.id}`))
+    await expect(page.getByRole('button', { name: 'Filtrar por devedor: Bia Brito' })).toBeVisible()
+    await expect(page.getByText('Antiga')).toHaveCount(0)
+
+    // Compact bar after scrolling past the tabs (small screen to have room to scroll).
+    await page.getByRole('button', { name: 'Filtrar por devedor: Bia Brito' }).click()
+    await page.getByRole('dialog', { name: 'Filtrar por devedor' }).getByRole('button', { name: 'Limpar' }).click()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.setViewportSize({ width: 390, height: 520 })
+    await page.evaluate(() => window.scrollTo(0, 700))
+    const bar = page.getByRole('region', { name: 'Período e filtros' })
+    await expect(bar).toBeVisible()
+    await a11y('parcelas-barra')
+    await bar.getByRole('button', { name: /Voltar ao topo/ }).first().click()
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(50)
+  })
+
+  test('day mode: week strip and the period in the URL', async ({ page, session }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Dora Dia' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Hoje mesmo', totalAmount: 30, numberOfInstallments: 1, firstDueDate: day(0) })
+    await page.goto('/installments')
+    await page.getByRole('button', { name: 'Dia', exact: true }).click()
+    await expect(page).toHaveURL(/periodo=dia/)
+    const strip = page.getByRole('group', { name: 'Dias da semana' })
+    await expect(strip.locator('[aria-current="date"]')).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByText('Hoje mesmo')).toBeVisible()
+  })
 })

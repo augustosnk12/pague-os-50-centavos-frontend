@@ -1,5 +1,7 @@
+import { useRef, useState, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '../ui/Avatar'
+import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
 import { Detail } from '../../contexts/PreferencesContext'
 import { installmentPosition, installmentTag, remainingCents, type TagTone } from '../../lib/installmentTag'
@@ -14,11 +16,18 @@ const TONE: Record<TagTone, string> = {
   muted: 'var(--text-faint)',
 }
 
+/** Distance (px) a swipe must travel before letting go confirms it (improvement 27). */
+const SWIPE_CONFIRM = 70
+const SWIPE_MAX = 110
+
 interface InstallmentLineProps {
   inst: InstallmentEnriched
   today: string
   onOpen: (inst: InstallmentEnriched) => void
+  /** Show the due date when nothing more urgent is shown (off inside day groups). */
   showDate?: boolean
+  /** Swipe right (touch) opens "Receber". The row's button does the same for everyone. */
+  swipe?: boolean
 }
 
 /**
@@ -26,7 +35,7 @@ interface InstallmentLineProps {
  * payment sheet (one stretched button), the avatar opens the debtor. Amount
  * shown is what is still owed.
  */
-export function InstallmentLine({ inst, today, onOpen, showDate = true }: InstallmentLineProps) {
+export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false }: InstallmentLineProps) {
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
   const debtorId = debtor?.id ?? inst.debt?.debtorId
@@ -38,40 +47,92 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true }: Instal
   const value = paid ? Number(inst.amount) : left / 100
   const spokenPosition = position.startsWith('↻') ? 'mensal' : position.includes('/') ? `parcela ${position.replace('/', ' de ')}` : position
 
+  // Touch swipe: follow the finger horizontally, confirm past SWIPE_CONFIRM.
+  const [dx, setDx] = useState(0)
+  const start = useRef<{ x: number; y: number; id: number; horizontal: boolean | null } | null>(null)
+  const swiped = useRef(false)
+  const canSwipe = swipe && !paid
+  const onPointerDown = (e: PointerEvent<HTMLLIElement>) => {
+    if (!canSwipe || e.pointerType !== 'touch') return
+    start.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: null }
+  }
+  const onPointerMove = (e: PointerEvent<HTMLLIElement>) => {
+    const s = start.current
+    if (!s || s.id !== e.pointerId) return
+    const mx = e.clientX - s.x
+    const my = e.clientY - s.y
+    if (s.horizontal === null && Math.abs(mx) + Math.abs(my) > 8) s.horizontal = Math.abs(mx) > Math.abs(my)
+    if (s.horizontal) setDx(Math.max(0, Math.min(SWIPE_MAX, mx)))
+  }
+  const onPointerEnd = () => {
+    const confirmed = dx >= SWIPE_CONFIRM
+    start.current = null
+    setDx(0)
+    if (confirmed) {
+      swiped.current = true // the click that follows the gesture must not open it twice
+      onOpen(inst)
+    }
+  }
+
   return (
-    <li className="lt-lrow" data-paid={paid || undefined}>
-      <button
-        type="button"
-        className="lt-lrow-hit"
-        onClick={() => onOpen(inst)}
-        aria-label={[name, inst.debt?.description, spokenPosition, fmtMoney(value), tag?.spoken].filter(Boolean).join(', ') + (paid ? '. Ver pagamentos' : '. Registrar pagamento')}
-      />
-      {debtorId ? (
-        <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`}>
-          <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
-        </Link>
-      ) : (
-        <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
+    <li
+      className="lt-lrow"
+      data-paid={paid || undefined}
+      data-swiping={dx > 0 || undefined}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={() => {
+        start.current = null
+        setDx(0)
+      }}
+      style={canSwipe ? { touchAction: 'pan-y' } : undefined}
+    >
+      {canSwipe && (
+        <div className="lt-sw-hint" aria-hidden="true" data-ready={dx >= SWIPE_CONFIRM || undefined}>
+          <Icon name="wallet" size={16} /> Receber
+        </div>
       )}
-      <div className="lt-lrow-main" aria-hidden="true">
-        <div className="lt-lrow-name">{name}</div>
-        <Detail>
-          <div className="lt-lrow-sub">{what}</div>
-        </Detail>
-      </div>
-      <div className="lt-lrow-end" aria-hidden="true">
-        <Money value={value} size={15} />
-        {tag && (
-          <div className="lt-lrow-tag" style={{ color: TONE[tag.tone] }}>
-            {tag.text}
-          </div>
+      <div className="lt-lrow-in" style={dx ? { transform: `translateX(${dx}px)` } : undefined}>
+        <button
+          type="button"
+          className="lt-lrow-hit"
+          onClick={() => {
+            if (swiped.current) {
+              swiped.current = false
+              return
+            }
+            onOpen(inst)
+          }}
+          aria-label={[name, inst.debt?.description, spokenPosition, fmtMoney(value), tag?.spoken].filter(Boolean).join(', ') + (paid ? '. Ver pagamentos' : '. Registrar pagamento')}
+        />
+        {debtorId ? (
+          <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`}>
+            <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
+          </Link>
+        ) : (
+          <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
+        )}
+        <div className="lt-lrow-main" aria-hidden="true">
+          <div className="lt-lrow-name">{name}</div>
+          <Detail>
+            <div className="lt-lrow-sub">{what}</div>
+          </Detail>
+        </div>
+        <div className="lt-lrow-end" aria-hidden="true">
+          <Money value={value} size={15} />
+          {tag && (
+            <div className="lt-lrow-tag" style={{ color: TONE[tag.tone] }}>
+              {tag.text}
+            </div>
+          )}
+        </div>
+        {!paid && (
+          <span className="lt-recv" aria-hidden="true">
+            Receber
+          </span>
         )}
       </div>
-      {!paid && (
-        <span className="lt-recv" aria-hidden="true">
-          Receber
-        </span>
-      )}
     </li>
   )
 }

@@ -1,277 +1,546 @@
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useInstallmentsByPeriod } from '../../hooks/installments/useInstallmentsByMonth'
-import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { IconButton } from '../../components/ui/IconButton'
 import { Icon } from '../../components/ui/Icon'
+import { IconButton } from '../../components/ui/IconButton'
 import { Avatar } from '../../components/ui/Avatar'
-import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
-import { Modal } from '../../components/ui/Modal'
-import { InstallmentRow } from '../../components/shared/InstallmentRow'
+import { Money } from '../../components/ui/Money'
+import { ListGroup } from '../../components/ui/ListGroup'
+import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
+import { Detail } from '../../contexts/PreferencesContext'
+import { useDebtors } from '../../hooks/debtors/useDebtors'
+import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
+import { localToday } from '../../lib/date'
+import { fmtMoney } from '../../lib/format'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
-import { money, deriveInstStatus } from '../../lib/utils'
-import { periodLabel, shiftDate, type Period } from '../../lib/period'
-import type { InstallmentEnriched, InstallmentStatus } from '../../types/installment'
+import {
+  buildView, dayLabel, dayLabelLong, dayOf, isCurrentPeriod, isOverdue, isPaid, periodLabel, readUrlState, relativeLabel,
+  shiftPeriod, weekDays, writeUrlState, type DayGroup, type InstallmentsView, type Period, type Tab,
+} from '../../lib/installmentsView'
+import { DebtorFilterSheet } from './DebtorFilterSheet'
+import type { InstallmentEnriched } from '../../types/installment'
 
-type Filter = 'ALL' | InstallmentStatus
+const PERIODS: [Period, string][] = [['day', 'Dia'], ['week', 'Semana'], ['month', 'Mês']]
+const TABS: [Tab, string][] = [['all', 'Todas'], ['open', 'Em aberto'], ['overdue', 'Atrasadas'], ['paid', 'Pagas']]
+/** Rows rendered at a time ("Mostrar mais 40", improvement 42). */
+const PAGE = 40
+const TOTALS_KEY = 'pague50_parcelas_resumo'
 
-const PERIODS: { id: Period; label: string }[] = [
-  { id: 'day', label: 'Dia' },
-  { id: 'week', label: 'Semana' },
-  { id: 'month', label: 'Mês' },
-]
+const readTotalsOpen = () => {
+  try {
+    return localStorage.getItem(TOTALS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'ALL', label: 'Todas' },
-  { id: 'OVERDUE', label: 'Atrasadas' },
-  { id: 'PENDING', label: 'Pendentes' },
-  { id: 'PARTIALLY_PAID', label: 'Parciais' },
-  { id: 'PAID', label: 'Pagas' },
-]
-
+/**
+ * Parcelas (S3, improvements 13, 14, 15, 25, 27 and 42). Period, tab and
+ * debtor filter live in the URL; the list is grouped by day; overdue
+ * installments from before the period are always one tap away.
+ */
 export function InstallmentsPage() {
-  const navigate = useNavigate()
+  const today = localToday()
+  const [params, setParams] = useSearchParams()
+  const url = readUrlState(params, today)
+  const { period, anchor, tab, debtorIds } = url
 
-  const [period, setPeriod] = useState<Period>('month')
-  const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10))
-  // The Painel links here with ?status=overdue (S1); S3 moves all filters to the URL.
-  const [searchParams] = useSearchParams()
-  const [filter, setFilter] = useState<Filter>(() => (searchParams.get('status') === 'overdue' ? 'OVERDUE' : 'ALL'))
-  const [debtorIds, setDebtorIds] = useState<string[]>([]) // empty = all debtors
-  const [debtorPickerOpen, setDebtorPickerOpen] = useState(false)
-  const [debtorSearch, setDebtorSearch] = useState('')
+  const [totalsOpen, setTotalsOpen] = useState(() => url.summary || readTotalsOpen())
+  const [showPrevious, setShowPrevious] = useState(false)
+  const [paidOpen, setPaidOpen] = useState<Record<string, boolean>>({})
+  const [limit, setLimit] = useState(PAGE)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
 
-  const { data: allItems = [], isLoading, isError, refetch, isFetching } = useInstallmentsByPeriod({ period, date: dateKey })
+  // Day mode loads the whole week: the strip shows a dot on every day with installments.
+  const query = useInstallmentsPeriod({ period: period === 'day' ? 'week' : period, date: anchor, today })
   const { data: debtors = [] } = useDebtors()
+  const items = useMemo(() => query.data ?? [], [query.data])
+  const debtorKey = debtorIds.join(',')
+  const view = useMemo(
+    () => buildView(items, { period, anchor, today, tab, debtorIds: debtorKey ? debtorKey.split(',') : [] }),
+    [items, period, anchor, today, tab, debtorKey],
+  )
 
-  const derivedItems = allItems.map((i) => ({
-    ...i,
-    status: deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount }),
-  }))
-
-  // Debtor filter (client-side). Empty selection = all debtors.
-  const debtorItems = debtorIds.length > 0
-    ? derivedItems.filter((i) => debtorIds.includes(i.debt?.debtor?.id ?? i.debt?.debtorId ?? ''))
-    : derivedItems
-
-  const filtered: InstallmentEnriched[] = (filter === 'ALL' ? debtorItems : debtorItems.filter((i) => i.status === filter))
-    .sort((a, b) => (a.status === 'PAID' ? 1 : 0) - (b.status === 'PAID' ? 1 : 0))
-
-  const counts: Record<Filter, number> = {
-    ALL: debtorItems.length,
-    OVERDUE: debtorItems.filter((i) => i.status === 'OVERDUE').length,
-    PENDING: debtorItems.filter((i) => i.status === 'PENDING').length,
-    PARTIALLY_PAID: debtorItems.filter((i) => i.status === 'PARTIALLY_PAID').length,
-    PAID: debtorItems.filter((i) => i.status === 'PAID').length,
+  // A new period, tab or filter starts from the first rows again.
+  const viewKey = `${period}|${anchor}|${tab}|${debtorKey}`
+  const [lastKey, setLastKey] = useState(viewKey)
+  if (lastKey !== viewKey) {
+    setLastKey(viewKey)
+    setLimit(PAGE)
+    setPaidOpen({})
+    setShowPrevious(false)
   }
 
-  const debtorFilterLabel = debtorIds.length === 0
-    ? 'Todos os devedores'
-    : debtorIds.length === 1
-      ? debtors.find((d) => d.id === debtorIds[0])?.name ?? '1 devedor'
-      : `${debtorIds.length} devedores`
+  const update = (next: Partial<{ period: Period; anchor: string; tab: Tab; debtorIds: string[] }>) =>
+    setParams(writeUrlState({ period, anchor, tab, debtorIds, ...next }, today), { replace: true })
 
-  const debtorMatches = debtors.filter((d) => d.name.toLowerCase().includes(debtorSearch.trim().toLowerCase()))
-
-  const toggleDebtor = (id: string) =>
-    setDebtorIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
-
-  const closeDebtorPicker = () => { setDebtorPickerOpen(false); setDebtorSearch('') }
-
-  const totalDue = filtered.filter((i) => i.status !== 'PAID').reduce((s, i) => {
-    return s + (Number(i.amount) - Number(i.paidAmount ?? '0'))
-  }, 0)
-
-  const filterColors: Record<Filter, string> = {
-    ALL: 'var(--primary)',
-    OVERDUE: 'var(--overdue)',
-    PENDING: 'var(--pending)',
-    PARTIALLY_PAID: 'var(--partial)',
-    PAID: 'var(--paid)',
+  const toggleTotals = () => {
+    setTotalsOpen((o) => {
+      try {
+        localStorage.setItem(TOTALS_KEY, o ? '0' : '1')
+      } catch {
+        // storage unavailable: keep for this visit
+      }
+      return !o
+    })
   }
 
-  const handleReceive = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
+  const selectedDebtors = debtorIds.map((id) => debtors.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d)
+  const filterLabel = !debtorIds.length ? 'Todos' : debtorIds.length === 1 ? firstName(selectedDebtors[0]?.name ?? '1 devedor') : `${debtorIds.length} devedores`
+  const filterSpoken = !debtorIds.length ? 'todos os devedores' : selectedDebtors.map((d) => d.name).join(', ') || filterLabel
+
+  const isNow = isCurrentPeriod(period, anchor, today) && (period !== 'day' || anchor === today)
+  const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
+  const tabName = TABS.find((t) => t[0] === tab)?.[1] ?? ''
+
+  // Compact bar once the period card and tabs have scrolled away (improvement 15).
+  const sentinel = useRef<HTMLDivElement>(null)
+  const [compact, setCompact] = useState(false)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([e]) => setCompact(!e.isIntersecting && e.boundingClientRect.top < 0), { threshold: 0 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  const top = useRef<HTMLHeadingElement>(null)
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    top.current?.focus({ preventScroll: true })
+  }
+
+  const loading = query.isLoading && !query.data
+  const failed = query.isError && !query.data
 
   return (
-    <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
-      {/* Header */}
-      <div style={{ marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Parcelas</h1>
-        <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>Acompanhe e dê baixa nos pagamentos.</p>
-      </div>
-
-      {/* Period segmented control */}
-      <div style={{ display: 'flex', gap: 4, background: 'var(--surface-2)', borderRadius: 13, padding: 4, marginBottom: 14 }}>
-        {PERIODS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriod(p.id)}
-            style={{
-              flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              fontWeight: 700, fontSize: 14,
-              background: period === p.id ? 'var(--surface)' : 'transparent',
-              color: period === p.id ? 'var(--primary)' : 'var(--text-muted)',
-              boxShadow: period === p.id ? 'var(--shadow-sm)' : 'none',
-              transition: 'all .15s',
-            }}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Date navigator */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px 8px', boxShadow: 'var(--shadow-sm)' }}>
-        <IconButton name="chevronLeft" onClick={() => setDateKey(shiftDate(period, dateKey, -1))} label="Anterior" />
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>{periodLabel(period, dateKey)}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-            {totalDue > 0 ? `${money(totalDue)} a receber` : 'Nada a receber'}
+    <main className="lt-page lt-anim-fade lt-ip" data-compact={compact || undefined}>
+      {compact && (
+        <div className="lt-ip-bar" role="region" aria-label="Período e filtros">
+          <div className="lt-ip-bar-in">
+            <IconButton name="chevronLeft" size={17} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
+            <button type="button" className="lt-ipb-lbl" onClick={scrollToTop} aria-label={`${periodLabel(period, anchor)}. Voltar ao topo`}>
+              {periodLabel(period, anchor)}
+            </button>
+            <IconButton name="chevronRight" size={17} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
+            <span className="lt-ipb-sep" aria-hidden="true" />
+            <button type="button" className="lt-ipb-f" onClick={scrollToTop} aria-label={`${tabName}, ${view.counts[tab]}. Voltar ao topo`}>
+              {tabName}
+              <span className="lt-cnt" data-late={(tab === 'overdue' && view.counts.overdue > 0) || undefined}>{view.counts[tab]}</span>
+              {debtorIds.length > 0 && <span className="lt-ipb-nf">· {filterLabel}</span>}
+            </button>
+            <IconButton name="user" size={16} label={`Filtrar por devedor: ${filterSpoken}`} onClick={() => setFilterOpen(true)} />
           </div>
         </div>
-        <IconButton name="chevronRight" onClick={() => setDateKey(shiftDate(period, dateKey, 1))} label="Próximo" />
-      </div>
+      )}
 
-      {/* Status filter chips */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
-        {FILTERS.map((f) => {
-          if (f.id !== 'ALL' && counts[f.id] === 0) return null
-          const active = filter === f.id
-          const c = filterColors[f.id]
-          return (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              style={{
-                flexShrink: 0, padding: '8px 14px', borderRadius: 99, cursor: 'pointer',
-                fontWeight: 700, fontSize: 13.5, transition: 'all .15s',
-                border: `1.5px solid ${active ? c : 'var(--border)'}`,
-                background: active ? c : 'var(--surface)',
-                color: active ? 'var(--on-primary)' : 'var(--text-muted)',
-              }}
-            >
-              {f.label} <span style={{ opacity: 0.7 }}>{counts[f.id]}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Debtor filter */}
-      <div style={{ marginBottom: 16 }}>
+      <div className="lt-ip-head">
+        <h1 ref={top} className="lt-h1" tabIndex={-1}>Parcelas</h1>
         <button
           type="button"
-          onClick={() => setDebtorPickerOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 99,
-            cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13.5,
-            border: `1.5px solid ${debtorIds.length ? 'var(--primary)' : 'var(--border)'}`,
-            background: debtorIds.length ? 'var(--primary-weak)' : 'var(--surface)',
-            color: debtorIds.length ? 'var(--primary)' : 'var(--text-muted)',
-          }}
+          className="lt-chip lt-dfilter"
+          aria-haspopup="dialog"
+          aria-label={`Filtrar por devedor: ${filterSpoken}`}
+          data-on={debtorIds.length > 0 || undefined}
+          onClick={() => setFilterOpen(true)}
         >
-          <Icon name="user" size={15} />
-          {debtorFilterLabel}
+          {selectedDebtors.length ? (
+            <span className="lt-av-stack" aria-hidden="true">
+              {selectedDebtors.slice(0, 2).map((d) => <Avatar key={d.id} name={d.name} size={22} hue={d.avatarHue} emoji={d.avatarEmoji} />)}
+            </span>
+          ) : (
+            <Icon name="user" size={15} />
+          )}
+          <span className="lt-dfilter-lbl">{filterLabel}</span>
           <Icon name="chevronDown" size={13} />
         </button>
       </div>
 
-      {/* Debtor picker */}
-      <Modal
-        open={debtorPickerOpen}
-        onClose={closeDebtorPicker}
-        title="Filtrar por devedor"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDebtorIds([])}>Limpar</Button>
-            <Button full onClick={closeDebtorPicker}>Aplicar</Button>
-          </>
-        }
-      >
-        <div style={{ marginBottom: 10, paddingTop: 4 }}>
-          <Input value={debtorSearch} onChange={setDebtorSearch} placeholder="Buscar devedor…" autoFocus />
-        </div>
-        {debtorIds.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px 8px' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-faint)' }}>
-              {debtorIds.length} selecionado{debtorIds.length > 1 ? 's' : ''}
-            </span>
-            <button
-              type="button"
-              onClick={() => setDebtorIds([])}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', padding: 0, fontFamily: 'inherit' }}
-            >
-              Limpar
-            </button>
-          </div>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '44vh', overflowY: 'auto' }}>
-          {debtorMatches.map((dt) => {
-            const checked = debtorIds.includes(dt.id)
-            return (
-              <button
-                key={dt.id}
-                type="button"
-                onClick={() => toggleDebtor(dt.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 8px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: 'var(--text)' }}
-              >
-                <div
-                  style={{
-                    width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: 'grid', placeItems: 'center',
-                    border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border-strong)'}`,
-                    background: checked ? 'var(--primary)' : 'transparent',
-                  }}
-                >
-                  {checked && <Icon name="check" size={13} color="var(--on-primary)" strokeWidth={3} />}
-                </div>
-                <Avatar name={dt.name} size={34} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
-                <span style={{ fontWeight: 700, fontSize: 14.5 }}>{dt.name}</span>
-              </button>
-            )
-          })}
-          {debtorMatches.length === 0 && (
-            <div style={{ padding: '18px 4px', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13.5, fontWeight: 600 }}>
-              Nenhum devedor encontrado.
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      {/* List */}
-      {isLoading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>Carregando…</div>
-      ) : isError && allItems.length === 0 ? (
-        <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
-      ) : filtered.length === 0 ? (
-        <EmptyState icon="calendar" title="Nenhuma parcela" sub="Não há parcelas para este período e filtro." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map((inst, idx) => (
-            <InstallmentRow
-              key={inst.id}
-              enriched={{
-                inst,
-                debtDescription: inst.debt?.description ?? null,
-                debtorId: inst.debt?.debtor?.id ?? inst.debt?.debtorId ?? '',
-                debtorName: inst.debt?.debtor?.name ?? '',
-                debtorAvatarHue: inst.debt?.debtor?.avatarHue,
-                debtorAvatarEmoji: inst.debt?.debtor?.avatarEmoji,
-                status: inst.status,
-              }}
-              onOpenDebtor={(id) => navigate(`/debtors/${id}`)}
-              onReceive={() => handleReceive(inst)}
-              index={idx}
-            />
+      <div className="lt-pcard">
+        <div className="lt-seg" role="group" aria-label="Agrupar por">
+          {PERIODS.map(([p, l]) => (
+            <button key={p} type="button" aria-pressed={period === p} onClick={() => update({ period: p })}>{l}</button>
           ))}
         </div>
+        <div className="lt-pnav">
+          <IconButton name="chevronLeft" size={19} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
+          <div className="lt-pnav-lbl">
+            <div className="lt-pnav-t" aria-live="polite">{periodLabel(period, anchor)}</div>
+            <div className="lt-pnav-s">
+              <Detail>{relativeLabel(period, anchor, today)}</Detail>
+              {!isNow && (
+                <>
+                  <Detail>{' · '}</Detail>
+                  <button type="button" className="lt-s-today" onClick={() => update({ anchor: today })} aria-label="Ir para o período atual">Hoje</button>
+                </>
+              )}
+            </div>
+          </div>
+          <IconButton name="chevronRight" size={19} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
+        </div>
+      </div>
+
+      {period === 'day' && <WeekStrip anchor={anchor} today={today} items={items} debtorIds={debtorIds} onPick={(d) => update({ anchor: d })} />}
+
+      {!loading && !failed && (
+        <Totals view={view} period={period} tab={tab} open={totalsOpen} onToggle={toggleTotals} onFilter={(t) => update({ tab: t })} />
       )}
 
-      {/* Payment sheet */}
+      <Tabs tab={tab} counts={loading || failed ? null : view.counts} onChange={(t) => update({ tab: t })} />
+      <div ref={sentinel} aria-hidden="true" />
+
+      <div role="tabpanel" id="parcelas-lista" aria-labelledby={`tab-${tab}`}>
+        {failed ? (
+          <ErrorState onRetry={() => void query.refetch()} retrying={query.isFetching} />
+        ) : loading ? (
+          <ListSkeleton />
+        ) : (
+          <>
+            {view.previous.length > 0 && (tab === 'all' || tab === 'open') && (
+              <PreviousLine
+                items={view.previous}
+                cents={view.previousCents}
+                open={showPrevious}
+                onToggle={() => setShowPrevious((o) => !o)}
+                today={today}
+                onOpen={openPayment}
+              />
+            )}
+            {view.groups.length ? (
+              <DayGroups
+                groups={view.groups}
+                today={today}
+                limit={limit}
+                collapsePaid={tab === 'all'}
+                paidOpen={paidOpen}
+                onTogglePaid={(day) => setPaidOpen((o) => ({ ...o, [day]: !o[day] }))}
+                onMore={() => setLimit((l) => l + PAGE)}
+                onOpen={openPayment}
+              />
+            ) : (
+              <>
+                <EmptyState
+                  icon={tab === 'paid' ? 'wallet' : 'check'}
+                  title={tab === 'overdue' ? 'Nenhuma parcela atrasada' : tab === 'paid' ? 'Nada recebido neste período' : 'Nenhuma parcela neste período'}
+                  sub={debtorIds.length ? 'Tente remover o filtro de devedor.' : 'Use as setas para navegar entre períodos.'}
+                />
+                {debtorIds.length > 0 && (
+                  <div style={{ textAlign: 'center' }}>
+                    <button type="button" className="lt-chip" onClick={() => update({ debtorIds: [] })}>Limpar filtro</button>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <FloatingNav hasToday={view.groups.some((g) => g.day === today)} onTop={scrollToTop} />
+
+      <DebtorFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        debtors={debtors}
+        selected={debtorIds}
+        onChange={(ids) => update({ debtorIds: ids })}
+      />
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
     </main>
+  )
+}
+
+/** Day mode: the 7 days of the week with a dot (overdue / due / paid) on days with installments. */
+function WeekStrip({ anchor, today, items, debtorIds, onPick }: { anchor: string; today: string; items: InstallmentEnriched[]; debtorIds: string[]; onPick: (day: string) => void }) {
+  const ofDebtor = (i: InstallmentEnriched) => !debtorIds.length || debtorIds.includes(i.debt?.debtor?.id ?? i.debt?.debtorId ?? '')
+  return (
+    <div className="lt-wstrip" role="group" aria-label="Dias da semana">
+      {weekDays(anchor).map((day) => {
+        const its = items.filter((i) => dayOf(i) === day && ofDebtor(i))
+        const tone = !its.length ? undefined : its.some((i) => isOverdue(i, today)) ? 'overdue' : its.every(isPaid) ? 'paid' : 'pending'
+        return (
+          <button
+            key={day}
+            type="button"
+            className="lt-wday"
+            aria-pressed={day === anchor}
+            aria-current={day === today ? 'date' : undefined}
+            aria-label={`${dayLabelLong(day)}${its.length ? `, ${plural(its.length, 'parcela', 'parcelas')}` : ''}`}
+            onClick={() => onPick(day)}
+          >
+            <span className="lt-wd" aria-hidden="true">{dayLabelLong(day).slice(0, 3)}</span>
+            <span className="lt-dn" aria-hidden="true">{Number(day.slice(8, 10))}</span>
+            <span className="lt-wdot" data-tone={tone} aria-hidden="true" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Totals in one folded line: to receive · 3-colour bar · % received (improvement 15). */
+function Totals({ view, period, tab, open, onToggle, onFilter }: {
+  view: InstallmentsView
+  period: Period
+  tab: Tab
+  open: boolean
+  onToggle: () => void
+  onFilter: (t: Tab) => void
+}) {
+  const { expected, received, overdue, pending, due } = view.totals
+  const pct = expected ? Math.floor((received / expected) * 100) : 0
+  const w = (v: number) => `${expected ? (v / expected) * 100 : 0}%`
+  const id = useId()
+  const where = period === 'day' ? 'neste dia' : period === 'week' ? 'nesta semana' : 'neste mês'
+  return (
+    <div className="lt-tot" data-open={open || undefined}>
+      <button type="button" className="lt-tot-line" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+        <span className="lt-tot-v">
+          <Money value={due / 100} size={15} /> <span className="lt-tot-k">a receber</span>
+        </span>
+        <span className="lt-tot-bar" aria-hidden="true">
+          <span style={{ width: w(received), background: 'var(--paid)' }} />
+          <span style={{ width: w(overdue), background: 'var(--overdue)' }} />
+          <span style={{ width: w(pending), background: 'var(--pending)' }} />
+        </span>
+        <span className="lt-tot-pct">{pct}%</span>
+        <span className="lt-tot-chev" aria-hidden="true"><Icon name="chevronDown" size={15} /></span>
+      </button>
+      {open && (
+        <div id={id} className="lt-tot-det">
+          <div className="lt-tot-exp">{fmtMoney(expected / 100)} previsto {where} · {pct}% recebido</div>
+          <div className="lt-tot-leg">
+            <button type="button" aria-pressed={tab === 'paid'} onClick={() => onFilter(tab === 'paid' ? 'all' : 'paid')}>
+              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--paid)' }} />Recebido</span>
+              <span className="lt-lv">{fmtMoney(received / 100)}</span>
+            </button>
+            <button type="button" aria-pressed={tab === 'overdue'} onClick={() => onFilter(tab === 'overdue' ? 'all' : 'overdue')}>
+              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--overdue)' }} />Atrasado</span>
+              <span className="lt-lv">{fmtMoney(overdue / 100)}</span>
+            </button>
+            <div className="lt-tot-static">
+              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--pending)' }} />A vencer</span>
+              <span className="lt-lv">{fmtMoney(pending / 100)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Todas · Em aberto · Atrasadas · Pagas: fixed tabs with counts (red only in Atrasadas). Arrows move between them. */
+function Tabs({ tab, counts, onChange }: { tab: Tab; counts: Record<Tab, number> | null; onChange: (t: Tab) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = TABS.findIndex((t) => t[0] === tab)
+    const next = e.key === 'ArrowRight' ? (i + 1) % 4 : e.key === 'ArrowLeft' ? (i + 3) % 4 : e.key === 'Home' ? 0 : e.key === 'End' ? 3 : -1
+    if (next < 0) return
+    e.preventDefault()
+    onChange(TABS[next][0])
+    requestAnimationFrame(() => ref.current?.querySelector<HTMLButtonElement>(`#tab-${TABS[next][0]}`)?.focus())
+  }
+  return (
+    // Arrow keys come from the focused tab inside (tablist keyboard pattern).
+    // eslint-disable-next-line jsx-a11y/interactive-supports-focus
+    <div ref={ref} className="lt-tabs" role="tablist" aria-label="Situação" onKeyDown={onKeyDown}>
+      {TABS.map(([t, l]) => (
+        <button
+          key={t}
+          id={`tab-${t}`}
+          type="button"
+          role="tab"
+          aria-selected={tab === t}
+          aria-controls="parcelas-lista"
+          tabIndex={tab === t ? 0 : -1}
+          onClick={() => onChange(t)}
+        >
+          {l}
+          {counts && <span className="lt-cnt" data-late={(t === 'overdue' && counts.overdue > 0) || undefined}>{counts[t]}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PreviousLine({ items, cents, open, onToggle, today, onOpen }: {
+  items: InstallmentEnriched[]
+  cents: number
+  open: boolean
+  onToggle: () => void
+  today: string
+  onOpen: (i: InstallmentEnriched) => void
+}) {
+  return (
+    <>
+      <button type="button" className="lt-prevline" aria-expanded={open} onClick={onToggle}>
+        <Icon name="alert" size={16} />
+        <span style={{ flex: 1, textAlign: 'left' }}>{plural(items.length, 'atrasada', 'atrasadas')} de antes deste período</span>
+        <span>{fmtMoney(cents / 100)}</span>
+        <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          <ListGroup label="Atrasadas de antes deste período">
+            {items.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} swipe />)}
+          </ListGroup>
+        </div>
+      )}
+    </>
+  )
+}
+
+/** One card per day; in "Todas" the paid ones of each day fold into one line (improvements 13 and 42). */
+function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid, onMore, onOpen }: {
+  groups: DayGroup[]
+  today: string
+  limit: number
+  collapsePaid: boolean
+  paidOpen: Record<string, boolean>
+  onTogglePaid: (day: string) => void
+  onMore: () => void
+  onOpen: (i: InstallmentEnriched) => void
+}) {
+  let used = 0
+  let total = 0
+  const out: ReactElement[] = []
+  for (const g of groups) {
+    const count = g.open.length + g.paid.length
+    total += count
+    if (used >= limit) continue
+    const folded = collapsePaid && g.paid.length > 0 && !paidOpen[g.day]
+    const rows = folded ? g.open : [...g.open, ...g.paid]
+    const shown = rows.slice(0, limit - used)
+    used += shown.length + (folded && shown.length === rows.length ? g.paid.length : 0)
+    const complete = shown.length === rows.length
+    const label = dayLabel(g.day, today)
+    out.push(
+      <section key={g.day} className="lt-day" id={g.day === today ? 'dia-hoje' : undefined} aria-labelledby={`dia-${g.day}`}>
+        <h2 className="lt-dhead" id={`dia-${g.day}`}>
+          <span>
+            <span aria-hidden="true">
+              {label}
+              {count > 1 && <span className="lt-dh-n">{count}</span>}
+            </span>
+            {/* One string for screen readers: "Hoje, quinta, 5 de novembro, 2 parcelas". */}
+            <span className="lt-sr-only">
+              {['Hoje', 'Amanhã', 'Ontem'].includes(label) ? `${label}, ${dayLabelLong(g.day)}` : dayLabelLong(g.day)}
+              {count > 1 ? `, ${count} parcelas` : ''}
+            </span>
+          </span>
+          <Detail>
+            <span className="lt-dh-sum">
+              {g.open.length ? (
+                <>
+                  {fmtMoney(g.dueCents / 100)} a receber
+                  {g.paid.length > 0 && <span style={{ color: 'var(--paid)' }}> · {plural(g.paid.length, 'paga', 'pagas')}</span>}
+                </>
+              ) : (
+                <span style={{ color: 'var(--paid)' }}>✓ {fmtMoney(g.paidCents / 100)} recebido</span>
+              )}
+            </span>
+          </Detail>
+        </h2>
+        <ListGroup>
+          {shown.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={dayOf(i) !== g.day} swipe />)}
+          {collapsePaid && g.paid.length > 0 && complete && (
+            <li className="lt-lrow">
+              <div className="lt-lrow-in lt-paid-sum">
+                <button
+                  type="button"
+                  className="lt-lrow-hit"
+                  aria-expanded={!!paidOpen[g.day]}
+                  aria-label={`${plural(g.paid.length, 'paga', 'pagas')}, ${fmtMoney(g.paidCents / 100)}. ${paidOpen[g.day] ? 'Recolher' : 'Mostrar'}`}
+                  onClick={() => onTogglePaid(g.day)}
+                />
+                <span style={{ color: 'var(--paid)', display: 'inline-flex' }}><Icon name="check" size={16} strokeWidth={2.6} /></span>
+                <span className="lt-paid-sum-t">{paidOpen[g.day] ? 'Recolher pagas' : `${plural(g.paid.length, 'paga', 'pagas')} · ${fmtMoney(g.paidCents / 100)}`}</span>
+                <Icon name="chevronDown" size={15} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
+              </div>
+            </li>
+          )}
+        </ListGroup>
+      </section>,
+    )
+  }
+  const rest = total - used
+  return (
+    <>
+      {out}
+      {rest > 0 && (
+        <button type="button" className="lt-btn-lg lt-more" data-variant="secondary" onClick={onMore}>
+          Mostrar mais {Math.min(PAGE, rest)} <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>· faltam {rest}</span>
+        </button>
+      )}
+    </>
+  )
+}
+
+/**
+ * One floating button (improvement 42): "Hoje ↓/↑" when today's group is off
+ * screen, otherwise "↑ Topo" after scrolling a screen and a half.
+ */
+function FloatingNav({ hasToday, onTop }: { hasToday: boolean; onTop: () => void }) {
+  const [state, setState] = useState<{ today: 'up' | 'down' | null; top: boolean }>({ today: null, top: false })
+  useEffect(() => {
+    const check = () => {
+      const el = hasToday ? document.getElementById('dia-hoje') : null
+      let today: 'up' | 'down' | null = null
+      if (el) {
+        const r = el.getBoundingClientRect()
+        if (r.bottom < 0) today = 'up'
+        else if (r.top > window.innerHeight) today = 'down'
+      }
+      const top = window.scrollY > window.innerHeight * 1.5
+      setState((s) => (s.today === today && s.top === top ? s : { today, top }))
+    }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+    }
+  }, [hasToday])
+
+  if (state.today) {
+    return (
+      <button
+        type="button"
+        className="lt-float"
+        onClick={() => {
+          const el = document.getElementById('dia-hoje')
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          el?.querySelector<HTMLButtonElement>('.lt-lrow-hit')?.focus({ preventScroll: true })
+        }}
+      >
+        Hoje <Icon name="chevronDown" size={15} style={state.today === 'up' ? { transform: 'rotate(180deg)' } : undefined} />
+      </button>
+    )
+  }
+  if (state.top) {
+    return (
+      <button type="button" className="lt-float" onClick={onTop} aria-label="Voltar ao topo">
+        <Icon name="chevronDown" size={15} style={{ transform: 'rotate(180deg)' }} /> Topo
+      </button>
+    )
+  }
+  return null
+}
+
+function ListSkeleton() {
+  return (
+    <div aria-busy="true">
+      <span className="lt-sr-only">Carregando parcelas…</span>
+      {[0, 1].map((k) => (
+        <div key={k}>
+          <div className="lt-skel" style={{ height: 12, width: 120, margin: '18px 3px 10px' }} />
+          <div className="lt-skel" style={{ height: 120, borderRadius: 16 }} />
+        </div>
+      ))}
+    </div>
   )
 }

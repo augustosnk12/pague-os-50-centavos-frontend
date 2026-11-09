@@ -43,9 +43,9 @@ describe('Painel (S1)', () => {
     const hero = await screen.findByRole('region', { name: 'A receber em novembro' })
     expect(hero).toHaveTextContent(/R\$\s*250,00/)
     const month = within(hero).getByRole('link', { name: /R\$\s250,00 recebido de|recebido de R\$\s250,00/ })
-    expect(month).toHaveAttribute('href', '/installments?period=month')
+    expect(month).toHaveAttribute('href', '/installments?resumo=1')
     const pill = within(hero).getByRole('link', { name: /R\$\s180,00 em atraso · 1 de meses anteriores/ })
-    expect(pill).toHaveAttribute('href', '/installments?status=overdue')
+    expect(pill).toHaveAttribute('href', '/installments?aba=atrasadas')
     // The old blocks are gone (improvements 2 and 3).
     expect(screen.queryByText('Total a receber agora')).toBeNull()
     expect(screen.queryByRole('button', { name: /mês anterior/i })).toBeNull()
@@ -88,7 +88,7 @@ describe('Painel (S1)', () => {
     renderApp('/dashboard')
     const list = await screen.findByRole('list', { name: 'Em atraso' })
     expect(within(list).getAllByRole('listitem')).toHaveLength(4)
-    expect(screen.getByRole('link', { name: '+ 2 atrasadas' })).toHaveAttribute('href', '/installments?status=overdue')
+    expect(screen.getByRole('link', { name: '+ 2 atrasadas' })).toHaveAttribute('href', '/installments?aba=atrasadas')
   })
 
   it('"Enxuta" folds the next 7 days behind a button', async () => {
