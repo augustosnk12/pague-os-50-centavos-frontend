@@ -102,7 +102,7 @@ export function DashboardPage() {
           overflow: 'hidden',
           borderRadius: 'calc(var(--radius)*1.15)',
           padding: '24px 24px 22px',
-          background: 'linear-gradient(135deg, var(--primary), oklch(0.42 0.2 calc(var(--accent-h) + 25)))',
+          background: 'linear-gradient(135deg, var(--hero-from), oklch(0.42 0.2 calc(var(--accent-h) + 25)))',
           color: '#fff',
           boxShadow: 'var(--shadow-primary)',
           marginBottom: 14,
