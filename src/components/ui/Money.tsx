@@ -25,9 +25,10 @@ export function Money({ value, size = 28, weight = 800, muted, color, style }: M
         ...style,
       }}
     >
-      <span style={{ fontSize: size * 0.6, fontWeight: 700, opacity: 0.7 }}>{p.symbol}</span>
+      {/* No opacity: "R$" and cents must keep the 4.5:1 contrast of the amount (improvement 20). */}
+      <span style={{ fontSize: size * 0.6, fontWeight: 700 }}>{p.symbol}</span>
       <span style={{ fontSize: size }}>{p.int}</span>
-      <span style={{ fontSize: size * 0.55, fontWeight: 700, opacity: 0.7 }}>,{p.dec}</span>
+      <span style={{ fontSize: size * 0.55, fontWeight: 700 }}>,{p.dec}</span>
     </span>
   )
 }

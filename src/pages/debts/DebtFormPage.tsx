@@ -117,15 +117,17 @@ export function DebtFormPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* Debtor */}
         <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
-            Devedor <span style={{ color: 'var(--primary)' }}>*</span>
-          </div>
+          <label htmlFor="debt-debtor" style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+            Devedor <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>
+          </label>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <select
+                id="debt-debtor"
+                aria-required="true"
                 value={debtorId}
                 onChange={(e) => { setDebtorId(e.target.value); setErr('') }}
-                style={{ width: '100%', appearance: 'none', background: 'var(--surface)', border: '1.5px solid var(--border-strong)', borderRadius: 'calc(var(--radius)*0.6)', padding: '14px 40px 14px 15px', fontSize: 16, fontWeight: 600, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
+                style={{ width: '100%', appearance: 'none', background: 'var(--surface)', border: '1.5px solid var(--border-input)', borderRadius: 'calc(var(--radius)*0.6)', padding: '14px 40px 14px 15px', fontSize: 16, fontWeight: 600, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
               >
                 {debtors.length === 0 && <option value="">Nenhum devedor</option>}
                 {debtors.map((dt) => <option key={dt.id} value={dt.id}>{dt.name}</option>)}

@@ -45,7 +45,7 @@ export function Input({
   onKeyDown,
 }: InputProps) {
   const [focus, setFocus] = useState(false)
-  const ring = error ? 'var(--overdue)' : focus ? 'var(--primary)' : 'var(--border-strong)'
+  const ring = error ? 'var(--overdue)' : focus ? 'var(--primary)' : 'var(--border-input)'
 
   const fieldStyle: CSSProperties = {
     width: '100%',

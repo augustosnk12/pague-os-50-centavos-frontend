@@ -94,3 +94,28 @@ test.describe('with data', () => {
       .toBe(1)
   })
 })
+
+test('dark theme passes the same accessibility checks', async ({ page, session, a11y }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Escuro Teste', phone: '11999990000' })
+  await session.api('POST', '/debts', {
+    debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Notebook', totalAmount: 600,
+    numberOfInstallments: 3, firstDueDate: thisMonthISO(28),
+  })
+  await page.addInitScript(() => localStorage.setItem('lt-theme', 'dark'))
+
+  await page.goto('/dashboard')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await a11y('dark-dashboard')
+  await page.goto('/debtors')
+  await expect(page.getByText('Escuro Teste')).toBeVisible()
+  await a11y('dark-debtors')
+  await page.goto(`/debtors/${d.id}`)
+  await expect(page.getByText('Notebook').first()).toBeVisible()
+  await a11y('dark-debtor-detail')
+  await page.goto('/installments')
+  await expect(page.getByText('Notebook').first()).toBeVisible()
+  await a11y('dark-installments')
+  await page.getByRole('button', { name: 'Receber' }).first().click()
+  await expect(page.getByText('Registrar pagamento').first()).toBeVisible()
+  await a11y('dark-payment-sheet')
+})

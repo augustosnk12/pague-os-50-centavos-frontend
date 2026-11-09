@@ -66,12 +66,16 @@ async function applySession(page: Page, s: Session) {
   }, s.lender)
 }
 
-/** Records accessibility violations on the current page (report-only for now). */
+/** Accessibility check (WCAG 2.2 AA) of the current page: attaches the report and fails on violations. */
 async function a11yReport(page: Page, testInfo: import('@playwright/test').TestInfo, label: string) {
+  // Measure the settled screen: entering animations blend colours and fake contrast failures.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((x) => x.finished.catch(() => undefined))))
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
   const summary = results.violations.map((v) => `${v.impact ?? '-'} ${v.id} (${v.nodes.length})`)
   await testInfo.attach(`axe-${label}.json`, { body: JSON.stringify(results.violations, null, 2), contentType: 'application/json' })
   testInfo.annotations.push({ type: 'a11y', description: `${label}: ${summary.length} violation types — ${summary.join(', ') || 'none'}` })
+  // Since F1 every screen is at zero: any new violation fails the test.
+  expect(results.violations, `axe on ${label}: ${summary.join(", ")}`).toEqual([])
   return results.violations
 }
 

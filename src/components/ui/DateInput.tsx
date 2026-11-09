@@ -118,7 +118,7 @@ export function DateInput({ label, value, onChange, required, style }: DateInput
           {label} {required && <span style={{ color: 'var(--primary)' }}>*</span>}
         </div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: `1.5px solid ${invalid ? 'var(--overdue)' : 'var(--border-strong)'}`, borderRadius: 'calc(var(--radius) * 0.6)', padding: '13px 15px', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface)', border: `1.5px solid ${invalid ? 'var(--overdue)' : 'var(--border-input)'}`, borderRadius: 'calc(var(--radius) * 0.6)', padding: '13px 15px', gap: 8 }}>
         <input
           type="text"
           value={display}
