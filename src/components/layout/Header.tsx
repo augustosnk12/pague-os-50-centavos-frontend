@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { scrollTopIfActive } from '../../lib/scroll'
+import { preloadRoute } from '../../router/routes'
 import { Logo } from './Logo'
 import { Button } from '../ui/Button'
 import { IconButton } from '../ui/IconButton'
@@ -147,11 +149,15 @@ export function Header({ onCalc }: HeaderProps) {
           <Logo size={26} />
         </Link>
 
-        <nav className="lt-desktop-nav" style={{ marginLeft: 18, gap: 4 }}>
+        <nav aria-label="Principal" className="lt-desktop-nav" style={{ marginLeft: 18, gap: 4 }}>
           {NAV.map((n) => (
-            <button
+            <Link
               key={n.path}
-              onClick={() => navigate(n.path)}
+              to={n.path}
+              aria-current={activeRoute === n.path ? 'page' : undefined}
+              onClick={scrollTopIfActive(activeRoute === n.path)}
+              onMouseEnter={() => preloadRoute(n.path)}
+              onFocus={() => preloadRoute(n.path)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -169,7 +175,7 @@ export function Header({ onCalc }: HeaderProps) {
               }}
             >
               {n.label}
-            </button>
+            </Link>
           ))}
         </nav>
 

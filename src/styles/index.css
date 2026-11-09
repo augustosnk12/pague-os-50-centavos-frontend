@@ -123,6 +123,19 @@ button, input, textarea, select { font-family: inherit; }
 /* Links look like their surroundings unless styled (the logo turned browser-blue as a Link). */
 a { text-decoration: none; color: inherit; }
 
+/* Skip link: off-screen until focused with the keyboard (WCAG 2.4.1). */
+.lt-skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 1000;
+  padding: 10px 16px; border-radius: var(--r-sm);
+  background: var(--primary); color: var(--on-primary); font-weight: 800;
+  transform: translateY(-200%);
+}
+.lt-skip-link:focus { transform: none; }
+
+/* Page titles receive focus on route change (screen readers announce them);
+   they are not controls, so no focus ring. */
+main h1[tabindex="-1"]:focus { outline: none; }
+
 /* Visually hidden, still read by screen readers. */
 .lt-sr-only {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;

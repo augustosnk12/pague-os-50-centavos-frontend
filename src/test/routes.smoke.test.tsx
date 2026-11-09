@@ -61,3 +61,41 @@ describe('routes (smoke)', () => {
     expect((await screen.findAllByText(/nova (dívida|cobrança)/i)).length).toBeGreaterThan(0)
   })
 })
+
+describe('layout and navigation (F3)', () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date('2026-11-05T12:00:00-03:00'))
+  })
+
+  it('skip link goes to the content', async () => {
+    renderApp('/dashboard')
+    const skip = await screen.findByRole('link', { name: 'Pular para o conteúdo' })
+    expect(skip).toHaveAttribute('href', '#conteudo')
+    expect(document.getElementById('conteudo')).not.toBeNull()
+  })
+
+  it('overdue badge comes from /dashboard/overview (every month) and is read with the tab name', async () => {
+    renderApp('/dashboard')
+    // Fixture: 2 overdue. The old badge counted status === "OVERDUE" (never stored) → always 0.
+    expect(await screen.findByRole('link', { name: 'Parcelas, 2 atrasadas' })).toBeInTheDocument()
+  })
+
+  it('the current screen is marked with aria-current in both navigations', async () => {
+    renderApp('/debtors')
+    await screen.findByRole('heading', { level: 1, name: 'Devedores' })
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.length).toBeGreaterThanOrEqual(1)
+    expect(current.every((l) => l.getAttribute('href') === '/debtors')).toBe(true)
+  })
+
+  it('changing screen updates the tab title and moves focus to the page heading', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    renderApp('/dashboard')
+    await screen.findByRole('heading', { level: 1, name: /olá/i })
+    await user.click(screen.getAllByRole('link', { name: 'Devedores' })[0])
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Devedores' })
+    await vi.waitFor(() => expect(h1).toHaveFocus())
+    expect(document.title).toBe('Devedores · Pague os 50 centavos')
+  })
+})

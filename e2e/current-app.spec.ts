@@ -119,3 +119,41 @@ test('dark theme passes the same accessibility checks', async ({ page, session, 
   await expect(page.getByText('Registrar pagamento').first()).toBeVisible()
   await a11y('dark-payment-sheet')
 })
+
+test('keyboard: first Tab is the skip link; overdue badge counts previous months (real API)', async ({ page, session, a11y }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Atrasado Antigo' })
+  // Due last month and unpaid: the old badge (current month, stored status) never counted it.
+  const now = new Date()
+  const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 5)).toISOString()
+  await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Empréstimo', totalAmount: 90, numberOfInstallments: 1, firstDueDate: lastMonth })
+
+  await page.goto('/dashboard')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'Pular para o conteúdo' })).toBeFocused()
+
+  const badge = page.getByRole('link', { name: 'Parcelas, 1 atrasada' })
+  // The bottom tabs exist only on small screens; on desktop the header nav has no badge yet (S1).
+  if ((page.viewportSize()?.width ?? 0) < 880) await expect(badge).toBeVisible()
+  await a11y('dashboard-with-overdue')
+})
+
+test('Back restores the scroll position; a new screen starts at the top', async ({ page, session }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Rolagem' })
+  for (let k = 0; k < 12; k++) {
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: `Dívida ${k}`, totalAmount: 10 + k, numberOfInstallments: 1, firstDueDate: thisMonthISO(20) })
+  }
+  await page.setViewportSize({ width: 390, height: 500 })
+  await page.goto('/installments')
+  await expect(page.getByText('Dívida 11').first()).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 600))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500)
+
+  await page.getByRole('link', { name: 'Devedores' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Devedores' })).toBeFocused()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeFocused()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500)
+})

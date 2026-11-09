@@ -1,4 +1,7 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import type { CSSProperties } from 'react'
+import { scrollTopIfActive } from '../../lib/scroll'
+import { preloadRoute } from '../../router/routes'
 import { Icon } from '../ui/Icon'
 import { NAV } from '../../constants/nav'
 
@@ -15,6 +18,7 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
 
   return (
     <nav
+      aria-label="Principal"
       className="lt-bottom-tabs"
       style={{
         position: 'fixed',
@@ -32,7 +36,7 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
       }}
     >
       {NAV.slice(0, 2).map((n) => (
-        <Tab key={n.path} label={n.label} icon={n.icon} active={isActive(n.path)} onClick={() => navigate(n.path)} />
+        <Tab key={n.path} to={n.path} label={n.label} icon={n.icon} active={isActive(n.path)} />
       ))}
 
       {/* Raised center "+" button */}
@@ -63,9 +67,9 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
         </button>
       </div>
 
-      <Tab label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} onClick={() => navigate(NAV[2].path)} badge={overdueCount} />
+      <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
-      {/* Conta */}
+      {/* Conta (opens a sheet today; becomes a screen in S11) */}
       <Tab label="Conta" icon="user" active={false} onClick={onAccount} />
     </nav>
   )
@@ -75,16 +79,18 @@ interface TabProps {
   label: string
   icon: string
   active: boolean
-  onClick: () => void
+  /** Navigation tab (a link) … */
+  to?: string
+  /** … or an action tab (a button). */
+  onClick?: () => void
   badge?: number
+  /** Singular noun read with the badge, e.g. "atrasada" → "Parcelas, 4 atrasadas". */
+  badgeLabel?: string
 }
 
-function Tab({ label, icon, active, onClick, badge = 0 }: TabProps) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      style={{
+function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabProps) {
+  const name = badge > 0 && badgeLabel ? `${label}, ${badge} ${badgeLabel}${badge > 1 ? 's' : ''}` : label
+  const style: CSSProperties = {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -98,12 +104,14 @@ function Tab({ label, icon, active, onClick, badge = 0 }: TabProps) {
         color: active ? 'var(--primary)' : 'var(--text-faint)',
         transition: 'color .15s',
         position: 'relative',
-      }}
-    >
+  }
+  const content = (
+    <>
       <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
         <Icon name={icon} size={23} strokeWidth={active ? 2.4 : 2} />
         {badge > 0 && (
           <span
+            aria-hidden="true"
             style={{
               position: 'absolute',
               top: -4,
@@ -126,6 +134,23 @@ function Tab({ label, icon, active, onClick, badge = 0 }: TabProps) {
         )}
       </span>
       <span style={{ fontSize: 11, fontWeight: active ? 800 : 600, letterSpacing: '-0.01em' }}>{label}</span>
+    </>
+  )
+  return to ? (
+    <Link
+      to={to}
+      aria-label={name}
+      aria-current={active ? 'page' : undefined}
+      onClick={scrollTopIfActive(active)}
+      onMouseEnter={() => preloadRoute(to)}
+      onFocus={() => preloadRoute(to)}
+      style={style}
+    >
+      {content}
+    </Link>
+  ) : (
+    <button type="button" onClick={onClick} aria-label={name} style={style}>
+      {content}
     </button>
   )
 }

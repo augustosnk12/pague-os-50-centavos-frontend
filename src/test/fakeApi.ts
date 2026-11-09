@@ -1,6 +1,6 @@
 import type { Debtor } from '../types/debtor'
 import type { InstallmentEnriched } from '../types/installment'
-import type { DashboardData } from '../types/dashboard'
+import type { DashboardData, DashboardOverview } from '../types/dashboard'
 
 /**
  * Minimal in-memory stand-in for the API used by smoke tests. It answers the
@@ -26,10 +26,18 @@ export const fixtures = {
     month: '2026-11', totalExpected: '250.00', totalReceived: '0.00', totalPending: '250.00', totalOverdue: '0.00',
     counts: { paid: 0, pending: 1, overdue: 0, total: 1 },
   } satisfies DashboardData,
+  overview: {
+    today: '2026-11-05',
+    month: { key: '2026-11', expected: '250.00', received: '0.00', remaining: '250.00', receivedPct: 0 },
+    overdue: { amount: '0.00', count: 2, fromPreviousMonths: { amount: '0.00', count: 2 } },
+    attention: { overdue: [], today: [], next7: [] },
+    counts: { overdue: 2, today: 0, next7: 0 },
+  } satisfies DashboardOverview,
 }
 
 export function fakeGet(url: string): unknown {
   if (url === '/dashboard') return fixtures.dashboard
+  if (url === '/dashboard/overview') return fixtures.overview
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors
   const debtor = url.match(/^\/debtors\/([^/]+)$/)
