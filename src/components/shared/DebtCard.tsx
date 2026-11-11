@@ -14,10 +14,12 @@ interface DebtCardProps {
   onEditDebt?: (debt: DebtWithInstallments) => void
   /** Fully paid, non-recurring debts: "Comprovante de quitação" (improvement 54). */
   onPayoffReceipt?: (debt: DebtWithInstallments) => void
+  /** Starts expanded (a debt picked in the search, improvement 21). */
+  defaultOpen?: boolean
 }
 
-export function DebtCard({ debt, onReceive, onEditDebt, onPayoffReceipt }: DebtCardProps) {
-  const [open, setOpen] = useState(false)
+export function DebtCard({ debt, onReceive, onEditDebt, onPayoffReceipt, defaultOpen = false }: DebtCardProps) {
+  const [open, setOpen] = useState(defaultOpen)
 
   const insts = debt.installments ?? []
 
@@ -37,7 +39,7 @@ export function DebtCard({ debt, onReceive, onEditDebt, onPayoffReceipt }: DebtC
   const canPayoff = !!onPayoffReceipt && insts.length > 0 && remaining <= 0 && debt.recurrence !== 'MONTHLY'
 
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+    <div id={`divida-${debt.id}`} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden', scrollMarginTop: 'calc(var(--app-head-h, 60px) + 12px)' }}>
       <PlainButton onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ width: '100%', padding: 16, display: 'flex', gap: 13, alignItems: 'center' }}>
         <span style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--primary-weak)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <Icon name={m?.icon ?? 'wallet'} size={20} color="var(--primary)" />

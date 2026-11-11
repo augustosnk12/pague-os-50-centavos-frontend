@@ -455,3 +455,45 @@ test('receipts (S6): from the toast after paying, as an image, and the payoff re
   await expect(payoff).toContainText('Situação')
   await a11y('receipt-payoff')
 })
+
+test.describe('Busca e atalhos (S10)', () => {
+  test('search ignores accents; a debt opens its debtor with that debt expanded; Alt+R', async ({ page, session, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'João Inglês' })
+    const debt = await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Curso de inglês', totalAmount: 250, numberOfInstallments: 1, firstDueDate: thisMonthISO(28) })
+    const desktop = (page.viewportSize()?.width ?? 0) >= 880
+
+    if (desktop) {
+      await page.goto('/dashboard')
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      await page.keyboard.press('Control+k')
+      const box = page.getByRole('combobox', { name: 'Buscar devedor ou dívida' })
+      await expect(box).toBeFocused()
+      await box.fill('ingles')
+      const list = page.getByRole('listbox', { name: 'Resultados da busca' })
+      await expect(list.getByRole('group', { name: 'Dívidas' })).toContainText('Curso de inglês')
+      await expect(list.getByRole('group', { name: 'Devedores' })).toContainText('João Inglês')
+      await a11y('header-search')
+      await list.getByRole('option', { name: /Curso de inglês/ }).click()
+    } else {
+      // Phones: the Devedores search also finds debts.
+      await page.goto('/debtors')
+      await page.getByRole('searchbox', { name: 'Buscar devedor ou dívida' }).fill('ingles')
+      const debts = page.getByRole('list', { name: 'Dívidas encontradas' })
+      await expect(debts).toContainText('Curso de inglês')
+      await a11y('debtors-search-debts')
+      await debts.getByRole('link').click()
+    }
+    await expect(page).toHaveURL(new RegExp(`/debtors/${d.id}\\?divida=${debt.debt.id}$`))
+    // The debt starts expanded.
+    await expect(page.getByRole('button', { name: /Curso de inglês/ }).first()).toHaveAttribute('aria-expanded', 'true')
+
+    if (desktop) {
+      await page.keyboard.press('Alt+r')
+      const picker = page.getByRole('dialog', { name: 'Registrar pagamento' })
+      await expect(picker.getByRole('list', { name: 'Parcelas em aberto' })).toContainText('João Inglês')
+      await a11y('register-picker')
+      await picker.getByRole('button', { name: /^João Inglês, Curso de inglês/ }).click()
+      await expect(page.getByRole('dialog', { name: 'Registrar pagamento de João Inglês' })).toBeVisible()
+    }
+  })
+})

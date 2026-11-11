@@ -760,3 +760,67 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
   background: var(--paid-weak); color: var(--paid); border-radius: 99px; padding: 6px 12px; cursor: pointer;
   font: inherit; font-weight: 800; font-size: 0.78125rem;
 }
+
+/* ===== Busca e atalhos (S10) ===== */
+.lt-hsearch { position: relative; width: 340px; animation: ltPopIn var(--dur) var(--ease-out); }
+.lt-hsearch-field {
+  display: flex; align-items: center; gap: 8px; height: var(--ctl-h); padding: 0 10px 0 13px; border-radius: 99px;
+  background: var(--surface); border: 1.5px solid var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); color: var(--text-muted);
+}
+.lt-hsearch-field input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: 0.875rem; font-weight: 600; color: var(--text); }
+.lt-hsearch-field kbd {
+  font: inherit; font-size: 0.6875rem; font-weight: 800; color: var(--text-muted); padding: 2px 6px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.lt-hsearch-drop {
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 120; max-height: 70vh; overflow-y: auto; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+  animation: ltPopIn var(--dur) var(--ease-out);
+}
+.lt-sr-list { display: flex; flex-direction: column; gap: 2px; }
+.lt-sr-h { padding: 8px 8px 4px; font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.lt-sr-opt { display: flex; align-items: center; gap: 11px; padding: 8px; border-radius: 12px; cursor: pointer; color: var(--text-muted); }
+.lt-sr-opt:hover, .lt-sr-opt[aria-selected="true"] { background: var(--primary-weak); }
+.lt-sr-opt[aria-selected="true"] { box-shadow: inset 0 0 0 1.5px var(--primary); }
+.lt-sr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lt-sr-t { font-weight: 800; font-size: 0.875rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-sr-s { font-weight: 600; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-sr-debt { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; background: var(--surface-2); color: var(--primary); }
+.lt-sr-empty { padding: 10px 8px; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
+.lt-arch-tag { font-size: 0.6875rem; font-weight: 800; color: var(--text-muted); background: var(--surface-2); border-radius: 99px; padding: 1px 7px; margin-left: 4px; }
+
+/* Debt results in Devedores. */
+.lt-debt-hit { color: inherit; pointer-events: auto; }
+.lt-debt-hit > * { pointer-events: none; }
+.lt-debt-hit-v { font-weight: 800; font-size: 0.875rem; white-space: nowrap; }
+
+/* Letter groups and jump-by-typing (improvement 42). */
+.lt-az { scroll-margin-top: calc(var(--app-head-h, 60px) + 8px); }
+.lt-az-h { transition: color var(--dur) var(--ease-std); }
+.lt-az-h[data-flash] { color: var(--primary); }
+.lt-az-h[data-flash] span:first-child { background: var(--primary-weak); border-radius: 6px; padding: 0 6px; margin-left: -6px; }
+.lt-az-hint { margin: 0 0 4px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+
+/* Floating search in Devedores, in place of "Topo". */
+.lt-float-search { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+.lt-fsearch {
+  position: fixed; left: 16px; right: 16px; bottom: calc(92px + env(safe-area-inset-bottom)); z-index: 70; max-width: 520px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 8px 0 16px; border-radius: 99px;
+  background: var(--surface); border: 1.5px solid var(--primary); box-shadow: var(--shadow-lg); color: var(--text-muted);
+  animation: ltPopIn var(--dur) var(--ease-out);
+}
+.lt-fsearch input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: 0.9375rem; color: var(--text); }
+@media (min-width: 880px) { .lt-fsearch { bottom: 24px; } }
+
+/* "+" held: what do you want to do? */
+.lt-fab-menu { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.lt-fab-opt {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px; border-radius: var(--r-md); cursor: pointer; text-align: left;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit;
+}
+.lt-fab-opt:hover { background: var(--surface-hover); }
+.lt-fab-ic { width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); }
+.lt-fab-ic[data-pay] { background: var(--paid); color: var(--surface); }
+.lt-fab-t { display: block; font-weight: 800; font-size: 0.9375rem; }
+.lt-fab-s { display: block; font-weight: 600; font-size: 0.78125rem; color: var(--text-muted); margin-top: 1px; }
+.lt-pick-scroll { max-height: 60vh; overflow-y: auto; }

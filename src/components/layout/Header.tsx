@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { scrollTopIfActive } from '../../lib/scroll'
 import { preloadRoute } from '../../router/routes'
 import { Logo } from './Logo'
+import { HeaderSearch } from './HeaderSearch'
 import { Button } from '../ui/Button'
 import { IconButton } from '../ui/IconButton'
 import { Icon } from '../ui/Icon'
@@ -146,9 +147,12 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
 
 interface HeaderProps {
   onCalc: () => void
+  onRegister: () => void
+  searchOpen: boolean
+  onSearchOpen: (open: boolean) => void
 }
 
-export function Header({ onCalc }: HeaderProps) {
+export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -222,8 +226,16 @@ export function Header({ onCalc }: HeaderProps) {
 
         <div style={{ flex: 1 }} />
 
+        <span className="lt-desktop-only">
+          <HeaderSearch open={searchOpen} onOpenChange={onSearchOpen} />
+        </span>
+
+        <span className="lt-desktop-only">
+          <IconButton name="wallet" onClick={onRegister} label="Registrar pagamento (Alt+R)" aria-keyshortcuts="Alt+R" />
+        </span>
+
         <span className="lt-desktop-only" style={{ marginRight: 2 }}>
-          <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')}>Nova dívida</Button>
+          <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')} title="Nova dívida (Alt+N)" shortcut="Alt+N">Nova dívida</Button>
         </span>
 
         <span className="lt-desktop-only">

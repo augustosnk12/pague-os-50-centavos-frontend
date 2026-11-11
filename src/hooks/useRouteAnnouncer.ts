@@ -76,6 +76,11 @@ export function useRouteAnnouncer() {
     return whenHeading((h1) => {
       document.title = `${h1.textContent!.trim()} · ${APP_NAME}`
       if (isFirst) return
+      // The page already put focus somewhere on purpose (e.g. the search of
+      // Devedores opened by "/"): keep it there.
+      const focused = document.activeElement
+      const main = h1.closest('main')
+      if (focused && focused !== document.body && main?.contains(focused)) return
       if (!h1.hasAttribute('tabindex')) h1.setAttribute('tabindex', '-1')
       h1.focus({ preventScroll: true })
       if (restoreTo !== undefined) restoreScroll(restoreTo)

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
@@ -62,6 +62,14 @@ export function DebtorDetailPage() {
 
   const { data: debtor, isLoading, isError, error, refetch, isFetching } = useDebtor(id!)
   const debtsQuery = useDebtsByDebtor(id!)
+  // A debt picked in the search opens expanded and in view (improvement 21).
+  const [searchParams] = useSearchParams()
+  const focusDebt = searchParams.get('divida')
+  const focusReady = !!debtsQuery.data?.some((d) => d.id === focusDebt)
+  useEffect(() => {
+    if (!focusReady) return
+    requestAnimationFrame(() => document.getElementById(`divida-${focusDebt}`)?.scrollIntoView({ block: 'start' }))
+  }, [focusReady, focusDebt])
   const debts = debtsQuery.data ?? []
   const updateDebtor = useUpdateDebtor(id!)
   const deleteDebtor = useDeleteDebtor()
@@ -250,6 +258,7 @@ export function DebtorDetailPage() {
             <DebtCard
               key={debt.id}
               debt={debt}
+              defaultOpen={debt.id === focusDebt}
               onReceive={(inst) => handleReceive(inst, debt)}
               onEditDebt={(d) => setDebtForm({ open: true, editing: d })}
               onPayoffReceipt={(d) => setReceipt({ debtorId: debtor.id, payoffDebtId: d.id })}

@@ -45,6 +45,10 @@ export const fixtures = {
     counts: { overdue: 2, today: 0, next7: 1 },
   } satisfies DashboardOverview,
   summary: { debtors: 1, debts: 1, installments: 1, payments: 0 },
+  search: {
+    debtors: [{ id: 'd1', name: 'João Araújo', avatarHue: 200, avatarEmoji: null, outstanding: '250.00', archived: false }],
+    debts: [{ id: 'debt1', description: 'Notebook', debtorId: 'd1', debtorName: 'João Araújo', remaining: '250.00', recurring: false }],
+  },
 }
 
 fixtures.overview.attention.next7.push(fixtures.installments[0])
@@ -52,6 +56,7 @@ fixtures.overview.attention.next7.push(fixtures.installments[0])
 export function fakeGet(url: string): unknown {
   if (url === '/dashboard/overview') return fixtures.overview
   if (url === '/me/summary') return fixtures.summary
+  if (url === '/search') return fixtures.search
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors
   const debtor = url.match(/^\/debtors\/([^/]+)$/)
