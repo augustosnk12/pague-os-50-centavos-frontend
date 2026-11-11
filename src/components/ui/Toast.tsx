@@ -13,12 +13,14 @@ export interface ToastData {
   status?: InstallmentStatus
   /** e.g. "Desfazer" (improvement 7). Toasts with an action stay longer. */
   action?: ToastAction
+  /** A second action, e.g. "Comprovante" next to "Desfazer" (improvement 37). */
+  secondary?: ToastAction
 }
 
 interface ToastProps {
   toast: (ToastData & { id: number }) | null
   leaving: boolean
-  onAction: () => void
+  onAction: (which: 'action' | 'secondary') => void
   onPause: (paused: boolean) => void
 }
 
@@ -29,6 +31,7 @@ interface ToastProps {
 export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
   if (!toast) return null
   const m = toast.status ? STATUS_META[toast.status] : null
+  const actions = (['action', 'secondary'] as const).filter((k) => toast[k])
   return (
     // Hover pauses the timer; keyboard users get the same through focus (onFocus/onBlur).
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
@@ -47,7 +50,7 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
         zIndex: 400,
         background: 'var(--text)',
         color: 'var(--bg)',
-        padding: toast.action ? '9px 9px 9px 18px' : '13px 20px',
+        padding: actions.length ? '9px 9px 9px 18px' : '13px 20px',
         borderRadius: 99,
         fontWeight: 700,
         fontSize: 14.5,
@@ -60,12 +63,13 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
     >
       <Icon name={toast.icon ?? 'check'} size={18} strokeWidth={2.6} color={m ? m.color : 'var(--primary)'} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toast.msg}</span>
-      {toast.action && (
+      {actions.map((k, i) => (
         <button
+          key={k}
           type="button"
-          onClick={onAction}
+          onClick={() => onAction(k)}
           style={{
-            marginLeft: 4,
+            marginLeft: i === 0 ? 4 : 0,
             flexShrink: 0,
             border: 'none',
             borderRadius: 99,
@@ -77,9 +81,9 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
             cursor: 'pointer',
           }}
         >
-          {toast.action.label}
+          {toast[k]!.label}
         </button>
-      )}
+      ))}
     </div>
   )
 }

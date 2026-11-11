@@ -711,3 +711,52 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 /* Swipe left to "Cobrar" (overdue rows with a phone). */
 .lt-sw-hint[data-side="remind"] { justify-content: flex-end; padding: 0 16px 0 0; background: var(--wa); }
 .lt-sw-hint[data-side="remind"][data-ready] { background: color-mix(in oklch, var(--wa) 85%, black); }
+
+/* ===== Comprovante (S6) ===== */
+.lt-rcpt {
+  position: relative; margin-top: 2px; padding: 16px 16px 14px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: 0 0 0 10px var(--surface-2), var(--shadow-md);
+  margin: 12px 10px 10px;
+}
+.lt-rcpt-top { display: flex; align-items: center; gap: 11px; }
+.lt-rcpt-logo {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; color: #fff;
+  font-weight: 800; font-size: 0.8125rem; background: linear-gradient(135deg, var(--hero-from), oklch(0.42 0.2 calc(var(--accent-h) + 25)));
+}
+.lt-rcpt-title { font-weight: 800; font-size: 0.875rem; }
+.lt-rcpt-code { font-weight: 700; font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.lt-rcpt-pill {
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 3px 9px; border-radius: 99px;
+  background: var(--paid-weak); color: var(--paid); font-weight: 800; font-size: 0.75rem;
+}
+.lt-rcpt-amt { text-align: center; margin-top: 16px; line-height: 1.1; }
+.lt-rcpt-date { text-align: center; margin-top: 4px; font-weight: 700; font-size: 0.78125rem; color: var(--text-muted); }
+.lt-rcpt-cut { margin: 14px -16px; border-top: 2px dashed var(--border); position: relative; }
+.lt-rcpt-cut::before, .lt-rcpt-cut::after {
+  content: ""; position: absolute; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2);
+}
+.lt-rcpt-cut::before { left: -9px; }
+.lt-rcpt-cut::after { right: -9px; }
+.lt-rcpt-dl { margin: 0; display: flex; flex-direction: column; gap: 9px; font-size: 0.8125rem; }
+.lt-rcpt-dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.lt-rcpt-dl dt { color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
+.lt-rcpt-dl dd { margin: 0; font-weight: 800; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.lt-rcpt-dl > .lt-rcpt-items { flex-direction: column; gap: 6px; }
+.lt-rcpt-items dd { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; text-align: left; }
+.lt-rcpt-items dd > span:last-child { font-weight: 800; white-space: nowrap; }
+.lt-rcpt-st { color: var(--text-muted); font-weight: 700; }
+.lt-rcpt-foot { margin-top: 14px; text-align: center; font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); }
+
+/* Receipt icon on paid rows and in the payment history. */
+.lt-rcpt-btn {
+  position: relative; z-index: 2; pointer-events: auto !important; opacity: 1 !important; flex-shrink: 0;
+  width: 34px; height: 34px; display: grid; place-items: center; border: none; border-radius: var(--r-sm); cursor: pointer;
+  background: transparent; color: var(--text-muted);
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+}
+.lt-rcpt-btn:hover { background: var(--paid-weak); color: var(--paid); }
+.lt-payoff-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid color-mix(in oklch, var(--paid) 35%, transparent);
+  background: var(--paid-weak); color: var(--paid); border-radius: 99px; padding: 6px 12px; cursor: pointer;
+  font: inherit; font-weight: 800; font-size: 0.78125rem;
+}

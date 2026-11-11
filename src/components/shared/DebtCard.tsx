@@ -12,9 +12,11 @@ interface DebtCardProps {
   debt: DebtWithInstallments
   onReceive: (inst: Installment) => void
   onEditDebt?: (debt: DebtWithInstallments) => void
+  /** Fully paid, non-recurring debts: "Comprovante de quitação" (improvement 54). */
+  onPayoffReceipt?: (debt: DebtWithInstallments) => void
 }
 
-export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
+export function DebtCard({ debt, onReceive, onEditDebt, onPayoffReceipt }: DebtCardProps) {
   const [open, setOpen] = useState(false)
 
   const insts = debt.installments ?? []
@@ -31,6 +33,8 @@ export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
     const s = deriveInstStatus({ dueDate: i.dueDate, paidAt: i.paidAt, paidAmount: i.paidAmount, amount: i.amount })
     return s === 'OVERDUE'
   })
+
+  const canPayoff = !!onPayoffReceipt && insts.length > 0 && remaining <= 0 && debt.recurrence !== 'MONTHLY'
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
@@ -116,8 +120,14 @@ export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
               </div>
             )
           })}
-          {onEditDebt && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+          {(onEditDebt || canPayoff) && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              {canPayoff && (
+                <button type="button" className="lt-payoff-btn" style={{ marginRight: 'auto' }} onClick={() => onPayoffReceipt?.(debt)}>
+                  <Icon name="receipt" size={15} /> Comprovante de quitação
+                </button>
+              )}
+              {onEditDebt && (
               <button
                 type="button"
                 onClick={() => onEditDebt(debt)}
@@ -128,6 +138,7 @@ export function DebtCard({ debt, onReceive, onEditDebt }: DebtCardProps) {
               >
                 <Icon name="edit" size={15} /> Editar
               </button>
+              )}
             </div>
           )}
         </div>

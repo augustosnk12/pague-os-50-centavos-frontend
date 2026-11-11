@@ -415,3 +415,43 @@ test('WhatsApp reminder (S5): message with the overdue total and a Pix copia e c
   await wa.close()
   await expect(sheet).toHaveCount(0)
 })
+
+test('receipts (S6): from the toast after paying, as an image, and the payoff receipt', async ({ page, session, a11y }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Caio Recibo', phone: '11912345678' })
+  const n = new Date()
+  const due = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())).toISOString()
+  await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Fone', totalAmount: 80, numberOfInstallments: 1, firstDueDate: due })
+
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: /^Caio Recibo, Fone/ }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /^Quitar parcela/ }).click()
+  await page.getByRole('button', { name: 'Comprovante' }).click()
+
+  const sheet = page.getByRole('dialog', { name: 'Comprovante' })
+  const card = sheet.getByRole('article', { name: /^Comprovante de pagamento P50-/ })
+  await expect(card).toContainText('Caio Recibo')
+  await expect(card).toContainText('Fone · parcela 1/1')
+  await expect(card).toContainText('✓ Quitada')
+  await a11y('receipt')
+
+  // Desktop browsers download the PNG (phones open the share sheet instead).
+  if ((page.viewportSize()?.width ?? 0) >= 880) {
+    const download = page.waitForEvent('download')
+    await sheet.getByRole('button', { name: 'Compartilhar ou baixar a imagem do comprovante' }).click()
+    const file = await download
+    expect(file.suggestedFilename()).toMatch(/^P50-.+\.png$/)
+    const path = await file.path()
+    const { readFileSync } = await import('node:fs')
+    expect(readFileSync(path).subarray(1, 4).toString()).toBe('PNG')
+  }
+  await page.keyboard.press('Escape')
+
+  // The debt is now fully paid: the debtor page offers the payoff receipt.
+  await page.goto(`/debtors/${d.id}`)
+  await page.getByRole('button', { name: /Fone/ }).first().click()
+  await page.getByRole('button', { name: 'Comprovante de quitação' }).click()
+  const payoff = page.getByRole('dialog', { name: 'Comprovante' }).getByRole('article', { name: /^Comprovante de quitação/ })
+  await expect(payoff).toContainText('Fone · 1 parcela')
+  await expect(payoff).toContainText('Situação')
+  await a11y('receipt-payoff')
+})

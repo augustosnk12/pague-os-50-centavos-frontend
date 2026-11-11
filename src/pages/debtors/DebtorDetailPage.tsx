@@ -24,6 +24,8 @@ import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
+import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import type { ReceiptRequest } from '../../lib/receipt'
 import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
@@ -54,6 +56,7 @@ export function DebtorDetailPage() {
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
   const [confirmDelDebt, setConfirmDelDebt] = useState<DebtWithInstallments | null>(null)
 
@@ -249,6 +252,7 @@ export function DebtorDetailPage() {
               debt={debt}
               onReceive={(inst) => handleReceive(inst, debt)}
               onEditDebt={(d) => setDebtForm({ open: true, editing: d })}
+              onPayoffReceipt={(d) => setReceipt({ debtorId: debtor.id, payoffDebtId: d.id })}
             />
           ))}
         </div>
@@ -336,6 +340,7 @@ export function DebtorDetailPage() {
       {/* Payment sheet */}
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
+      <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     </main>
   )
 }

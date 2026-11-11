@@ -30,6 +30,8 @@ interface InstallmentLineProps {
   swipe?: boolean
   /** Swipe left (touch, overdue only) opens the WhatsApp reminder; the payment sheet has the same button. */
   onRemind?: () => void
+  /** Paid rows: receipt of the last payment (improvement 37). */
+  onReceipt?: (paymentId: string) => void
 }
 
 /**
@@ -37,12 +39,13 @@ interface InstallmentLineProps {
  * payment sheet (one stretched button), the avatar opens the debtor. Amount
  * shown is what is still owed.
  */
-export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind }: InstallmentLineProps) {
+export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt }: InstallmentLineProps) {
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
   const debtorId = debtor?.id ?? inst.debt?.debtorId
   const left = remainingCents(inst)
   const paid = left === 0
+  const lastPayment = inst.payments?.[inst.payments.length - 1]
   const tag = installmentTag(inst, today, { showDate })
   const position = installmentPosition(inst.number, inst.debt?.installmentCount, inst.debt?.recurrence)
   const what = [inst.debt?.description, position].filter(Boolean).join(' · ')
@@ -139,6 +142,17 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
           <span className="lt-recv" aria-hidden="true">
             Receber
           </span>
+        )}
+        {paid && onReceipt && lastPayment && (
+          <button
+            type="button"
+            className="lt-rcpt-btn"
+            title="Comprovante"
+            aria-label={`Comprovante: ${name}, ${spokenPosition}`}
+            onClick={() => onReceipt(lastPayment.id)}
+          >
+            <Icon name="receipt" size={17} />
+          </button>
         )}
       </div>
     </li>

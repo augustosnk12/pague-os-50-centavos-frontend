@@ -10,6 +10,8 @@ import { ListGroup } from '../../components/ui/ListGroup'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
+import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import type { ReceiptRequest } from '../../lib/receipt'
 import { whatsappLink } from '../../lib/whatsapp'
 import { Detail } from '../../contexts/PreferencesContext'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
@@ -58,6 +60,7 @@ export function InstallmentsPage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
   // Day mode loads the whole week: the strip shows a dot on every day with installments.
   const query = useInstallmentsPeriod({ period: period === 'day' ? 'week' : period, date: anchor, today })
@@ -101,6 +104,10 @@ export function InstallmentsPage() {
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
   // Swipe left = WhatsApp reminder, only for debtors with a phone WhatsApp accepts (improvement 27).
   const reachable = useMemo(() => new Set(debtors.filter((d) => whatsappLink(d.phone)).map((d) => d.id)), [debtors])
+  const receiptFor = (inst: InstallmentEnriched) => {
+    const debtorId = inst.debt?.debtor?.id ?? inst.debt?.debtorId
+    return debtorId ? (paymentId: string) => setReceipt({ debtorId, paymentId }) : undefined
+  }
   const remindFor = (inst: InstallmentEnriched) => {
     const id = inst.debt?.debtor?.id ?? inst.debt?.debtorId
     return id && reachable.has(id) ? () => setRemindId(id) : undefined
@@ -231,6 +238,7 @@ export function InstallmentsPage() {
                 onMore={() => setLimit((l) => l + PAGE)}
                 onOpen={openPayment}
                 remindFor={remindFor}
+                receiptFor={receiptFor}
               />
             ) : (
               <>
@@ -261,6 +269,7 @@ export function InstallmentsPage() {
       />
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
+      <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     </main>
   )
 }
@@ -407,7 +416,7 @@ function PreviousLine({ items, cents, open, onToggle, today, onOpen, remindFor }
 }
 
 /** One card per day; in "Todas" the paid ones of each day fold into one line (improvements 13 and 42). */
-function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid, onMore, onOpen, remindFor }: {
+function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid, onMore, onOpen, remindFor, receiptFor }: {
   groups: DayGroup[]
   today: string
   limit: number
@@ -417,6 +426,7 @@ function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid,
   onMore: () => void
   onOpen: (i: InstallmentEnriched) => void
   remindFor: (i: InstallmentEnriched) => (() => void) | undefined
+  receiptFor: (i: InstallmentEnriched) => ((paymentId: string) => void) | undefined
 }) {
   let used = 0
   let total = 0
@@ -459,7 +469,7 @@ function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid,
           </Detail>
         </h2>
         <ListGroup>
-          {shown.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={dayOf(i) !== g.day} swipe onRemind={remindFor(i)} />)}
+          {shown.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={dayOf(i) !== g.day} swipe onRemind={remindFor(i)} onReceipt={receiptFor(i)} />)}
           {collapsePaid && g.paid.length > 0 && complete && (
             <li className="lt-lrow">
               <div className="lt-lrow-in lt-paid-sum">

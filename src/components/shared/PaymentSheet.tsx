@@ -16,6 +16,8 @@ import { fmtList, fmtMoney, fmtTitle } from '../../lib/format'
 import { daysUntil, installmentPosition, remainingCents } from '../../lib/installmentTag'
 import { whatsappLink } from '../../lib/whatsapp'
 import { RemindSheet } from './RemindSheet'
+import { ReceiptSheet } from './ReceiptSheet'
+import type { ReceiptRequest } from '../../lib/receipt'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
 import type { PaymentTarget } from '../../lib/paymentTarget'
@@ -77,6 +79,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const [histOpen, setHistOpen] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
   // Fresh state each time the sheet opens (or opens for another installment).
   useEffect(() => {
@@ -135,6 +138,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const confirm = () => {
     if (amount <= 0 || !date || register.isPending) return
     const installmentId = inst.id
+    const debtorId = t.debtor.id
     register.mutate({ id: installmentId, body: { amount: amount / 100, paidAt: date } }, {
       onSuccess: ({ payment }) => {
         onClose()
@@ -142,6 +146,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
           icon: 'check',
           status: willPayOff ? 'PAID' : undefined,
           action: { label: 'Desfazer', onClick: () => undoRegister(installmentId, payment) },
+          secondary: { label: 'Comprovante', onClick: () => setReceipt({ debtorId, paymentId: payment.id }) },
         })
       },
       onError: fail('Erro ao registrar pagamento.'),
@@ -188,6 +193,12 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               <span style={{ flex: 1, fontWeight: 700, fontSize: '0.8125rem' }}>{fmtList(p.paidAt)}</span>
               <Money value={p.amount} size={13.5} color="var(--paid)" />
               <IconButton
+                name="receipt"
+                size={15}
+                label={`Comprovante do pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
+                onClick={() => setReceipt({ debtorId: t.debtor.id, paymentId: p.id })}
+              />
+              <IconButton
                 name="trash"
                 size={15}
                 label={`Excluir pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
@@ -205,6 +216,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   return (
     <>
     <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
+    <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     <Modal
       open={!!target}
       onClose={onClose}
