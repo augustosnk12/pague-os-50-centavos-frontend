@@ -25,7 +25,7 @@ describe('routes (smoke)', () => {
 
   it('logged out: /dashboard redirects to the login page', async () => {
     renderApp('/dashboard', { loggedIn: false })
-    expect(await screen.findByRole('heading', { level: 1, name: /bem-vindo de volta/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('voce@email.com')).toBeInTheDocument()
   })
 

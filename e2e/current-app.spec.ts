@@ -3,7 +3,7 @@
  * PostgreSQL. It must stay green while UI v2 ships: tests are only updated in
  * the same PR that redesigns the screen they cover.
  */
-import { test, expect, createLenderWithLoginToken, thisMonthISO } from './support/fixtures'
+import { test, expect, createLenderWithLoginToken, createLenderWithCode, thisMonthISO } from './support/fixtures'
 import { API_URL } from './support/env.mjs'
 
 test('magic link: the API verifies the token and the app lands on the dashboard', async ({ page, a11y }) => {
@@ -30,7 +30,7 @@ test('an already-used magic link is refused', async ({ page }) => {
 
 test('login page', async ({ page, a11y }) => {
   await page.goto('/login')
-  await expect(page.getByRole('heading', { level: 1, name: /bem-vindo de volta/i })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible()
   await expect(page.getByPlaceholder('voce@email.com')).toBeVisible()
   await a11y('login')
 })
@@ -495,5 +495,43 @@ test.describe('Busca e atalhos (S10)', () => {
       await picker.getByRole('button', { name: /^João Inglês, Curso de inglês/ }).click()
       await expect(page.getByRole('dialog', { name: 'Registrar pagamento de João Inglês' })).toBeVisible()
     }
+  })
+})
+
+test.describe('Acesso com código (S13)', () => {
+  test('Entrar: e-mail, then the 6-digit code logs in (real /auth/verify-code)', async ({ page, a11y }) => {
+    const l = createLenderWithCode('482913')
+    // The suite does not send e-mails: only "send the link" is answered here.
+    await page.route(`${API_URL}/auth/login`, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"message":"ok"}' }))
+    await page.goto('/login')
+    await a11y('login')
+    await page.getByRole('textbox', { name: 'E-mail' }).fill(l.email)
+    await page.getByRole('button', { name: /Enviar link de acesso/ }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Confira seu e-mail' })).toBeVisible()
+    await a11y('check-email')
+    const code = page.getByRole('textbox', { name: 'Código de 6 dígitos' })
+    await code.fill('000000')
+    await expect(page.getByRole('alert').filter({ hasText: 'Código incorreto ou expirado' })).toBeVisible()
+    await code.fill('482913')
+    await expect(page).toHaveURL(/\/dashboard$/)
+    await expect(page.getByRole('heading', { level: 1, name: /olá, cora/i })).toBeVisible()
+  })
+
+  test('Criar conta: the confirmation code already logs in (real /auth/confirm-code)', async ({ page }) => {
+    const l = createLenderWithCode('105826', { type: 'CONFIRMATION', name: 'Nina Nova' })
+    await page.route(`${API_URL}/auth/register`, (r) => r.fulfill({ status: 201, contentType: 'application/json', body: '{"message":"ok"}' }))
+    await page.goto('/register')
+    await page.getByRole('textbox', { name: 'Seu nome' }).fill('Nina Nova')
+    await page.getByRole('textbox', { name: 'E-mail' }).fill(l.email)
+    await page.getByRole('button', { name: /Criar conta/ }).click()
+    await page.getByRole('textbox', { name: 'Código de 6 dígitos' }).fill('105826')
+    await expect(page).toHaveURL(/\/dashboard$/)
+    await expect(page.getByRole('heading', { level: 1, name: /olá, nina/i })).toBeVisible()
+  })
+
+  test('an expired link has its own screen', async ({ page, a11y }) => {
+    await page.goto('/login?error=Token%20expired')
+    await expect(page.getByRole('heading', { level: 1, name: 'Esse link expirou' })).toBeVisible()
+    await a11y('link-expired')
   })
 })
