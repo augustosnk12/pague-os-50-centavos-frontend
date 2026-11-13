@@ -940,3 +940,90 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
   .lt-pig-puff { display: none; }
 }
 @keyframes ltPigFade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ===== Perfil do devedor (S4) ===== */
+.lt-prof-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.lt-back {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: -8px; padding: 6px 10px 6px 6px; border: none; border-radius: 10px;
+  background: transparent; color: var(--text-muted); font: inherit; font-weight: 800; font-size: 0.84375rem; cursor: pointer;
+}
+.lt-back:hover { background: var(--surface-hover); color: var(--text); }
+.lt-prof { position: relative; display: flex; align-items: center; gap: 13px; padding: 6px; margin: 0 -6px 12px; border-radius: var(--r-md); }
+.lt-prof:hover { background: var(--surface-hover); }
+.lt-prof > * { position: relative; pointer-events: none; }
+.lt-prof-hit { position: absolute; inset: 0; z-index: 1; border: none; background: transparent; border-radius: var(--r-md); cursor: pointer; pointer-events: auto; }
+.lt-prof-av { position: relative; flex-shrink: 0; line-height: 0; }
+.lt-prof-rel { position: absolute; right: -3px; bottom: -3px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; border: 2.5px solid var(--bg); }
+.lt-prof-name { display: flex; align-items: center; gap: 4px; font-size: 1.3125rem; min-width: 0; }
+.lt-prof-name > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-prof-name svg { color: var(--text-muted); flex-shrink: 0; }
+.lt-prof-sum { margin-top: 2px; font-size: 0.875rem; color: var(--text-muted); }
+.lt-prof-sum b { color: var(--text); }
+.lt-arch-banner {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px dashed var(--border-strong); font-size: 0.84375rem; font-weight: 700; color: var(--text-muted);
+}
+.lt-prof-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+.lt-prof-acts .lt-btn-lg { min-height: 46px; }
+.lt-prof-note { margin: 10px 2px 0; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: center; }
+
+/* Each open debt as a card (improvement 12). */
+.lt-dsecs { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.lt-dsec {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px 12px 10px;
+  box-shadow: var(--shadow-sm); scroll-margin-top: calc(var(--app-head-h, 60px) + 12px);
+}
+.lt-dsec[data-late] { border-left: 4px solid var(--overdue); }
+.lt-dsec .lt-lgroup { border-radius: 12px; }
+.lt-dsec-h { display: flex; align-items: center; gap: 8px; padding: 0 0 8px 4px; }
+.lt-dsec-t { margin: 0; font-size: 0.9375rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-dsec-s { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 1px; }
+.lt-dsec-s[data-monthly] { color: var(--primary); }
+.lt-dsec-left { text-align: right; flex-shrink: 0; }
+.lt-dsec-v { font-weight: 800; font-size: 0.875rem; }
+.lt-dsec-k { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); }
+.lt-dsec-bar { height: 4px; margin: 0 4px 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.lt-dsec-bar span { display: block; height: 100%; background: var(--paid); border-radius: 99px; }
+.lt-dsec-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 2px 0; }
+.lt-dsec-foot > * { white-space: nowrap; }
+.lt-dsec-foot .lt-more-link { padding-top: 4px; }
+.lt-payoff-v { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+
+/* Nothing open / paid-off list / timeline. */
+.lt-allpaid { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px; border-radius: var(--r-lg); background: var(--paid-weak); }
+.lt-allpaid-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--paid); color: var(--surface); flex-shrink: 0; }
+.lt-paid-debt + .lt-paid-debt { border-top: 1px solid var(--border); }
+.lt-paid-debt > .lt-lrow-in { position: relative; }
+.lt-paid-debt > .lt-lgroup { margin: 0 10px 10px; }
+.lt-sr-debt[data-paid] { background: var(--paid-weak); color: var(--paid); }
+.lt-rcpt-ic { color: var(--text-muted); display: inline-flex; }
+.lt-lrow-in:hover .lt-rcpt-ic { color: var(--paid); }
+
+/* Action sheets (⋯). */
+.lt-acts { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; }
+.lt-acts-sep { height: 1px; background: var(--border); margin: 6px 0; }
+.lt-act {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 10px; border: none; border-radius: 12px; cursor: pointer; text-align: left;
+  background: transparent; color: var(--text); font: inherit;
+}
+.lt-act:hover { background: var(--surface-hover); }
+.lt-act > svg { color: var(--text-muted); flex-shrink: 0; }
+.lt-act[data-danger], .lt-act[data-danger] > svg { color: var(--overdue); }
+.lt-act[aria-disabled="true"] { cursor: not-allowed; }
+.lt-act[aria-disabled="true"] .lt-act-t { color: var(--text-muted); }
+.lt-act-txt { display: flex; flex-direction: column; min-width: 0; }
+.lt-act-t { font-weight: 800; font-size: 0.9375rem; }
+.lt-act-s { font-weight: 600; font-size: 0.78125rem; color: var(--text-muted); margin-top: 1px; }
+
+/* Contato e anotações. */
+.lt-info { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.lt-rel-pill { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 99px; border: 1.5px solid; font-weight: 800; font-size: 0.75rem; }
+.lt-info-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); color: var(--text-muted); font-size: 0.875rem; font-weight: 600; }
+.lt-info-line { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.875rem; }
+.lt-info-line > svg { color: var(--text-muted); flex-shrink: 0; }
+.lt-info-line[data-muted] { color: var(--text-muted); font-weight: 600; }
+.lt-info-empty { margin: 0; color: var(--text-muted); font-size: 0.875rem; }
+.lt-stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 0; }
+.lt-stats3 > div { padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.lt-stats3 dt { font-size: 0.71875rem; font-weight: 700; color: var(--text-muted); }
+.lt-stats3 dd { margin: 2px 0 0; font-size: 0.9375rem; font-weight: 800; }

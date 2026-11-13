@@ -76,14 +76,14 @@ describe('RemindSheet (S5)', () => {
     expect((text as HTMLTextAreaElement).value.endsWith('Abraço!')).toBe(true)
   })
 
-  it('"Abrir WhatsApp" opens wa.me with the (edited) text and closes', async () => {
+  it('"Abrir WhatsApp" opens WhatsApp with the (edited) text and closes', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null)
     const user = userEvent.setup()
     const onClose = renderSheet()
     const sheet = await screen.findByRole('dialog', { name: 'Lembrar Ana' })
     await within(sheet).findByRole('textbox', { name: 'Mensagem' })
     await user.click(within(sheet).getByRole('button', { name: 'Abrir WhatsApp' }))
-    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/wa\.me\/5511912345678\?text=Oi%2C%20Ana!/), '_blank', 'noopener,noreferrer')
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/api\.whatsapp\.com\/send\?phone=5511912345678&text=Oi%2C%20Ana!/), '_blank', 'noopener,noreferrer')
     expect(onClose).toHaveBeenCalled()
   })
 

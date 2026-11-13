@@ -448,8 +448,9 @@ test('receipts (S6): from the toast after paying, as an image, and the payoff re
 
   // The debt is now fully paid: the debtor page offers the payoff receipt.
   await page.goto(`/debtors/${d.id}`)
-  await page.getByRole('button', { name: /Fone/ }).first().click()
-  await page.getByRole('button', { name: 'Comprovante de quitação' }).click()
+  await page.getByRole('tab', { name: /Quitadas/ }).click()
+  await page.getByRole('button', { name: 'Ações da dívida Fone' }).click()
+  await page.getByRole('button', { name: /Comprovante de quitação/ }).click()
   const payoff = page.getByRole('dialog', { name: 'Comprovante' }).getByRole('article', { name: /^Comprovante de quitação/ })
   await expect(payoff).toContainText('Fone · 1 parcela')
   await expect(payoff).toContainText('Situação')
@@ -485,7 +486,7 @@ test.describe('Busca e atalhos (S10)', () => {
     }
     await expect(page).toHaveURL(new RegExp(`/debtors/${d.id}\\?divida=${debt.debt.id}$`))
     // The debt starts expanded.
-    await expect(page.getByRole('button', { name: /Curso de inglês/ }).first()).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('region', { name: 'Curso de inglês' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toHaveAttribute('aria-expanded', 'true')
 
     if (desktop) {
       await page.keyboard.press('Alt+r')
@@ -534,4 +535,99 @@ test.describe('Acesso com código (S13)', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Esse link expirou' })).toBeVisible()
     await a11y('link-expired')
   })
+})
+
+test.describe('Perfil do devedor (S4)', () => {
+  const day = (offset: number) => {
+    const n = new Date()
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() + offset)).toISOString()
+  }
+
+  test('Quitar a dívida inteira (one batch), Desfazer, then archive and reactivate (real API)', async ({ page, session, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Paula Perfil', phone: '11912345678', notes: 'Paga à vista' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Geladeira', totalAmount: 300, numberOfInstallments: 3, firstDueDate: day(-3) })
+    const left = async () => {
+      const debts = await session.api('GET', `/debtors/${d.id}/debts`)
+      return debts[0].installments.filter((i: { amount: string; paidAmount: string }) => Number(i.amount) > Number(i.paidAmount)).length
+    }
+
+    await page.goto(`/debtors/${d.id}`)
+    await expect(page.locator('.lt-prof-sum')).toContainText('em atraso')
+    const card = page.getByRole('region', { name: 'Geladeira' })
+    await expect(card).toContainText('Parcela 1/3')
+    await a11y('debtor-profile')
+
+    // Archive is blocked while something is owed.
+    await page.getByRole('button', { name: 'Mais ações' }).click()
+    await expect(page.getByRole('button', { name: /Arquivar Paula/ })).toHaveAttribute('aria-disabled', 'true')
+    await a11y('debtor-actions')
+    await page.keyboard.press('Escape')
+
+    await card.getByRole('button', { name: /^Quitar Geladeira/ }).click()
+    const sheet = page.getByRole('dialog', { name: 'Quitar Geladeira' })
+    await expect(sheet).toContainText('3 parcelas em aberto')
+    await sheet.getByRole('button', { name: /^Quitar dívida · R\$\s300,00$/ }).click()
+    await expect(page.getByText('Geladeira quitada')).toBeVisible()
+    await expect.poll(left).toBe(0)
+    await page.getByRole('button', { name: 'Desfazer' }).click()
+    await expect.poll(left).toBe(3)
+
+    // Pay it off again and archive.
+    await card.getByRole('button', { name: /^Quitar Geladeira/ }).click()
+    await page.getByRole('dialog', { name: 'Quitar Geladeira' }).getByRole('button', { name: /^Quitar dívida/ }).click()
+    await expect(page.getByText('Nada em aberto')).toBeVisible()
+    await page.getByRole('button', { name: 'Mais ações' }).click()
+    await page.getByRole('button', { name: /Arquivar Paula/ }).click()
+    await expect(page.getByText('Arquivado · fora das listas e dos totais')).toBeVisible()
+    // Out of the Devedores list…
+    const archived = await session.api('GET', '/debtors')
+    expect(archived.some((x: { id: string }) => x.id === d.id)).toBe(false)
+    // …and back.
+    await page.getByRole('button', { name: 'Reativar', exact: true }).click()
+    await expect(page.getByText('Arquivado · fora das listas e dos totais')).toHaveCount(0)
+  })
+})
+
+test('Busca entre perfis e rolagem depois de folhas encadeadas (real API)', async ({ page, session }) => {
+  test.skip(test.info().project.name !== 'desktop')
+  const n = new Date()
+  const day = (o: number) => new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() + o)).toISOString()
+  const a = await session.api('POST', '/debtors', { name: 'Ana Probe', phone: '11912345678' })
+  const b = await session.api('POST', '/debtors', { name: 'Bruno Probe', phone: '11912345679' })
+  for (const [d, names] of [[a, ['Geladeira', 'Fogão', 'Sofá', 'Mesa', 'TV']], [b, ['Moto']]] as const)
+    for (const nm of names) await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: nm, totalAmount: 600, numberOfInstallments: 6, firstDueDate: day(-3) })
+
+  const search = async (q: string, pick: RegExp) => {
+    await page.getByRole('button', { name: /Buscar devedor ou dívida/ }).click()
+    await page.getByRole('combobox', { name: 'Buscar devedor ou dívida' }).fill(q)
+    await page.getByRole('option', { name: pick }).first().click()
+  }
+
+  await page.goto(`/debtors/${a.id}`)
+  await expect(page.getByRole('region', { name: 'TV' })).toBeVisible()
+  // Chained sheets: ⋯ → Ver contato → close.
+  await page.getByRole('button', { name: 'Mais ações' }).click()
+  await page.getByRole('button', { name: 'Ver contato e anotações', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Contato e anotações' }).getByRole('button', { name: 'Fechar' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.waitForTimeout(400)
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('')
+
+  await page.getByRole('tab', { name: /Pagamentos/ }).click()
+  await search('Bruno', /Bruno Probe/)
+  await expect(page.getByRole('heading', { level: 1, name: /Bruno Probe/ })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /Em aberto/ })).toHaveAttribute('aria-selected', 'true')
+
+  await search('Mesa', /Mesa/)
+  await expect(page.getByRole('heading', { level: 1, name: /Ana Probe/ })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Mesa' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toBeVisible()
+  await page.getByRole('region', { name: 'Mesa' }).getByRole('button', { name: 'Mostrar só as em aberto' }).click()
+  await search('Mesa', /Mesa/)
+  await expect(page.getByRole('region', { name: 'Mesa' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toBeVisible()
+
+  // Ctrl+K then Esc, then search again.
+  await page.keyboard.press('Control+k')
+  await page.keyboard.press('Escape')
+  await search('Geladeira', /Geladeira/)
+  await expect(page.getByRole('region', { name: 'Geladeira' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toBeVisible()
 })

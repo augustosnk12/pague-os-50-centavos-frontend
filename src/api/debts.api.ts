@@ -33,4 +33,7 @@ export const debtsApi = {
 
   delete: (id: string) =>
     api.delete<{ message: string }>(`/debts/${id}`),
+
+  /** Encerrar / retomar a recorrência (API B6). */
+  setRecurrence: (id: string, active: boolean) => api.patch<Debt>(`/debts/${id}/recurrence`, { active }),
 }

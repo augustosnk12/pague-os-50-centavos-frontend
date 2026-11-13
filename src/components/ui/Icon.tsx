@@ -27,6 +27,8 @@ const ICONS: Record<string, string> = {
   banknote: 'M2 6h20v12H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 9h.01M18 15h.01',
   card: 'M2 5h20v14H2zM2 10h20',
   zap: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
+  archive: 'M4 4h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM5 8v11a1 1 0 001 1h12a1 1 0 001-1V8M10 12h4',
+  history: 'M3 12a9 9 0 103-6.7L3 8M3 3v5h5M12 7v5l4 2',
   receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3',
   bulb: 'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z',
   layers: 'M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5',

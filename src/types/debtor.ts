@@ -23,5 +23,7 @@ export interface Debtor {
   avatarEmoji: string | null
   lenderId: string
   createdAt: string
+  /** UI v2 (API B10): set when archived. */
+  archivedAt?: string | null
   address: Address | null
 }

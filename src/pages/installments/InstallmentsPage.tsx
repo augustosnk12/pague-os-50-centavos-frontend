@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -7,6 +7,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { Avatar } from '../../components/ui/Avatar'
 import { Money } from '../../components/ui/Money'
 import { ListGroup } from '../../components/ui/ListGroup'
+import { Tabs } from '../../components/ui/Tabs'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
@@ -206,7 +207,14 @@ export function InstallmentsPage() {
         <Totals view={view} period={period} tab={tab} open={totalsOpen} onToggle={toggleTotals} onFilter={(t) => update({ tab: t })} />
       )}
 
-      <Tabs tab={tab} counts={loading || failed ? null : view.counts} onChange={(t) => update({ tab: t })} />
+      <Tabs
+        items={TABS.map(([id, label]) => ({ id, label, count: loading || failed ? null : view.counts[id], late: id === 'overdue' }))}
+        value={tab}
+        onChange={(t) => update({ tab: t })}
+        label="Situação"
+        panelId="parcelas-lista"
+        idPrefix="tab"
+      />
       <div ref={sentinel} aria-hidden="true" />
 
       <div role="tabpanel" id="parcelas-lista" aria-labelledby={`tab-${tab}`}>
@@ -349,40 +357,6 @@ function Totals({ view, period, tab, open, onToggle, onFilter }: {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-/** Todas · Em aberto · Atrasadas · Pagas: fixed tabs with counts (red only in Atrasadas). Arrows move between them. */
-function Tabs({ tab, counts, onChange }: { tab: Tab; counts: Record<Tab, number> | null; onChange: (t: Tab) => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const i = TABS.findIndex((t) => t[0] === tab)
-    const next = e.key === 'ArrowRight' ? (i + 1) % 4 : e.key === 'ArrowLeft' ? (i + 3) % 4 : e.key === 'Home' ? 0 : e.key === 'End' ? 3 : -1
-    if (next < 0) return
-    e.preventDefault()
-    onChange(TABS[next][0])
-    requestAnimationFrame(() => ref.current?.querySelector<HTMLButtonElement>(`#tab-${TABS[next][0]}`)?.focus())
-  }
-  return (
-    // Arrow keys come from the focused tab inside (tablist keyboard pattern).
-    // eslint-disable-next-line jsx-a11y/interactive-supports-focus
-    <div ref={ref} className="lt-tabs" role="tablist" aria-label="Situação" onKeyDown={onKeyDown}>
-      {TABS.map(([t, l]) => (
-        <button
-          key={t}
-          id={`tab-${t}`}
-          type="button"
-          role="tab"
-          aria-selected={tab === t}
-          aria-controls="parcelas-lista"
-          tabIndex={tab === t ? 0 : -1}
-          onClick={() => onChange(t)}
-        >
-          {l}
-          {counts && <span className="lt-cnt" data-late={(t === 'overdue' && counts.overdue > 0) || undefined}>{counts[t]}</span>}
-        </button>
-      ))}
     </div>
   )
 }

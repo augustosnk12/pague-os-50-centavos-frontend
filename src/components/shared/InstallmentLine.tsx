@@ -5,7 +5,7 @@ import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
 import { Detail } from '../../contexts/PreferencesContext'
 import { installmentPosition, installmentTag, remainingCents, type TagTone } from '../../lib/installmentTag'
-import { fmtMoney } from '../../lib/format'
+import { fmtList, fmtMoney } from '../../lib/format'
 import type { InstallmentEnriched } from '../../types/installment'
 
 const TONE: Record<TagTone, string> = {
@@ -32,6 +32,8 @@ interface InstallmentLineProps {
   onRemind?: () => void
   /** Paid rows: receipt of the last payment (improvement 37). */
   onReceipt?: (paymentId: string) => void
+  /** Inside a debt card of the debtor profile: "Parcela 2/12" + due day, no avatar (S4). */
+  inDebt?: boolean
 }
 
 /**
@@ -39,7 +41,7 @@ interface InstallmentLineProps {
  * payment sheet (one stretched button), the avatar opens the debtor. Amount
  * shown is what is still owed.
  */
-export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt }: InstallmentLineProps) {
+export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false }: InstallmentLineProps) {
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
   const debtorId = debtor?.id ?? inst.debt?.debtorId
@@ -117,17 +119,18 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
           }}
           aria-label={[name, inst.debt?.description, spokenPosition, fmtMoney(value), tag?.spoken].filter(Boolean).join(', ') + (paid ? '. Ver pagamentos' : '. Registrar pagamento')}
         />
-        {debtorId ? (
-          <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`}>
+        {!inDebt &&
+          (debtorId ? (
+            <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`}>
+              <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
+            </Link>
+          ) : (
             <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
-          </Link>
-        ) : (
-          <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
-        )}
+          ))}
         <div className="lt-lrow-main" aria-hidden="true">
-          <div className="lt-lrow-name">{name}</div>
+          <div className="lt-lrow-name">{inDebt ? (position.startsWith('↻') ? `Mensalidade · ${fmtList(inst.dueDate)}` : `Parcela ${position.replace('parcela ', '')}`) : name}</div>
           <Detail>
-            <div className="lt-lrow-sub">{what}</div>
+            <div className="lt-lrow-sub">{inDebt ? fmtList(inst.dueDate) : what}</div>
           </Detail>
         </div>
         <div className="lt-lrow-end" aria-hidden="true">

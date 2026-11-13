@@ -90,7 +90,6 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
     stack.push(host)
     syncInert()
     returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
 
     // Esc closes the TOP dialog wherever the focus is (it moves inside one frame
     // after opening; an early Esc used to be lost on slow devices).
@@ -118,7 +117,10 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
       stack.splice(stack.indexOf(host), 1)
       syncInert()
       host.remove()
-      document.body.style.overflow = stack.length ? 'hidden' : previousOverflow
+      // Never restore a value captured at open: when one sheet closes and another
+      // opens in the same tick, the second one captured "hidden" and left the page
+      // without scroll after both closed.
+      document.body.style.overflow = stack.length ? 'hidden' : ''
       const target = returnFocusTo.current
       if (target && document.contains(target)) target.focus()
     }
