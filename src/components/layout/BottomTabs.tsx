@@ -1,5 +1,6 @@
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
+import { Modal } from '../ui/Modal'
 import { scrollTopIfActive } from '../../lib/scroll'
 import { preloadRoute } from '../../router/routes'
 import { Icon } from '../ui/Icon'
@@ -8,9 +9,34 @@ import { NAV } from '../../constants/nav'
 interface BottomTabsProps {
   onAccount: () => void
   overdueCount: number
+  /** Second action of the "+" (held): register a payment (improvement 29). */
+  onRegister: () => void
 }
 
-export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
+/** How long "+" must be held to open the menu. */
+const HOLD_MS = 450
+
+export function BottomTabs({ onAccount, overdueCount, onRegister }: BottomTabsProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const held = useRef(false)
+  const startHold = () => {
+    held.current = false
+    holdTimer.current = setTimeout(() => {
+      held.current = true
+      navigator.vibrate?.(12)
+      setMenuOpen(true)
+    }, HOLD_MS)
+  }
+  const endHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current)
+    holdTimer.current = null
+  }
+  const choose = (action: () => void) => {
+    setMenuOpen(false)
+    action()
+  }
+
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -42,8 +68,22 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
       {/* Raised center "+" button */}
       <div style={{ flex: 1, display: 'grid', placeItems: 'center', position: 'relative' }}>
         <button
-          onClick={() => navigate('/debts/new')}
+          type="button"
+          onClick={() => {
+            // A hold already opened the menu: this click is the end of it.
+            if (held.current) {
+              held.current = false
+              return
+            }
+            navigate('/debts/new')
+          }}
+          onPointerDown={startHold}
+          onPointerUp={endHold}
+          onPointerLeave={endHold}
+          onPointerCancel={endHold}
+          onContextMenu={(e) => e.preventDefault()}
           aria-label="Nova dívida"
+          aria-describedby="fab-hint"
           style={{
             position: 'absolute',
             top: -22,
@@ -65,12 +105,26 @@ export function BottomTabs({ onAccount, overdueCount }: BottomTabsProps) {
         >
           <Icon name="plus" size={26} strokeWidth={2.6} />
         </button>
+        <span id="fab-hint" className="lt-sr-only">Segure para registrar um pagamento</span>
       </div>
 
       <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
       {/* Conta (opens a sheet today; becomes a screen in S11) */}
       <Tab label="Conta" icon="user" active={false} onClick={onAccount} />
+
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
+        <div className="lt-fab-menu">
+          <button type="button" className="lt-fab-opt" onClick={() => choose(() => navigate('/debts/new'))}>
+            <span className="lt-fab-ic" aria-hidden="true"><Icon name="plus" size={20} /></span>
+            <span><span className="lt-fab-t">Nova dívida</span><span className="lt-fab-s">Empréstimo, compra parcelada ou mensal</span></span>
+          </button>
+          <button type="button" className="lt-fab-opt" onClick={() => choose(onRegister)}>
+            <span className="lt-fab-ic" data-pay aria-hidden="true"><Icon name="wallet" size={20} /></span>
+            <span><span className="lt-fab-t">Registrar pagamento</span><span className="lt-fab-s">Escolha a parcela que alguém pagou</span></span>
+          </button>
+        </div>
+      </Modal>
     </nav>
   )
 }

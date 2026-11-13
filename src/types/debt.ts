@@ -7,4 +7,6 @@ export interface Debt {
   totalAmount: string
   debtorId: string
   createdAt: string
+  /** UI v2: monthly recurrence (API B6). */
+  recurrence?: 'MONTHLY' | null
 }

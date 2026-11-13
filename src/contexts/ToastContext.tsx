@@ -64,8 +64,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToast({ msg, ...opts, id })
     // Re-set the text so the same message is announced again.
     setAnnouncement('')
-    setTimeout(() => setAnnouncement(opts?.action ? `${msg}. ${opts.action.label} disponível.` : msg), 50)
-    run(opts?.action ? TOAST_WITH_ACTION_MS : TOAST_MS)
+    const labels = [opts?.action?.label, opts?.secondary?.label].filter(Boolean)
+    const spoken = labels.length > 1 ? `${msg}. ${labels.join(' e ')} disponíveis.` : labels.length ? `${msg}. ${labels[0]} disponível.` : msg
+    setTimeout(() => setAnnouncement(spoken), 50)
+    run(labels.length ? TOAST_WITH_ACTION_MS : TOAST_MS)
   }, [run])
 
   const onPause = (paused: boolean) => {
@@ -94,8 +96,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               toast={toast}
               leaving={leaving}
               onPause={onPause}
-              onAction={() => {
-                toast?.action?.onClick()
+              onAction={(which) => {
+                toast?.[which]?.onClick()
                 dismiss()
               }}
             />

@@ -16,6 +16,10 @@ interface ButtonProps {
   type?: 'button' | 'submit' | 'reset'
   style?: CSSProperties
   className?: string
+  /** Tooltip, e.g. "Nova dívida (Alt+N)". */
+  title?: string
+  /** Announced shortcut (improvement 28), e.g. "Alt+N". */
+  shortcut?: string
 }
 
 const VARIANTS: Record<ButtonVariant, CSSProperties> = {
@@ -36,7 +40,7 @@ const HOVER_VARIANTS: Record<ButtonVariant, CSSProperties> = {
   paid: {},
 }
 
-export function Button({ children, variant = 'primary', size = 'md', icon, iconRight, full, onClick, disabled, type, style, className }: ButtonProps) {
+export function Button({ children, variant = 'primary', size = 'md', icon, iconRight, full, onClick, disabled, type, style, className, title, shortcut }: ButtonProps) {
   const [hover, setHover] = useState(false)
 
   const base: CSSProperties = {
@@ -65,6 +69,8 @@ export function Button({ children, variant = 'primary', size = 'md', icon, iconR
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={className}
+      title={title}
+      aria-keyshortcuts={shortcut}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onMouseDown={(e) => { if (!disabled) e.currentTarget.style.transform = 'scale(0.97)' }}

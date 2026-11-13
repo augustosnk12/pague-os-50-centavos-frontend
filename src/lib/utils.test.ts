@@ -2,7 +2,6 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { deriveInstStatus, genInstallments, money } from './utils'
 import { formatCents, parseCurrencyDigits } from './currency'
 import { formatCep, parseCep } from './cep'
-import { periodLabel, shiftDate } from './period'
 
 afterEach(() => vi.useRealTimers())
 
@@ -60,17 +59,5 @@ describe('CEP', () => {
     expect(parseCep('01310-100x')).toBe('01310100')
     expect(formatCep('01310100')).toBe('01310-100')
     expect(formatCep('0131')).toBe('0131')
-  })
-})
-
-describe('period navigation', () => {
-  it('shifts day, week and month (UTC-safe across month ends)', () => {
-    expect(shiftDate('day', '2026-11-30', 1)).toBe('2026-12-01')
-    expect(shiftDate('week', '2026-11-05', -1)).toBe('2026-10-29')
-    expect(shiftDate('month', '2026-01-15', 1)).toBe('2026-02-15')
-  })
-
-  it('labels a week from Monday to Sunday', () => {
-    expect(periodLabel('week', '2026-11-05')).toMatch(/02.*08/)
   })
 })

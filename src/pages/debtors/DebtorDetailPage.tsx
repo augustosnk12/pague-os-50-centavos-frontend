@@ -1,14 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { useUpdateDebt } from '../../hooks/debts/useUpdateDebt'
 import { useDeleteDebt } from '../../hooks/debts/useDeleteDebt'
-import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
-import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useToast } from '../../contexts/ToastContext'
 import { translateApiError, deriveInstStatus, formatAddress } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
@@ -25,6 +23,10 @@ import { getReliabilityOption } from '../../constants/reliability'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { DebtCard } from '../../components/shared/DebtCard'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
+import { RemindSheet } from '../../components/shared/RemindSheet'
+import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import type { ReceiptRequest } from '../../lib/receipt'
+import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
 import type { DebtType } from '../../types/debt'
@@ -52,20 +54,27 @@ export function DebtorDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
-  const [paymentContext, setPaymentContext] = useState<{ installment: Installment; debtorName: string; debtDescription: string | null } | null>(null)
-  const [deletingPaymentId, setDeletingPaymentId] = useState<string | undefined>()
+  const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
+  const [remindId, setRemindId] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
   const [confirmDelDebt, setConfirmDelDebt] = useState<DebtWithInstallments | null>(null)
 
   const { data: debtor, isLoading, isError, error, refetch, isFetching } = useDebtor(id!)
   const debtsQuery = useDebtsByDebtor(id!)
+  // A debt picked in the search opens expanded and in view (improvement 21).
+  const [searchParams] = useSearchParams()
+  const focusDebt = searchParams.get('divida')
+  const focusReady = !!debtsQuery.data?.some((d) => d.id === focusDebt)
+  useEffect(() => {
+    if (!focusReady) return
+    requestAnimationFrame(() => document.getElementById(`divida-${focusDebt}`)?.scrollIntoView({ block: 'start' }))
+  }, [focusReady, focusDebt])
   const debts = debtsQuery.data ?? []
   const updateDebtor = useUpdateDebtor(id!)
   const deleteDebtor = useDeleteDebtor()
   const updateDebt = useUpdateDebt(id!)
   const deleteDebt = useDeleteDebt(id!)
-  const registerPayment = useRegisterPayment()
-  const deletePayment = useDeletePayment()
 
   if (isLoading) {
     return (
@@ -146,47 +155,13 @@ export function DebtorDetailPage() {
     })
   }
 
-  const handleReceive = (inst: Installment, debt: { description: string | null }) => {
-    setPaymentContext({ installment: inst, debtorName: debtor.name, debtDescription: debt.description })
-  }
-
-  const handleDeletePayment = (installmentId: string, paymentId: string) => {
-    setDeletingPaymentId(paymentId)
-    deletePayment.mutate({ installmentId, paymentId }, {
-      onSuccess: (updatedInstallment) => {
-        setDeletingPaymentId(undefined)
-        showToast('Pagamento removido')
-        setPaymentContext((ctx) => ctx ? { ...ctx, installment: updatedInstallment } : null)
-      },
-      onError: (e: unknown) => {
-        setDeletingPaymentId(undefined)
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao excluir pagamento.'), { icon: 'alert' })
-      },
+  const handleReceive = (inst: Installment, debt: { description: string | null; installments?: unknown[] }) =>
+    setPayTarget({
+      installment: inst,
+      debtor: { id: debtor.id, name: debtor.name, avatarHue: debtor.avatarHue, avatarEmoji: debtor.avatarEmoji },
+      debtDescription: debt.description,
+      installmentCount: debt.installments?.length,
     })
-  }
-
-  const handleConfirmPayment = (installmentId: string, amount: number, paidAt: string) => {
-    registerPayment.mutate({ id: installmentId, body: { amount, paidAt } }, {
-      onSuccess: ({ installment }) => {
-        setPaymentContext(null)
-        const wasFullyPaid = deriveInstStatus({
-          dueDate: installment.dueDate,
-          paidAt: installment.paidAt,
-          paidAmount: installment.paidAmount,
-          amount: installment.amount,
-        }) === 'PAID'
-        showToast(
-          wasFullyPaid ? 'Parcela quitada' : `Pagamento de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)} registrado`,
-          { status: wasFullyPaid ? 'PAID' : undefined, icon: wasFullyPaid ? 'check' : undefined }
-        )
-      },
-      onError: (e: unknown) => {
-        const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao registrar pagamento.'), { icon: 'alert' })
-      },
-    })
-  }
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
@@ -241,14 +216,13 @@ export function DebtorDetailPage() {
                 icon="phone"
                 text={debtor.phone}
                 action={
-                  <a
-                    href={`https://wa.me/${debtor.phone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--paid)', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  <button
+                    type="button"
+                    onClick={() => setRemindId(debtor.id)}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'var(--wa)', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Icon name="whatsapp" size={15} />Lembrar
-                  </a>
+                  </button>
                 }
               />
             )}
@@ -284,8 +258,10 @@ export function DebtorDetailPage() {
             <DebtCard
               key={debt.id}
               debt={debt}
+              defaultOpen={debt.id === focusDebt}
               onReceive={(inst) => handleReceive(inst, debt)}
               onEditDebt={(d) => setDebtForm({ open: true, editing: d })}
+              onPayoffReceipt={(d) => setReceipt({ debtorId: debtor.id, payoffDebtId: d.id })}
             />
           ))}
         </div>
@@ -371,15 +347,9 @@ export function DebtorDetailPage() {
       </Modal>
 
       {/* Payment sheet */}
-      <PaymentSheet
-        open={!!paymentContext}
-        onClose={() => setPaymentContext(null)}
-        context={paymentContext}
-        onConfirm={handleConfirmPayment}
-        onDeletePayment={handleDeletePayment}
-        deletingPaymentId={deletingPaymentId}
-        loading={registerPayment.isPending}
-      />
+      <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
+      <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
+      <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     </main>
   )
 }

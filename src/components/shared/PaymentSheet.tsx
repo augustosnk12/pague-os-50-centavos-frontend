@@ -1,333 +1,333 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../ui/Modal'
-import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
 import { DateInput } from '../ui/DateInput'
-import { Money } from '../ui/Money'
+import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
-import { fmtDate, money } from '../../lib/utils'
+import { IconButton } from '../ui/IconButton'
+import { Money } from '../ui/Money'
+import { Detail } from '../../contexts/PreferencesContext'
+import { useToast } from '../../contexts/ToastContext'
+import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
+import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
+import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
+import { localToday } from '../../lib/date'
+import { fmtList, fmtMoney, fmtTitle } from '../../lib/format'
+import { daysUntil, installmentPosition, remainingCents } from '../../lib/installmentTag'
+import { whatsappLink } from '../../lib/whatsapp'
+import { RemindSheet } from './RemindSheet'
+import { ReceiptSheet } from './ReceiptSheet'
+import type { ReceiptRequest } from '../../lib/receipt'
+import { getApiError } from '../../lib/api'
+import { translateApiError } from '../../lib/utils'
+import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { Payment } from '../../types/payment'
 
-interface PaymentSheetContext {
-  installment: Installment
-  debtorName: string
-  debtDescription: string | null
+/** Width of the amount field: digits are 1ch (tabular), "," and "." about 0.35ch. */
+const amountWidth = (text: string) => {
+  const shown = text || '0,00'
+  const digits = shown.replace(/\D/g, '').length
+  return `${digits + (shown.length - digits) * 0.35 + 0.15}ch`
+}
+
+type DateMode = 'today' | 'yesterday' | 'other'
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
+const addDays = (iso: string, n: number) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
+/** "atrasada há 2 dias", "vence hoje", "vence em 12 nov" (improvement 6). */
+function dueText(inst: Installment, today: string): { text: string; color: string } {
+  if (remainingCents(inst) === 0) return { text: 'quitada', color: 'var(--paid)' }
+  const d = daysUntil(inst.dueDate, today)
+  if (d < 0) return { text: `atrasada há ${-d} ${d === -1 ? 'dia' : 'dias'}`, color: 'var(--overdue)' }
+  if (d === 0) return { text: 'vence hoje', color: 'var(--pending)' }
+  if (d === 1) return { text: 'vence amanhã', color: 'var(--text-muted)' }
+  return { text: `vence em ${fmtList(inst.dueDate)}`, color: 'var(--text-muted)' }
 }
 
 interface PaymentSheetProps {
-  open: boolean
+  /** The installment to pay; null closes the sheet. */
+  target: PaymentTarget | null
   onClose: () => void
-  context: PaymentSheetContext | null
-  onConfirm: (installmentId: string, amount: number, paidAt: string) => void
-  onDeletePayment?: (installmentId: string, paymentId: string) => void
-  deletingPaymentId?: string
-  loading?: boolean
 }
 
-function toCents(brl: number): string {
-  return String(Math.round(brl * 100))
-}
+/**
+ * Payment sheet (S2, improvements 6, 7 and 10). Registers and deletes
+ * payments itself and offers "Desfazer" in the toast for both, using the
+ * existing endpoints (POST / DELETE /installments/:id/payments).
+ */
+export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
+  const today = localToday()
+  const { showToast } = useToast()
+  const register = useRegisterPayment()
+  const remove = useDeletePayment()
 
-function todayISO(): string {
-  const n = new Date()
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
-}
+  // Keep the last target while the sheet plays its closing animation.
+  const lastTarget = useRef<PaymentTarget | null>(target)
+  if (target) lastTarget.current = target
+  const t = target ?? lastTarget.current
 
-interface SummaryStatProps {
-  label: string
-  value: number
-  color?: string
-  big?: boolean
-}
+  // The installment as the sheet knows it: replaced after a deletion.
+  const [inst, setInst] = useState<Installment | null>(t?.installment ?? null)
+  const [cents, setCents] = useState('')
+  const [dateMode, setDateMode] = useState<DateMode>('today')
+  const [otherDate, setOtherDate] = useState('')
+  const [histOpen, setHistOpen] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [remindId, setRemindId] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
-function SummaryStat({ label, value, color, big }: SummaryStatProps) {
-  return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 700, marginBottom: 3, whiteSpace: 'nowrap' }}>{label}</div>
-      <Money value={value} size={big ? 22 : 17} weight={800} color={color} />
-    </div>
-  )
-}
-
-function QuickChip({ children, active, onClick, disabled }: { children: React.ReactNode; active: boolean; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      style={{
-        padding: '5px 12px', borderRadius: 99, cursor: disabled ? 'not-allowed' : 'pointer',
-        fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit',
-        border: `1.5px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
-        background: active ? 'var(--primary)' : 'var(--surface)',
-        color: active ? 'var(--on-primary)' : 'var(--text-muted)',
-        opacity: disabled ? 0.5 : 1, transition: 'all .15s',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
-interface PaymentHistoryRowProps {
-  payment: Payment
-  index: number
-  onDelete?: () => void
-  isDeleting?: boolean
-}
-
-function PaymentHistoryRow({ payment, index, onDelete, isDeleting }: PaymentHistoryRowProps) {
-  const [removing, setRemoving] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const deletingStarted = useRef(false)
-
+  // Fresh state each time the sheet opens (or opens for another installment).
   useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [])
+    if (!target) return
+    const i = target.installment
+    setInst(i)
+    setCents(String(remainingCents(i)))
+    setDateMode('today')
+    setOtherDate('')
+    setHistOpen(remainingCents(i) === 0)
+  }, [target])
 
-  useEffect(() => {
-    if (isDeleting) {
-      deletingStarted.current = true
-    } else if (deletingStarted.current && removing) {
-      deletingStarted.current = false
-      setRemoving(false)
-    }
-  }, [isDeleting, removing])
+  const overdue = !!inst && remainingCents(inst) > 0 && daysUntil(inst.dueDate, today) < 0
+  // The phone only matters for the WhatsApp reminder of an overdue installment.
+  const { data: debtorFull } = useDebtor(target && overdue ? target.debtor.id : '')
 
-  function handleDelete() {
-    if (removing || isDeleting) return
-    setRemoving(true)
-    timerRef.current = setTimeout(() => onDelete?.(), 240)
+  if (!t || !inst) return null
+
+  const left = remainingCents(inst)
+  const paidCents = Math.round(Number(inst.paidAmount ?? '0') * 100)
+  const readOnly = left === 0
+  const amount = parseInt(cents || '0', 10)
+  const willPayOff = amount > 0 && amount >= left
+  const payments: Payment[] = inst.payments ?? []
+  const date = dateMode === 'today' ? today : dateMode === 'yesterday' ? addDays(today, -1) : otherDate
+  const due = dueText(inst, today)
+  const position = installmentPosition(inst.number, t.installmentCount, t.recurrence)
+  const name = t.debtor.name
+  // WhatsApp reminder (S5): for an overdue installment of someone with a valid phone.
+  const canRemind = overdue && !!whatsappLink(debtorFull?.phone)
+
+  const setAmount = (raw: string) => {
+    const digits = parseCurrencyDigits(raw)
+    setCents(parseInt(digits || '0', 10) > left ? String(left) : digits)
   }
 
-  return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0',
-        borderTop: '1px solid var(--border)', overflow: 'hidden',
-        animation: removing ? 'ltSwipeOut .24s cubic-bezier(0.4,0,1,1) forwards' : 'none',
-      }}
-    >
-      <span style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--paid-weak)', color: 'var(--paid)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-        <Icon name="check" size={14} strokeWidth={2.8} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmtDate(payment.paidAt)}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', fontWeight: 600 }}>{index + 1}º pagamento</div>
-      </div>
-      <Money value={Number(payment.amount)} size={15} weight={800} color="var(--paid)" />
-      {onDelete && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={removing || isDeleting}
-          aria-label="Excluir pagamento"
-          style={{
-            flexShrink: 0, display: 'grid', placeItems: 'center',
-            width: 30, height: 30, borderRadius: 8, border: 'none',
-            background: 'transparent', cursor: removing || isDeleting ? 'not-allowed' : 'pointer',
-            color: 'var(--overdue)', transition: 'background .15s',
-            opacity: isDeleting ? 0.4 : 1,
-          }}
-          onMouseEnter={(e) => { if (!removing && !isDeleting) e.currentTarget.style.background = 'var(--overdue-weak)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-        >
-          <Icon name="trash" size={15} />
+  const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
+
+  /** Deletes a payment that was just registered ("Desfazer"). */
+  const undoRegister = (installmentId: string, payment: Payment) =>
+    remove.mutate({ installmentId, paymentId: payment.id }, {
+      onSuccess: () => showToast('Pagamento desfeito'),
+      onError: fail('Não foi possível desfazer.'),
+    })
+
+  /** Registers again a payment that was just deleted ("Desfazer"). */
+  const undoDelete = (installmentId: string, payment: Payment) =>
+    register.mutate({ id: installmentId, body: { amount: Number(payment.amount), paidAt: payment.paidAt.slice(0, 10) } }, {
+      onSuccess: ({ installment, payment: back }) => {
+        setInst((cur) => (cur && cur.id === installmentId ? { ...cur, ...installment, payments: [...(cur.payments ?? []), back] } : cur))
+        showToast('Pagamento restaurado', { icon: 'check' })
+      },
+      onError: fail('Não foi possível desfazer.'),
+    })
+
+  const confirm = () => {
+    if (amount <= 0 || !date || register.isPending) return
+    const installmentId = inst.id
+    const debtorId = t.debtor.id
+    register.mutate({ id: installmentId, body: { amount: amount / 100, paidAt: date } }, {
+      onSuccess: ({ payment }) => {
+        onClose()
+        showToast(willPayOff ? `Parcela quitada · ${firstName(name)}` : `Pagamento de ${fmtMoney(amount / 100)} registrado`, {
+          icon: 'check',
+          status: willPayOff ? 'PAID' : undefined,
+          action: { label: 'Desfazer', onClick: () => undoRegister(installmentId, payment) },
+          secondary: { label: 'Comprovante', onClick: () => setReceipt({ debtorId, paymentId: payment.id }) },
+        })
+      },
+      onError: fail('Erro ao registrar pagamento.'),
+    })
+  }
+
+  const deletePayment = (p: Payment) => {
+    if (deleting) return
+    const installmentId = inst.id
+    setDeleting(p.id)
+    remove.mutate({ installmentId, paymentId: p.id }, {
+      onSuccess: (updated) => {
+        setDeleting(null)
+        setInst((cur) => (cur && cur.id === installmentId ? { ...cur, ...updated, payments: (cur.payments ?? []).filter((x) => x.id !== p.id) } : cur))
+        showToast(`Pagamento de ${fmtMoney(p.amount)} excluído`, {
+          action: { label: 'Desfazer', onClick: () => undoDelete(installmentId, p) },
+        })
+      },
+      onError: (e) => {
+        setDeleting(null)
+        fail('Erro ao excluir pagamento.')(e)
+      },
+    })
+  }
+
+  const history = payments.length > 0 && (
+    <div className="lt-pay-hist">
+      {readOnly ? (
+        <div className="lt-pay-hist-count">{payments.length} {payments.length === 1 ? 'pagamento' : 'pagamentos'}</div>
+      ) : (
+        <button type="button" className="lt-hist-toggle" aria-expanded={histOpen} onClick={() => setHistOpen((o) => !o)}>
+          <Icon name="clock" size={14} />
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            {payments.length} {payments.length === 1 ? 'pagamento anterior' : 'pagamentos anteriores'} · {fmtMoney(paidCents / 100)}
+          </span>
+          <Icon name="chevronDown" size={15} style={{ transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
         </button>
+      )}
+      {histOpen && (
+        <ul className="lt-hist-list">
+          {payments.map((p) => (
+            <li key={p.id} className="lt-hist-row">
+              <span className="lt-hist-ok" aria-hidden="true"><Icon name="check" size={11} strokeWidth={3} /></span>
+              <span style={{ flex: 1, fontWeight: 700, fontSize: '0.8125rem' }}>{fmtList(p.paidAt)}</span>
+              <Money value={p.amount} size={13.5} color="var(--paid)" />
+              <IconButton
+                name="receipt"
+                size={15}
+                label={`Comprovante do pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
+                onClick={() => setReceipt({ debtorId: t.debtor.id, paymentId: p.id })}
+              />
+              <IconButton
+                name="trash"
+                size={15}
+                label={`Excluir pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
+                onClick={() => deletePayment(p)}
+                disabled={!!deleting}
+                style={{ color: 'var(--overdue)' }}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
-}
-
-export function PaymentSheet({ open, onClose, context, onConfirm, onDeletePayment, deletingPaymentId, loading }: PaymentSheetProps) {
-  const inst = context?.installment ?? null
-  const fullAmount = inst ? Number(inst.amount) : 0
-  const alreadyPaid = inst ? Number(inst.paidAmount ?? '0') : 0
-  const remainingBefore = Math.max(0, Math.round((fullAmount - alreadyPaid) * 100) / 100)
-  const payments: Payment[] = inst?.payments ?? []
-
-  const [amountCents, setAmountCents] = useState('')
-  const [dateISO, setDateISO] = useState('')
-  const [err, setErr] = useState('')
-  const [quick, setQuick] = useState<'half' | 'total' | 'custom'>('total')
-  const [histOpen, setHistOpen] = useState(false)
-
-  useEffect(() => {
-    if (open && inst) {
-      setAmountCents(toCents(remainingBefore))
-      setDateISO(todayISO())
-      setErr('')
-      setQuick('total')
-    }
-  }, [open, inst?.id, inst?.paidAmount])
-
-  useEffect(() => {
-    if (open && inst) {
-      setHistOpen(remainingBefore <= 0)
-    }
-  }, [open, inst?.id])
-
-  if (!context || !inst) return null
-
-  const amount = parseInt(amountCents || '0', 10) / 100
-  const remainingAfter = Math.max(0, Math.round((remainingBefore - amount) * 100) / 100)
-  const willFullyPay = amount > 0 && amount >= remainingBefore - 0.005
-  const overpay = amount > remainingBefore + 0.005
-  const readOnly = remainingBefore <= 0
-
-  function setHalf() {
-    setAmountCents(toCents(Math.round(remainingBefore / 2 * 100) / 100))
-    setQuick('half'); setErr('')
-  }
-  function setTotal() {
-    setAmountCents(toCents(remainingBefore)); setQuick('total'); setErr('')
-  }
-  function handleAmountChange(v: string) {
-    const digits = parseCurrencyDigits(v)
-    const remainingCents = Math.round(remainingBefore * 100)
-    const capped = parseInt(digits || '0', 10) > remainingCents ? String(remainingCents) : digits
-    setAmountCents(capped)
-    setQuick('custom')
-    setErr('')
-  }
-
-  function handleConfirm() {
-    if (!inst) return
-    if (!(amount > 0)) return setErr('Informe um valor maior que zero.')
-    if (overpay) return setErr(`O valor não pode ser maior que o restante (${money(remainingBefore)}).`)
-    if (!dateISO) return setErr('Informe a data do pagamento.')
-    onConfirm(inst.id, amount, dateISO)
-  }
-
-  const title = readOnly ? 'Pagamentos da parcela' : 'Registrar pagamento'
 
   return (
+    <>
+    <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
+    <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     <Modal
-      open={open}
+      open={!!target}
       onClose={onClose}
-      title={title}
+      title={name}
+      head={(titleId, close) => (
+        <div className="lt-pay-head">
+          <Avatar name={name} size={40} hue={t.debtor.avatarHue} emoji={t.debtor.avatarEmoji} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 id={titleId} className="lt-pay-name">
+              <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
+              {name}
+            </h2>
+            <div className="lt-pay-sub">
+              {[t.debtDescription, position].filter(Boolean).join(' · ')} · <span style={{ color: due.color }}>{due.text}</span>
+            </div>
+          </div>
+          {canRemind && (
+            <button type="button" className="lt-wa-mini" onClick={() => setRemindId(t.debtor.id)} aria-label={`Lembrar ${firstName(name)} no WhatsApp`} title="Lembrar no WhatsApp">
+              <Icon name="whatsapp" size={16} />
+            </button>
+          )}
+          <IconButton name="x" onClick={close} label="Fechar" />
+        </div>
+      )}
       footer={
         readOnly ? (
-          <Button full size="lg" variant="secondary" onClick={onClose}>Fechar</Button>
+          <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={onClose}>Fechar</button>
         ) : (
-          <>
-            <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-            <Button full size="lg" icon="check" onClick={handleConfirm} disabled={loading}>
-              {loading ? 'Registrando…' : willFullyPay ? 'Quitar parcela' : 'Registrar'}
-            </Button>
-          </>
+          <button type="button" className="lt-btn-lg" data-variant="primary" onClick={confirm} disabled={amount <= 0 || !date || register.isPending}>
+            <Icon name="check" size={17} />
+            {register.isPending ? 'Registrando…' : `${willPayOff ? 'Quitar parcela' : 'Registrar'}${amount > 0 ? ` · ${fmtMoney(amount / 100)}` : ''}`}
+          </button>
         )
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 2 }}>
-        {/* Balance summary */}
-        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '15px 16px' }}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <SummaryStat label="Valor da parcela" value={fullAmount} color="var(--text)" />
-            <div style={{ width: 1, background: 'var(--border)' }} />
-            <SummaryStat label="Já pago" value={alreadyPaid} color={alreadyPaid > 0 ? 'var(--paid)' : 'var(--text-muted)'} />
-            <div style={{ width: 1, background: 'var(--border)' }} />
-            <SummaryStat label="Restante" value={remainingBefore} color={remainingBefore > 0 ? 'var(--overdue)' : 'var(--paid)'} />
-          </div>
+      <div className="lt-pay-body">
+        {readOnly ? (
+          <>
+            <div className="lt-paid-box">
+              <Icon name="check" size={18} strokeWidth={2.8} />
+              <div>
+                <div style={{ fontWeight: 800 }}>Parcela quitada</div>
+                <div style={{ fontWeight: 700, fontSize: '0.75rem' }}>{fmtMoney(inst.amount)}</div>
+              </div>
+            </div>
+            {history}
+          </>
+        ) : (
+          <>
+            <div className="lt-amt-box">
+              <label className="lt-amt-input">
+                <span className="lt-amt-cur" aria-hidden="true">R$</span>
+                <input
+                  value={formatCents(cents)}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  aria-label="Valor recebido"
+                  // As wide as its digits, so "R$" stays next to the amount.
+                  style={{ width: amountWidth(formatCents(cents)) }}
+                />
+              </label>
+              <div className="lt-amt-chips">
+                <button type="button" className="lt-chip" aria-pressed={amount === left} onClick={() => setCents(String(left))}>
+                  Total {fmtMoney(left / 100)}
+                </button>
+                <button type="button" className="lt-chip" aria-pressed={amount === Math.round(left / 2)} onClick={() => setCents(String(Math.round(left / 2)))}>
+                  Metade
+                </button>
+              </div>
+              {amount > 0 && !willPayOff ? (
+                <div className="lt-partial-note">
+                  <Icon name="clock" size={13} />
+                  <span>Pagamento parcial · restam <b>{fmtMoney((left - amount) / 100)}</b></span>
+                </div>
+              ) : paidCents > 0 ? (
+                <Detail>
+                  <div className="lt-paid-before">Já pago {fmtMoney(paidCents / 100)} de {fmtMoney(inst.amount)}</div>
+                </Detail>
+              ) : null}
+            </div>
 
-        </div>
-
-        {/* Payment history accordion */}
-        {payments.length > 0 && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'calc(var(--radius)*0.7)', overflow: 'hidden' }}>
-            <button
-              type="button"
-              onClick={() => setHistOpen((o) => !o)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '12px 14px',
-                background: histOpen ? 'var(--surface-2)' : 'var(--surface)',
-                border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background .15s',
-              }}
-            >
-              <Icon name="clock" size={16} color="var(--text-muted)" />
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>Histórico de pagamentos</span>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--paid)', background: 'var(--paid-weak)', padding: '1px 8px', borderRadius: 99 }}>
-                {payments.length}
-              </span>
-              <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-muted)' }}>{money(alreadyPaid)}</span>
-              <Icon name="chevronDown" size={16} color="var(--text-faint)" style={{ transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform .25s' }} />
-            </button>
-            {histOpen && (
-              <div style={{ padding: '4px 14px 10px', maxHeight: 220, overflowY: 'auto' }}>
-                {payments.map((p, i) => (
-                  <PaymentHistoryRow
-                    key={p.id}
-                    payment={p}
-                    index={i}
-                    onDelete={onDeletePayment ? () => onDeletePayment(inst.id, p.id) : undefined}
-                    isDeleting={deletingPaymentId === p.id}
+            <div className="lt-date-row" role="group" aria-label="Data do pagamento">
+              <div style={{ minWidth: 0 }}>
+                <div className="lt-date-k">Pago em</div>
+                <div className="lt-date-v">{date ? fmtTitle(date) : '—'}</div>
+              </div>
+              <div className="lt-date-chips">
+                <button type="button" className="lt-chip" aria-pressed={dateMode === 'today'} onClick={() => setDateMode('today')}>Hoje</button>
+                <button type="button" className="lt-chip" aria-pressed={dateMode === 'yesterday'} onClick={() => setDateMode('yesterday')}>Ontem</button>
+                {dateMode === 'other' ? (
+                  <DateInput
+                    compact
+                    autoFocus
+                    ariaLabel="Outra data do pagamento"
+                    value={otherDate}
+                    onChange={setOtherDate}
+                    max={today}
                   />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Amount input */}
-        {!readOnly && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)' }}>
-                Valor recebido <span style={{ color: 'var(--primary)' }}>*</span>
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <QuickChip active={quick === 'half'} onClick={setHalf} disabled={remainingBefore <= 0}>Metade</QuickChip>
-                <QuickChip active={quick === 'total'} onClick={setTotal} disabled={remainingBefore <= 0}>Total</QuickChip>
+                ) : (
+                  <button type="button" className="lt-chip" onClick={() => { setOtherDate(addDays(today, -2)); setDateMode('other') }}>
+                    <Icon name="calendar" size={14} /> Outra
+                  </button>
+                )}
               </div>
             </div>
-            <Input
-              value={formatCents(amountCents)}
-              onChange={handleAmountChange}
-              placeholder="0,00"
-              prefix="R$"
-              inputMode="numeric"
-              error={err}
-            />
-          </div>
-        )}
-
-        {/* Date input */}
-        {!readOnly && (
-          <DateInput label="Data do pagamento" value={dateISO} onChange={setDateISO} required />
-        )}
-
-        {/* Live result preview */}
-        {!readOnly && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 11,
-            background: willFullyPay ? 'var(--paid-weak)' : 'var(--partial-weak)',
-            borderRadius: 'calc(var(--radius)*0.7)', padding: '13px 15px',
-          }}>
-            <span style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: willFullyPay ? 'var(--paid)' : 'var(--partial)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-              <Icon name={willFullyPay ? 'check' : 'clock'} size={18} color="#fff" strokeWidth={2.6} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 14, color: willFullyPay ? 'var(--paid)' : 'var(--partial)' }}>
-                {amount <= 0 ? 'Informe um valor' : willFullyPay ? 'Parcela será quitada' : 'Pagamento parcial'}
-              </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600 }}>
-                {amount > 0 && !willFullyPay
-                  ? <>Restante após: <b style={{ color: 'var(--text)' }}>{money(remainingAfter)}</b></>
-                  : willFullyPay
-                  ? 'Nada mais a receber nesta parcela'
-                  : ' '}
-              </div>
-            </div>
-          </div>
+            {history}
+          </>
         )}
       </div>
     </Modal>
+    </>
   )
 }

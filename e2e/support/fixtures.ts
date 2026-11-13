@@ -1,7 +1,7 @@
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { execFileSync } from 'node:child_process'
-import { createHmac, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { API_DIR, API_URL, JWT_SECRET, WEB_URL, e2eDatabaseUrl } from './env.mjs'
 
 export interface Session {
@@ -29,6 +29,28 @@ export function createLenderWithLoginToken(name = 'Augusto Silva') {
     stdio: ['pipe', 'ignore', 'inherit'],
   })
   return { id, email, name, token }
+}
+
+/**
+ * A lender waiting for a 6-digit code (login, or confirmation of a new
+ * account), as POST /auth/login or /auth/register leave it — without
+ * sending the e-mail. The code is stored hashed like the API does.
+ */
+export function createLenderWithCode(code: string, { type = 'LOGIN' as 'LOGIN' | 'CONFIRMATION', name = 'Cora Código' } = {}) {
+  const id = `e2e_${randomBytes(8).toString('hex')}`
+  const email = `${id}@e2e.test`
+  const token = randomBytes(32).toString('hex')
+  const hash = createHash('sha256').update(`${id}:${code}`).digest('hex')
+  const confirmed = type === 'LOGIN'
+  const sql = `INSERT INTO "Lender" ("id","email","name","confirmed","authToken","authTokenType","authTokenExpiresAt","authCodeHash","authCodeAttempts","createdAt","updatedAt")
+    VALUES ('${id}','${email}','${name.replace(/'/g, "''")}',${confirmed},'${token}','${type}',now() + interval '15 minutes','${hash}',0,now(),now());`
+  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', e2eDatabaseUrl()], {
+    cwd: API_DIR,
+    input: sql,
+    shell: process.platform === 'win32',
+    stdio: ['pipe', 'ignore', 'inherit'],
+  })
+  return { id, email, name }
 }
 
 /**
@@ -69,7 +91,15 @@ async function applySession(page: Page, s: Session) {
 /** Accessibility check (WCAG 2.2 AA) of the current page: attaches the report and fails on violations. */
 async function a11yReport(page: Page, testInfo: import('@playwright/test').TestInfo, label: string) {
   // Measure the settled screen: entering animations blend colours and fake contrast failures.
-  await page.evaluate(() => Promise.all(document.getAnimations().map((x) => x.finished.catch(() => undefined))))
+  // Only animations that end (the access background floats forever, by design).
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((x) => x.effect?.getTiming().iterations !== Infinity)
+        .map((x) => x.finished.catch(() => undefined)),
+    ),
+  )
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
   const summary = results.violations.map((v) => `${v.impact ?? '-'} ${v.id} (${v.nodes.length})`)
   await testInfo.attach(`axe-${label}.json`, { body: JSON.stringify(results.violations, null, 2), contentType: 'application/json' })

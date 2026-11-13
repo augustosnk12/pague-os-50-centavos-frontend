@@ -74,7 +74,7 @@ describe('Modal (accessible dialog)', () => {
     await user.keyboard('{Escape}')
     await settle()
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(opener).toHaveFocus()
+    await waitFor(() => expect(opener).toHaveFocus())
 
     await user.click(opener)
     await user.click(await screen.findByRole('button', { name: 'Fechar' }))

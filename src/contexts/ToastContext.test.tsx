@@ -55,6 +55,26 @@ describe('ToastProvider', () => {
     expect(TOAST_WITH_ACTION_MS).toBe(10000)
   })
 
+  it('two actions ("Desfazer" and "Comprovante"): each runs its own, both are announced', () => {
+    const undo = vi.fn()
+    const receipt = vi.fn()
+    function Two() {
+      const { showToast } = useToast()
+      return (
+        <button onClick={() => showToast('Parcela quitada', { action: { label: 'Desfazer', onClick: undo }, secondary: { label: 'Comprovante', onClick: receipt } })}>
+          go
+        </button>
+      )
+    }
+    render(<ToastProvider><Two /></ToastProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'go' }))
+    advance(60)
+    expect(screen.getByRole('status')).toHaveTextContent('Parcela quitada. Desfazer e Comprovante disponíveis.')
+    fireEvent.click(screen.getByRole('button', { name: 'Comprovante' }))
+    expect(receipt).toHaveBeenCalledOnce()
+    expect(undo).not.toHaveBeenCalled()
+  })
+
   it('pauses while hovered or focused (WCAG 2.2.1)', () => {
     render(<ToastProvider><Trigger msg="Com pausa" action={() => {}} /></ToastProvider>)
     fireEvent.click(screen.getByRole('button', { name: 'Com pausa' }))

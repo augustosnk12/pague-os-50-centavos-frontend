@@ -1,42 +1,58 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
-function getRemaining(storageKey?: string): number {
+function readUntil(storageKey?: string): number {
   if (!storageKey) return 0
-  const expiry = localStorage.getItem(storageKey)
-  if (!expiry) return 0
-  const remaining = Math.ceil((Number(expiry) - Date.now()) / 1000)
-  return remaining > 0 ? remaining : 0
+  try {
+    return Number(localStorage.getItem(storageKey)) || 0
+  } catch {
+    return 0
+  }
 }
 
+/**
+ * A countdown ("Reenviar em 0:42") that survives a page refresh: the end
+ * time is kept in localStorage (pass a unique `storageKey`).
+ *
+ * The seconds left are derived from the end time, and a 1 s clock runs
+ * whenever there is time left. (It used to keep its own timer, which a
+ * remount — React StrictMode in development — stopped for good: the
+ * countdown froze at 1:00.)
+ */
 export function useCooldown(seconds = 60, storageKey?: string) {
-  const [cooldown, setCooldown] = useState(() => getRemaining(storageKey))
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [until, setUntil] = useState(() => readUntil(storageKey))
+  const [now, setNow] = useState(() => Date.now())
+  const cooldown = Math.max(0, Math.ceil((until - now) / 1000))
+  const running = cooldown > 0
 
-  const tick = (key?: string) => {
-    timerRef.current = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!)
-          timerRef.current = null
-          if (key) localStorage.removeItem(key)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
-  // Resume countdown if there's remaining time from a previous session
   useEffect(() => {
-    if (cooldown > 0) tick(storageKey)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!running) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [running])
 
+  useEffect(() => {
+    if (running || !until || !storageKey) return
+    try {
+      localStorage.removeItem(storageKey)
+    } catch {
+      // storage unavailable
+    }
+  }, [running, until, storageKey])
+
+  /** Starts the countdown; false when one is already running. */
   const start = () => {
-    if (getRemaining(storageKey) > 0 || cooldown > 0) return false
-    if (storageKey) localStorage.setItem(storageKey, String(Date.now() + seconds * 1000))
-    setCooldown(seconds)
-    tick(storageKey)
+    const t = Date.now()
+    if (Math.max(until, readUntil(storageKey)) > t) return false
+    const end = t + seconds * 1000
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, String(end))
+      } catch {
+        // storage unavailable: still counts down in this page
+      }
+    }
+    setUntil(end)
+    setNow(t)
     return true
   }
 

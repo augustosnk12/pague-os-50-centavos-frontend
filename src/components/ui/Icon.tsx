@@ -27,6 +27,8 @@ const ICONS: Record<string, string> = {
   banknote: 'M2 6h20v12H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 9h.01M18 15h.01',
   card: 'M2 5h20v14H2zM2 10h20',
   zap: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
+  receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3',
+  bulb: 'M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z',
   layers: 'M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5',
   wallet: 'M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 000 4h4v-4z',
   trending: 'M22 7l-8.5 8.5-5-5L2 17M16 7h6v6',
@@ -36,7 +38,8 @@ const ICONS: Record<string, string> = {
   dots: 'M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z',
   filter: 'M22 3H2l8 9.5V19l4 2v-8.5L22 3',
   send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
-  whatsapp: 'M3 21l1.65-4.5A8 8 0 113 21zM8.5 9.5c.5 2 2 3.5 4 4l1.2-1 2 1-.5 2c-3 0-7-4-7-7l2-.5 1 2-1 1z',
+  // Speech bubble + handset (same drawing as the mock).
+  whatsapp: 'M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.5 8.5 0 1 1 21 11.5zM9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1c-1-.5-1.5-1-2-2l1-1-1-2z',
   calc: 'M5 2h14a1 1 0 011 1v18a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1zM8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15v4M8 19h4',
   backspace: 'M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2zM18 9l-6 6M12 9l6 6',
   divide: 'M5 12h14M12 6h.01M12 18h.01',
