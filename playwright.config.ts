@@ -1,6 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
 import { API_URL, WEB_PORT, WEB_URL } from './e2e/support/env.mjs'
 
+// The browser runs in São Paulo time (timezoneId below). The test code, which
+// builds dates like "2 days ago", must use the same clock: CI machines run in
+// UTC, and between 21:00 and midnight in Brazil it is already tomorrow there.
+const TIME_ZONE = 'America/Sao_Paulo'
+process.env.TZ = TIME_ZONE
+
 /**
  * End-to-end suite: real API (from API_DIR, default ../pague-os-50-centavos)
  * on an empty `<db>_e2e_test` database, and this app served by Vite.
@@ -18,7 +24,7 @@ export default defineConfig({
   use: {
     baseURL: WEB_URL,
     locale: 'pt-BR',
-    timezoneId: 'America/Sao_Paulo',
+    timezoneId: TIME_ZONE,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
