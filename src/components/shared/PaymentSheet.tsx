@@ -230,8 +230,10 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
               {name}
             </h2>
+            {t.debtDescription && <div className="lt-pay-desc">{t.debtDescription}</div>}
             <div className="lt-pay-sub">
-              {[t.debtDescription, position].filter(Boolean).join(' · ')} · <span style={{ color: due.color }}>{due.text}</span>
+              {position && <>{/^\d/.test(position) ? `Parcela ${position}` : position.charAt(0).toUpperCase() + position.slice(1)} · </>}
+              <span style={{ color: due.color }}>{due.text}</span>
             </div>
           </div>
           {canRemind && (

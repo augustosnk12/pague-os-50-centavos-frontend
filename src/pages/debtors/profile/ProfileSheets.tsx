@@ -5,7 +5,11 @@ import { PaidOnField } from '../../../components/shared/PaidOnField'
 import { getReliabilityOption } from '../../../constants/reliability'
 import { formatAddress } from '../../../lib/utils'
 import { fmtMoney, fmtPhone } from '../../../lib/format'
-import { debtLeft, openInstallments, type ProfileNumbers } from '../../../lib/debtorProfile'
+import { debtLeft, debtRecurrenceEnd, openInstallments, recurrenceEndLabel, type ProfileNumbers } from '../../../lib/debtorProfile'
+import { recurrenceEnd } from '../../../lib/newDebt'
+import { fmtBR } from '../../../lib/format'
+import { DateInput } from '../../../components/ui/DateInput'
+import { localToday } from '../../../lib/date'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
 
@@ -136,13 +140,14 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onE
 
 /* ---------- ⋯ of a debt ---------- */
 
-export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoffReceipt, onRecurrence, onEdit }: {
+export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoffReceipt, onRecurrence, onRecurrenceEnd, onEdit }: {
   debt: DebtWithInstallments | null
   debtorName: string
   onClose: () => void
   onPayoff: (d: DebtWithInstallments) => void
   onPayoffReceipt: (d: DebtWithInstallments) => void
   onRecurrence: (d: DebtWithInstallments, active: boolean) => void
+  onRecurrenceEnd: (d: DebtWithInstallments) => void
   onEdit: (d: DebtWithInstallments) => void
 }) {
   const [last, setLast] = useState(debt)
@@ -180,6 +185,10 @@ export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoff
         <Item key="rec" icon="refresh" title="Encerrar recorrência" sub="Não gera novas cobranças; as em aberto continuam" onClick={then(() => onRecurrence(d, false))} />
       ),
     )
+  }
+  if (monthly) {
+    const end = recurrenceEndLabel(d, localToday())
+    items.push(<Item key="end" icon="calendar" title="Alterar término" sub={end === 'sem fim' ? 'Hoje: sem fim' : end.charAt(0).toUpperCase() + end.slice(1)} onClick={then(() => onRecurrenceEnd(d))} />)
   }
   items.push(<Item key="edit" icon="edit" title="Editar dívida" onClick={then(() => onEdit(d))} />)
   return (
@@ -242,6 +251,127 @@ export function PayoffSheet({ debt, debtorName, today, busy, onClose, onConfirm 
           </div>
         </div>
         {debt && <PaidOnField key={debt.id} today={today} onChange={setDate} />}
+      </div>
+    </Modal>
+  )
+}
+
+/* ---------- Alterar término (recurring) ---------- */
+
+type EndMode = 'never' | 'count' | 'date'
+const END_MODES: { id: EndMode; label: string }[] = [
+  { id: 'never', label: 'Sem fim' },
+  { id: 'count', label: 'Após' },
+  { id: 'date', label: 'Em uma data' },
+]
+
+/**
+ * When a monthly debt ends — sooner, later or never. Charges that already
+ * exist stay: the end cannot come before them (the API refuses it too).
+ */
+export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
+  debt: DebtWithInstallments | null
+  busy: boolean
+  onClose: () => void
+  onSave: (d: DebtWithInstallments, end: { occurrences: number | null; endsAt: string | null }) => void
+}) {
+  const [last, setLast] = useState(debt)
+  const [mode, setMode] = useState<EndMode>('never')
+  const [months, setMonths] = useState('')
+  const [until, setUntil] = useState('')
+  if (debt && debt !== last) {
+    setLast(debt)
+    setMode(debt.recurrenceOccurrences ? 'count' : debt.recurrenceEndsAt ? 'date' : 'never')
+    setMonths(debt.recurrenceOccurrences ? String(debt.recurrenceOccurrences) : '')
+    setUntil(debt.recurrenceEndsAt ? debt.recurrenceEndsAt.slice(0, 10) : '')
+  }
+  const d = debt ?? last
+  if (!d) return null
+
+  const dues = d.installments.map((i) => i.dueDate.slice(0, 10))
+  const created = dues.length
+  const lastDue = [...dues].sort().pop() ?? ''
+  const n = parseInt(months, 10) || 0
+  const now = debtRecurrenceEnd(d)
+  const next = recurrenceEnd(dues, d.recurrenceDay, { occurrences: mode === 'count' ? n : null, endsAt: mode === 'date' && until ? until : null })
+
+  const problem =
+    mode === 'count' && n < created
+      ? `Já existem ${created} ${created === 1 ? 'cobrança' : 'cobranças'}: o mínimo é ${created}`
+      : mode === 'date' && !until
+        ? 'Escolha a data da última cobrança'
+        : mode === 'date' && until < lastDue
+          ? `Já existe cobrança em ${fmtBR(lastDue)}: escolha essa data ou depois`
+          : null
+  const result =
+    mode === 'never' ? 'Continua todo mês, sem data para terminar' : next.last ? `Última cobrança em ${fmtBR(next.last)}${next.remaining ? ` · faltam ${next.remaining}` : ''}` : ''
+  const unchanged =
+    (mode === 'never' && !d.recurrenceOccurrences && !d.recurrenceEndsAt) ||
+    (mode === 'count' && n === d.recurrenceOccurrences) ||
+    (mode === 'date' && until === (d.recurrenceEndsAt ?? '').slice(0, 10))
+
+  return (
+    <Modal
+      open={!!debt}
+      onClose={onClose}
+      title="Alterar término"
+      footer={
+        <button
+          type="button"
+          className="lt-btn-lg"
+          data-variant="primary"
+          disabled={busy || !!problem || unchanged}
+          onClick={() => onSave(d, { occurrences: mode === 'count' ? n : null, endsAt: mode === 'date' ? `${until}T00:00:00.000Z` : null })}
+        >
+          <Icon name="check" size={17} /> {busy ? 'Salvando…' : 'Salvar término'}
+        </button>
+      }
+    >
+      <div className="lt-pay-body">
+        <p className="lt-end-now">
+          <b>{d.description || 'Dívida'}</b> · {created} {created === 1 ? 'cobrança criada' : 'cobranças criadas'} · hoje {now.last ? (now.remaining ? `termina em ${fmtBR(now.last)}` : `a última é ${fmtBR(now.last)}`) : 'sem fim'}
+        </p>
+        <div>
+          <div className="lt-flabel" id="end-mode-l">Termina</div>
+          <div className="lt-seg" role="group" aria-labelledby="end-mode-l">
+            {END_MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={mode === m.id}
+                onClick={() => {
+                  setMode(m.id)
+                  // Start from the current end (or what already exists), not from an empty field.
+                  if (m.id === 'date' && !until) setUntil(now.last ?? lastDue)
+                  if (m.id === 'count' && !months) setMonths(String(Math.max(created, now.last ? created + (now.remaining ?? 0) : created)))
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {mode === 'count' && (
+            <label className="lt-end-months">
+              <input
+                className="lt-end-input"
+                value={months}
+                onChange={(e) => setMonths(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                inputMode="numeric"
+                aria-label="Número de cobranças no total"
+                autoFocus
+              />
+              <span>cobranças no total</span>
+            </label>
+          )}
+          {mode === 'date' && (
+            <div style={{ marginTop: 10 }}>
+              <DateInput label="Última cobrança em" value={until} onChange={setUntil} min={lastDue} />
+            </div>
+          )}
+        </div>
+        <div className="lt-end-result" role="status" data-problem={problem ? true : undefined}>
+          {problem ?? result}
+        </div>
       </div>
     </Modal>
   )

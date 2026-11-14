@@ -21,7 +21,7 @@ import { BatchSheet } from '../../components/shared/BatchSheet'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
-import { useArchiveDebtor, usePaymentBatch, useSetRecurrence, useUndoBatch } from '../../hooks/debtors/useDebtorActions'
+import { useArchiveDebtor, usePaymentBatch, useSetRecurrence, useSetRecurrenceEnd, useUndoBatch } from '../../hooks/debtors/useDebtorActions'
 import { useDebtsByDebtor, type DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
 import { useUpdateDebt } from '../../hooks/debts/useUpdateDebt'
 import { useDeleteDebt } from '../../hooks/debts/useDeleteDebt'
@@ -39,7 +39,7 @@ import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import type { ReceiptRequest } from '../../lib/receipt'
 import type { DebtType } from '../../types/debt'
 import { DebtSection } from './profile/DebtSection'
-import { DebtActionsSheet, DebtorActionsSheet, DebtorInfoSheet, PayoffSheet } from './profile/ProfileSheets'
+import { DebtActionsSheet, DebtorActionsSheet, DebtorInfoSheet, PayoffSheet, RecurrenceEndSheet } from './profile/ProfileSheets'
 
 type Tab = 'open' | 'paid' | 'pays'
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
@@ -77,6 +77,7 @@ function DebtorProfile({ id }: { id: string }) {
   const batchM = usePaymentBatch()
   const undoM = useUndoBatch()
   const recurrenceM = useSetRecurrence()
+  const recurrenceEndM = useSetRecurrenceEnd()
 
   const [tab, setTab] = useState<Tab>('open')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -93,6 +94,7 @@ function DebtorProfile({ id }: { id: string }) {
   const [remindId, setRemindId] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
+  const [endFor, setEndFor] = useState<DebtWithInstallments | null>(null)
 
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
@@ -250,6 +252,18 @@ function DebtorProfile({ id }: { id: string }) {
     recurrenceM.mutate(
       { debtId: d.id, active },
       { onSuccess: () => showToast(active ? 'Recorrência retomada' : 'Recorrência encerrada'), onError: fail('Não foi possível alterar a recorrência.') },
+    )
+
+  const saveRecurrenceEnd = (d: DebtWithInstallments, end: { occurrences: number | null; endsAt: string | null }) =>
+    recurrenceEndM.mutate(
+      { debtId: d.id, ...end, today },
+      {
+        onSuccess: () => {
+          setEndFor(null)
+          showToast(end.occurrences || end.endsAt ? 'Término alterado' : 'Agora sem data para terminar', { icon: 'check' })
+        },
+        onError: fail('Não foi possível alterar o término.'),
+      },
     )
 
   const summary =
@@ -488,8 +502,10 @@ function DebtorProfile({ id }: { id: string }) {
         onPayoff={setPayoff}
         onPayoffReceipt={(d) => setReceipt({ debtorId: debtor.id, payoffDebtId: d.id })}
         onRecurrence={setRecurrence}
+        onRecurrenceEnd={setEndFor}
         onEdit={(d) => setDebtForm({ open: true, editing: d })}
       />
+      <RecurrenceEndSheet debt={endFor} busy={recurrenceEndM.isPending} onClose={() => setEndFor(null)} onSave={saveRecurrenceEnd} />
       <PayoffSheet debt={payoff} debtorName={debtor.name} today={today} busy={batchM.isPending} onClose={() => setPayoff(null)} onConfirm={confirmPayoff} />
 
       <DebtorForm

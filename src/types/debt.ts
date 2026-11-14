@@ -11,4 +11,7 @@ export interface Debt {
   recurrence?: 'MONTHLY' | null
   recurrenceDay?: number | null
   recurrenceActive?: boolean
+  /** How it ends (API B6): after N charges in total, or on a date; both null = no end. */
+  recurrenceOccurrences?: number | null
+  recurrenceEndsAt?: string | null
 }

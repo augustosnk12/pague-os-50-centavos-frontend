@@ -70,7 +70,9 @@ describe('PaymentSheet (S2)', () => {
   it('header gives the context: who, what and how late (improvement 6)', async () => {
     renderSheet(target())
     const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
-    expect(dialog).toHaveTextContent('Notebook · 2/12 · atrasada há 3 dias')
+    // The description gets its own line (it wraps); the position and the status are never cut off.
+    expect(dialog.querySelector('.lt-pay-desc')).toHaveTextContent('Notebook')
+    expect(dialog.querySelector('.lt-pay-sub')).toHaveTextContent('Parcela 2/12 · atrasada há 3 dias')
     // The 3 numbers Parcela / Já pago / Restante are gone: the amount already holds what is left.
     expect(within(dialog).queryByText('Restante')).toBeNull()
     expect(within(dialog).getByRole('textbox', { name: 'Valor recebido' })).toHaveValue('250,00')

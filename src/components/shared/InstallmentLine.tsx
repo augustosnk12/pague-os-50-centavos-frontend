@@ -50,7 +50,6 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
   const lastPayment = inst.payments?.[inst.payments.length - 1]
   const tag = installmentTag(inst, today, { showDate })
   const position = installmentPosition(inst.number, inst.debt?.installmentCount, inst.debt?.recurrence)
-  const what = [inst.debt?.description, position].filter(Boolean).join(' · ')
   const value = paid ? Number(inst.amount) : left / 100
   const spokenPosition = position.startsWith('↻') ? 'mensal' : position.includes('/') ? `parcela ${position.replace('/', ' de ')}` : position
 
@@ -130,7 +129,15 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
         <div className="lt-lrow-main" aria-hidden="true">
           <div className="lt-lrow-name">{inDebt ? (position.startsWith('↻') ? `Mensalidade · ${fmtList(inst.dueDate)}` : `Parcela ${position.replace('parcela ', '')}`) : name}</div>
           <Detail>
-            <div className="lt-lrow-sub">{inDebt ? fmtList(inst.dueDate) : what}</div>
+            {inDebt ? (
+              <div className="lt-lrow-sub">{fmtList(inst.dueDate)}</div>
+            ) : (
+              // A long description shrinks ("Empréstimo de ag…"); the position stays visible.
+              <div className="lt-lrow-sub lt-lrow-what">
+                {inst.debt?.description && <span className="lt-lrow-desc">{inst.debt.description}</span>}{' '}
+                {position && <span className="lt-lrow-pos">{inst.debt?.description ? `· ${position}` : position}</span>}
+              </div>
+            )}
           </Detail>
         </div>
         <div className="lt-lrow-end" aria-hidden="true">

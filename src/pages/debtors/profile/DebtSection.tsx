@@ -5,7 +5,7 @@ import { InstallmentLine } from '../../../components/shared/InstallmentLine'
 import { Detail } from '../../../contexts/PreferencesContext'
 import { DEBT_TYPE_META } from '../../../lib/utils'
 import { fmtMoney } from '../../../lib/format'
-import { debtLate, debtLeft, enrich, leftOf, openInstallments } from '../../../lib/debtorProfile'
+import { debtLate, debtLeft, enrich, leftOf, openInstallments, recurrenceEndLabel } from '../../../lib/debtorProfile'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
 import type { InstallmentEnriched } from '../../../types/installment'
@@ -52,7 +52,7 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           <Detail>
             <div className="lt-dsec-s" data-monthly={monthly || undefined}>
               {monthly
-                ? `↻ Mensal${debt.recurrenceDay ? ` · dia ${debt.recurrenceDay}` : ''}${debt.recurrenceActive === false ? ' · encerrada' : ''}`
+                ? `↻ Mensal${debt.recurrenceDay ? ` · dia ${debt.recurrenceDay}` : ''} · ${debt.recurrenceActive === false ? 'encerrada' : recurrenceEndLabel(debt, today)}`
                 : `${DEBT_TYPE_META[debt.type]?.label ?? ''} · ${paidN}/${total} pagas`}
             </div>
           </Detail>

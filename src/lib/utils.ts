@@ -94,6 +94,11 @@ export const STATUS_META: Record<InstallmentStatus, { label: string; color: stri
   OVERDUE: { label: 'Atrasado', color: 'var(--overdue)', weak: 'var(--overdue-weak)', icon: 'alert' },
 }
 
+/**
+ * Installments as the API creates them (create-debt.use-case): each one is the
+ * total / n rounded half-up to the cent, installment #1 takes the difference
+ * (it can be a cent less), and days 29–31 fall on the last day of shorter months.
+ */
 export function genInstallments(
   total: number,
   count: number,
@@ -101,14 +106,17 @@ export function genInstallments(
 ): { number: number; amount: string; dueDate: string }[] {
   const t = Math.round(total * 100)
   const n = Math.max(1, Math.floor(count))
-  const base = Math.floor(t / n)
+  const base = Math.round(t / n)
   const remainder = t - base * n
   const first = new Date(firstDueISO)
   if (isNaN(first.getTime())) return []
   const out = []
   for (let i = 0; i < n; i++) {
     const cents = base + (i === 0 ? remainder : 0)
-    const due = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + i, first.getUTCDate()))
+    const y = first.getUTCFullYear()
+    const m = first.getUTCMonth() + i
+    const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+    const due = new Date(Date.UTC(y, m, Math.min(first.getUTCDate(), last)))
     out.push({ number: i + 1, amount: (cents / 100).toFixed(2), dueDate: due.toISOString() })
   }
   return out
@@ -129,6 +137,13 @@ const API_ERROR_MAP: Record<string, string> = {
   'Invalid token type': 'Token inválido.',
   'Token expired': 'Token expirado.',
   'Debtor not found': 'Devedor não encontrado.',
+  'There are already more charges than that': 'Já existem mais cobranças do que isso.',
+  'There is already a charge after that date': 'Já existe cobrança depois dessa data.',
+  'Debtor is archived': 'Este devedor está arquivado. Reative-o para criar dívidas.',
+  'Recurring debts must be CASH or PIX': 'Só Dinheiro e Pix podem repetir todo mês.',
+  'The end date must be on or after the first due date': 'A última cobrança deve ser depois do primeiro vencimento.',
+  'Number of months must be at least 1': 'Informe pelo menos 1 mês.',
+  'Choose either an end date or a number of months': 'Escolha uma data final ou um número de meses.',
   'Debtor with this name already exists': 'Já existe um devedor com este nome.',
   'Debtor with this email already exists': 'Já existe um devedor com este e-mail.',
   'Name already in use by another debtor': 'Este nome já está em uso por outro devedor.',

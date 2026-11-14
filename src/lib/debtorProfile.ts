@@ -4,6 +4,8 @@
  * Status always derived from dates and amounts.
  */
 import { daysUntil } from './installmentTag'
+import { fmtBR } from './format'
+import { recurrenceEnd } from './newDebt'
 import type { DebtWithInstallments } from '../hooks/debts/useDebtsByDebtor'
 import type { Installment, InstallmentEnriched } from '../types/installment'
 import type { Debtor } from '../types/debtor'
@@ -103,4 +105,20 @@ export function enrich(i: Installment, d: DebtWithInstallments, debtor: Debtor):
       debtor: { id: debtor.id, name: debtor.name, avatarHue: debtor.avatarHue, avatarEmoji: debtor.avatarEmoji },
     },
   }
+}
+
+/** When a monthly debt ends: its end from the charges that exist and the end chosen. */
+export function debtRecurrenceEnd(d: DebtWithInstallments) {
+  return recurrenceEnd(d.installments.map((i) => i.dueDate.slice(0, 10)), d.recurrenceDay, {
+    occurrences: d.recurrenceOccurrences,
+    endsAt: d.recurrenceEndsAt,
+  })
+}
+
+/** "sem fim", "até 10/04/2027", "última em 10/12/2026", "terminou em 10/10/2026". */
+export function recurrenceEndLabel(d: DebtWithInstallments, today: string): string {
+  const { last, remaining } = debtRecurrenceEnd(d)
+  if (!last) return 'sem fim'
+  if (remaining) return `até ${fmtBR(last)}`
+  return last < today ? `terminou em ${fmtBR(last)}` : `última em ${fmtBR(last)}`
 }

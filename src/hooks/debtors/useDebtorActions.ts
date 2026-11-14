@@ -46,3 +46,13 @@ export function useSetRecurrence() {
     onSuccess: refresh,
   })
 }
+
+/** Alterar término da recorrência. */
+export function useSetRecurrenceEnd() {
+  const refresh = useRefresh()
+  return useMutation({
+    mutationFn: ({ debtId, ...body }: { debtId: string; occurrences: number | null; endsAt: string | null; today: string }) =>
+      debtsApi.setRecurrenceEnd(debtId, body).then((r) => r.data),
+    onSuccess: refresh,
+  })
+}

@@ -32,6 +32,8 @@ interface DebtorFormProps {
   onSave: (data: DebtorFormPayload) => void
   onDelete?: () => void
   editing?: Debtor | null
+  /** Name typed in a search ("Cadastrar 'nome'"), for a new debtor. */
+  initialName?: string
   loading?: boolean
 }
 
@@ -80,7 +82,7 @@ const UF_OPTIONS = [
   ...['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'].map((uf) => ({ value: uf, label: uf })),
 ]
 
-export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }: DebtorFormProps) {
+export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading, initialName }: DebtorFormProps) {
   const [tab, setTab] = useState<'general' | 'address'>('general')
   const [cepLoading, setCepLoading] = useState(false)
   const lastLookedUp = useRef('')
@@ -101,7 +103,7 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
     if (!open) return
     const a = editing?.address
     reset({
-      name: editing?.name ?? '',
+      name: editing?.name ?? initialName ?? '',
       email: editing?.email ?? '',
       phone: editing?.phone ?? '',
       notes: editing?.notes ?? '',
@@ -118,7 +120,7 @@ export function DebtorForm({ open, onClose, onSave, onDelete, editing, loading }
     })
     setTab('general')
     lastLookedUp.current = a?.zip ?? ''
-  }, [open, editing, reset])
+  }, [open, editing, reset]) // eslint-disable-line react-hooks/exhaustive-deps -- initialName is read when it opens
 
   // Auto-fill from ViaCEP once the CEP has 8 digits (debounced). Fields stay editable.
   const zip = watch('zip')

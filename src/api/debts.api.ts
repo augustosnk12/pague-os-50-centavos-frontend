@@ -9,6 +9,10 @@ export interface CreateDebtPayload {
   numberOfInstallments?: number
   firstDueDate: string
   description?: string | null
+  /** Monthly recurrence (API B6, CASH or PIX): totalAmount is then the amount per month. */
+  recurrence?: { type: 'MONTHLY'; occurrences: number | null; endsAt: string | null } | null
+  /** The user's day (YYYY-MM-DD), so the first monthly charge is generated on the right day. */
+  today?: string
 }
 
 export interface UpdateDebtPayload {
@@ -36,4 +40,8 @@ export const debtsApi = {
 
   /** Encerrar / retomar a recorrência (API B6). */
   setRecurrence: (id: string, active: boolean) => api.patch<Debt>(`/debts/${id}/recurrence`, { active }),
+
+  /** Alterar término: after N charges in total, until a date, or never (both null). */
+  setRecurrenceEnd: (id: string, body: { occurrences: number | null; endsAt: string | null; today: string }) =>
+    api.patch<Debt>(`/debts/${id}/recurrence/end`, body),
 }

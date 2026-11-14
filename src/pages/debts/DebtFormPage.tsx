@@ -3,237 +3,350 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebt } from '../../hooks/debts/useCreateDebt'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
+import { useSettings } from '../../hooks/settings/useSettings'
 import { useToast } from '../../contexts/ToastContext'
+import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 import { Input } from '../../components/ui/Input'
 import { DateInput } from '../../components/ui/DateInput'
-import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
-import { IconButton } from '../../components/ui/IconButton'
-import { DebtorForm } from '../../components/shared/DebtorForm'
-import { genInstallments, fmtDate, money, translateApiError } from '../../lib/utils'
+import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
+import { DebtorPicker } from '../../components/shared/DebtorPicker'
+import { rememberDebtor } from '../../lib/recentDebtors'
+import { genInstallments, translateApiError } from '../../lib/utils'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
 import { getApiError } from '../../lib/api'
+import { localToday } from '../../lib/date'
+import { fmtList, fmtMoney } from '../../lib/format'
+import { defaultDue, isInstallmentType, recurringPreview, type RecurrenceEnd } from '../../lib/newDebt'
 import type { DebtType } from '../../types/debt'
 
-const TYPE_OPTIONS: { type: DebtType; label: string; icon: string }[] = [
-  { type: 'CASH', label: 'Dinheiro', icon: 'banknote' },
-  { type: 'PIX', label: 'Pix', icon: 'zap' },
-  { type: 'CREDIT_CARD', label: 'Cartão de crédito', icon: 'card' },
-  { type: 'PIX_INSTALLMENT', label: 'Pix parcelado', icon: 'layers' },
+const TYPES: { type: DebtType; label: string; sub: string; icon: string }[] = [
+  { type: 'CASH', label: 'Dinheiro', sub: 'À vista', icon: 'banknote' },
+  { type: 'PIX', label: 'Pix', sub: 'À vista', icon: 'zap' },
+  { type: 'CREDIT_CARD', label: 'Cartão de crédito', sub: 'Parcelado', icon: 'card' },
+  { type: 'PIX_INSTALLMENT', label: 'Pix parcelado', sub: 'Parcelado', icon: 'layers' },
 ]
+const ENDS: { id: RecurrenceEnd; label: string }[] = [
+  { id: 'never', label: 'Sem fim' },
+  { id: 'count', label: 'Após' },
+  { id: 'date', label: 'Em uma data' },
+]
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
 
+/** Which field is missing (its id, to focus it) and how to say it. */
+type Missing = { field: string; text: string } | null
+
+/**
+ * Nova dívida (S8, improvements 16, 18, 23 and 39): debtor picker with search,
+ * À vista / Parcelado on each type, first due date from the type's default
+ * day, "Repetir todo mês" for Dinheiro and Pix, a preview, and the footer says
+ * what is still missing instead of a disabled button with no reason.
+ */
 export function DebtFormPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const presetDebtorId = searchParams.get('debtorId') ?? ''
   const { showToast } = useToast()
+  const { detail } = usePreferences()
+  const today = localToday()
 
   const { data: debtors = [] } = useDebtors()
+  const { data: settings } = useSettings()
   const createDebt = useCreateDebt()
   const createDebtor = useCreateDebtor()
 
-  const [debtorId, setDebtorId] = useState(presetDebtorId || (debtors[0]?.id ?? ''))
+  const [debtorId, setDebtorId] = useState(searchParams.get('debtorId') ?? '')
   const [type, setType] = useState<DebtType>('PIX')
-  const [amountCents, setAmountCents] = useState('')
+  const [cents, setCents] = useState('')
   const [count, setCount] = useState('')
-  const [firstDue, setFirstDue] = useState(() => {
-    const t = new Date()
-    const dd = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 1))
-    return dd.toISOString().slice(0, 10)
-  })
-  const [description, setDescription] = useState('')
+  const [dueEdited, setDueEdited] = useState<string | null>(null)
+  const [desc, setDesc] = useState('')
+  const [descOpen, setDescOpen] = useState(false)
+  const [rec, setRec] = useState(false)
+  const [recEnd, setRecEnd] = useState<RecurrenceEnd>('never')
+  const [recN, setRecN] = useState('')
+  const [recUntil, setRecUntil] = useState('')
+  const [tried, setTried] = useState(false)
+  const [newDebtor, setNewDebtor] = useState<string | null>(null)
   const [err, setErr] = useState('')
-  const [debtorFormOpen, setDebtorFormOpen] = useState(false)
 
-  const isInstallment = type === 'PIX_INSTALLMENT' || type === 'CREDIT_CARD'
-  const effCount = isInstallment ? Math.max(1, parseInt(count) || 1) : 1
-  const numAmount = amountCents ? parseInt(amountCents, 10) / 100 : 0
-  const preview = numAmount > 0 && firstDue ? genInstallments(numAmount, effCount, firstDue + 'T00:00:00.000Z') : []
+  const debtor = debtors.find((d) => d.id === debtorId) ?? null
+  const inst = isInstallmentType(type)
+  const isRec = rec && !inst
+  // The date follows the type's default until the user changes it (improvement 23).
+  const due = dueEdited ?? defaultDue(type, settings, today)
+  const amount = parseInt(cents || '0', 10)
+  const n = inst ? Math.max(1, parseInt(count, 10) || 1) : 1
+  const months = parseInt(recN, 10) || 0
+  const preview = amount > 0 && due && !isRec ? genInstallments(amount / 100, n, `${due}T00:00:00.000Z`) : []
+  const recDates = isRec && due ? recurringPreview(due, recEnd, months, recUntil) : []
+  const dueDay = due ? Number(due.slice(8, 10)) : 0
+  const defaultDay = type === 'CREDIT_CARD' ? settings?.defaultCardDueDay : type === 'PIX_INSTALLMENT' ? settings?.defaultPixInstallmentDueDay : null
 
-  const handleAmountChange = (v: string) => {
-    setAmountCents(parseCurrencyDigits(v))
-    setErr('')
+  const missing: Missing = !debtor
+    ? { field: 'nd-debtor', text: 'Escolha para quem é a dívida' }
+    : !(amount > 0)
+      ? { field: 'nd-amount', text: isRec ? 'Informe o valor por mês' : 'Informe o valor' }
+      : isRec && recEnd === 'count' && !(months > 0)
+        ? { field: 'nd-recn', text: 'Informe por quantos meses' }
+        : isRec && recEnd === 'date' && !(recUntil && recUntil >= due)
+          ? { field: 'nd-recu', text: recUntil ? 'A última cobrança deve ser depois do primeiro vencimento' : 'Informe a data da última cobrança' }
+          : !due
+            ? { field: 'nd-due', text: 'Informe o vencimento' }
+            : null
+
+  const focusField = (field: string) => {
+    const box = document.getElementById(field)
+    const el = box?.matches('input, button') ? box : box?.querySelector<HTMLElement>('input, button')
+    el?.focus()
+    box?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }
 
-  const selectedDebtor = debtors.find((d) => d.id === debtorId)
+  const back = () => {
+    // Opened directly (no history in the app): go to the Painel.
+    if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1)
+    else navigate('/dashboard')
+  }
 
-  const handleSubmit = () => {
+  const submit = () => {
     setErr('')
-    if (!debtorId) return setErr('Selecione um devedor.')
-    if (!(numAmount > 0)) return setErr('Informe um valor válido.')
-    if (!firstDue) return setErr('Informe o primeiro vencimento.')
+    if (missing) {
+      setTried(true)
+      focusField(missing.field)
+      return
+    }
+    if (createDebt.isPending || !debtor) return
     createDebt.mutate(
       {
-        debtorId,
+        debtorId: debtor.id,
         type,
-        totalAmount: numAmount.toFixed(2),
-        numberOfInstallments: effCount,
-        firstDueDate: firstDue + 'T00:00:00.000Z',
-        description: description.trim() || null,
+        totalAmount: (amount / 100).toFixed(2),
+        numberOfInstallments: n,
+        firstDueDate: `${due}T00:00:00.000Z`,
+        description: desc.trim() || null,
+        ...(isRec
+          ? {
+              recurrence: {
+                type: 'MONTHLY' as const,
+                occurrences: recEnd === 'count' ? months : null,
+                endsAt: recEnd === 'date' ? `${recUntil}T00:00:00.000Z` : null,
+              },
+              today,
+            }
+          : {}),
       },
       {
         onSuccess: (data) => {
-          showToast(`Dívida criada · ${data.installments.length}× parcela${data.installments.length > 1 ? 's' : ''}`, { status: 'PENDING', icon: 'check' })
-          navigate(`/debtors/${debtorId}`)
+          rememberDebtor(debtor.id)
+          showToast(
+            isRec ? `Dívida recorrente criada · ${firstName(debtor.name)}` : `Dívida criada · ${data.installments.length} ${data.installments.length === 1 ? 'parcela' : 'parcelas'}`,
+            { status: 'PENDING', icon: 'check' },
+          )
+          // The profile opens with the new debt expanded and in view.
+          navigate(`/debtors/${debtor.id}?divida=${data.debt.id}`, { replace: true })
         },
-        onError: (e: unknown) => {
-          const msg = getApiError(e)
-          setErr(translateApiError(msg, 'Erro ao criar dívida.'))
-        },
+        onError: (e: unknown) => setErr(translateApiError(getApiError(e), 'Erro ao criar dívida.')),
       },
     )
   }
 
-  const handleCreateDebtor = (data: { name: string; email: string | null; phone: string | null; notes: string | null }) => {
+  const saveDebtor = (data: DebtorFormPayload) => {
     createDebtor.mutate(data, {
-      onSuccess: (newDebtor) => {
-        setDebtorId(newDebtor.id)
-        setDebtorFormOpen(false)
-        showToast('Devedor adicionado')
+      onSuccess: (d) => {
+        setDebtorId(d.id)
+        setNewDebtor(null)
+        showToast(`${firstName(d.name)} cadastrado`, { icon: 'check' })
       },
-      onError: (e: unknown) => {
-        const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-        showToast(translateApiError(msg, 'Erro ao criar devedor.'), { icon: 'alert' })
-      },
+      onError: (e: unknown) => showToast(translateApiError(getApiError(e), 'Erro ao cadastrar devedor.'), { icon: 'alert' }),
     })
   }
 
-  // Sync debtorId when debtors load
-  if (!debtorId && debtors.length > 0) {
-    setDebtorId(presetDebtorId || debtors[0].id)
-  }
-
+  const showMissing = tried && missing
   return (
-    <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
-        <IconButton name="arrowLeft" onClick={() => navigate(-1)} label="Voltar" style={{ marginLeft: -8, marginTop: 2 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Nova dívida</h1>
-          <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>Registre uma dívida e gere as parcelas.</p>
-        </div>
-      </div>
+    <main className="lt-page lt-nd">
+      <button type="button" className="lt-back" onClick={back}>
+        <Icon name="chevronLeft" size={17} /> Voltar
+      </button>
+      <h1 className="lt-nd-h">Nova dívida</h1>
+      <p className="lt-nd-sub">Registre quanto a pessoa deve e gere as parcelas.</p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {/* Debtor */}
-        <div>
-          <label htmlFor="debt-debtor" style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
-            Devedor <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <select
-                id="debt-debtor"
-                aria-required="true"
-                value={debtorId}
-                onChange={(e) => { setDebtorId(e.target.value); setErr('') }}
-                style={{ width: '100%', appearance: 'none', background: 'var(--surface)', border: '1.5px solid var(--border-input)', borderRadius: 'calc(var(--radius)*0.6)', padding: '14px 40px 14px 15px', fontSize: 16, fontWeight: 600, color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer' }}
-              >
-                {debtors.length === 0 && <option value="">Nenhum devedor</option>}
-                {debtors.map((dt) => <option key={dt.id} value={dt.id}>{dt.name}</option>)}
-              </select>
-              <Icon name="chevronDown" size={18} color="var(--text-faint)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            </div>
-            <Button variant="secondary" icon="plus" onClick={() => setDebtorFormOpen(true)}>Novo</Button>
+      <div className="lt-nd-form">
+        <DebtorPicker
+          debtors={debtors}
+          value={debtor}
+          onChange={(d) => setDebtorId(d.id)}
+          onCreate={(name) => setNewDebtor(name)}
+          invalid={!!showMissing && missing.field === 'nd-debtor'}
+        />
+
+        <div className="lt-field">
+          <div className="lt-flabel" id="nd-type-l">Tipo</div>
+          <div className="lt-nd-types" role="group" aria-labelledby="nd-type-l">
+            {TYPES.map((t) => (
+              <button key={t.type} type="button" className="lt-nd-type" aria-pressed={type === t.type} onClick={() => setType(t.type)}>
+                <Icon name={t.icon} size={19} />
+                <span>
+                  <span className="lt-nd-type-t">{t.label}</span>
+                  <span className="lt-nd-type-s">{t.sub}</span>
+                </span>
+              </button>
+            ))}
           </div>
-        </div>
-
-        {/* Type */}
-        <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>Tipo</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {TYPE_OPTIONS.map((t) => {
-              const active = type === t.type
-              return (
-                <button
-                  key={t.type}
-                  onClick={() => setType(t.type)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 9, padding: '13px 14px',
-                    borderRadius: 'calc(var(--radius)*0.6)', cursor: 'pointer', textAlign: 'left',
-                    background: active ? 'var(--primary-weak)' : 'var(--surface)',
-                    border: `1.5px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
-                    color: active ? 'var(--primary)' : 'var(--text)',
-                    fontWeight: 700, fontSize: 14, transition: 'all .15s',
-                  }}
-                >
-                  <Icon name={t.icon} size={18} /> {t.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Amount + installments */}
-        <div style={{ display: 'grid', gridTemplateColumns: isInstallment ? '1.4fr 1fr' : '1fr', gap: 12 }}>
-          <Input
-            label="Valor total"
-            value={formatCents(amountCents)}
-            onChange={handleAmountChange}
-            placeholder="0,00"
-            prefix="R$"
-            inputMode="numeric"
-            required
-            error={err && !(numAmount > 0) ? err : ''}
-          />
-          {isInstallment && (
-            <Input
-              label="Parcelas"
-              value={count}
-              onChange={(v) => setCount(v.replace(/\D/g, ''))}
-              inputMode="numeric"
-              maxLength={4}
-            />
+          {!inst && !isRec && (
+            <Detail>
+              <p className="lt-nd-tip">
+                <Icon name="bulb" size={15} /> {type === 'CASH' ? 'Dinheiro' : 'Pix'} é cobrança à vista (1 parcela). Para parcelar, use Cartão ou Pix parcelado.
+              </p>
+            </Detail>
           )}
         </div>
 
-        <DateInput label="Primeiro vencimento" value={firstDue} onChange={setFirstDue} required />
-        <Input label="Descrição" value={description} onChange={setDescription} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} />
+        <div className="lt-nd-row" data-two={inst || undefined}>
+          <div id="nd-amount">
+            <Input
+              label={isRec ? 'Valor por mês' : 'Valor total'}
+              value={formatCents(cents)}
+              onChange={(v) => setCents(parseCurrencyDigits(v))}
+              placeholder="0,00"
+              prefix="R$"
+              inputMode="numeric"
+              required
+              error={showMissing && missing.field === 'nd-amount' ? missing.text : ''}
+            />
+          </div>
+          {inst && (
+            <Input label="Parcelas" value={count} onChange={(v) => setCount(v.replace(/\D/g, '').slice(0, 3))} placeholder="1" inputMode="numeric" maxLength={3} />
+          )}
+        </div>
 
-        {/* Preview */}
-        {preview.length > 0 && (
-          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <Icon name="layers" size={16} color="var(--primary)" />Prévia das parcelas
+        {!inst && (
+          <div className="lt-field">
+            <button type="button" role="switch" aria-checked={isRec} className="lt-switch-row" onClick={() => setRec((v) => !v)}>
+              <Icon name="history" size={18} />
+              <span style={{ flex: 1, textAlign: 'left' }}>
+                <span className="lt-switch-t">Repetir todo mês</span>
+                <span className="lt-switch-s">Mensalidade, aluguel, assinatura dividida</span>
               </span>
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 700 }}>{preview.length}× de até {money(preview[0].amount)}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 220, overflowY: 'auto' }}>
-              {preview.slice(0, 12).map((p) => (
-                <div key={p.number} style={{ display: 'flex', alignItems: 'center', gap: 11, fontSize: 13.5 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 7, background: 'var(--surface)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>{p.number}</span>
-                  <span style={{ flex: 1, color: 'var(--text-muted)' }}>{fmtDate(p.dueDate)}</span>
-                  <span style={{ fontWeight: 800 }}>{money(p.amount)}</span>
+              <span className="lt-switch" aria-hidden="true"><span /></span>
+            </button>
+            {isRec && (
+              <div className="lt-nd-ends">
+                <div className="lt-flabel" id="nd-end-l">Termina</div>
+                <div className="lt-seg" role="group" aria-labelledby="nd-end-l">
+                  {ENDS.map((e) => (
+                    <button key={e.id} type="button" aria-pressed={recEnd === e.id} onClick={() => setRecEnd(e.id)}>{e.label}</button>
+                  ))}
                 </div>
-              ))}
-              {preview.length > 12 && (
-                <div style={{ fontSize: 12.5, color: 'var(--text-faint)', textAlign: 'center', paddingTop: 4 }}>+ {preview.length - 12} parcelas</div>
-              )}
-            </div>
+                {recEnd === 'count' && (
+                  <div id="nd-recn" className="lt-nd-months">
+                    <Input
+                      value={recN}
+                      onChange={(v) => setRecN(v.replace(/\D/g, '').slice(0, 3))}
+                      placeholder="Qtd."
+                      inputMode="numeric"
+                      maxLength={3}
+                      error={showMissing && missing.field === 'nd-recn' ? missing.text : ''}
+                    />
+                    <span className="lt-nd-months-k">meses</span>
+                  </div>
+                )}
+                {recEnd === 'date' && (
+                  <div id="nd-recu" className="lt-nd-until">
+                    <DateInput label="Última cobrança em" value={recUntil} onChange={setRecUntil} min={due} />
+                    {showMissing && missing.field === 'nd-recu' && <div className="lt-field-error">{missing.text}</div>}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {err && numAmount > 0 && (
-          <div style={{ fontSize: 13, color: 'var(--overdue)', fontWeight: 600 }}>{err}</div>
+        <div className="lt-field" id="nd-due">
+          <DateInput label={inst || isRec ? 'Primeiro vencimento' : 'Vencimento'} value={due} onChange={(v) => setDueEdited(v)} required />
+          {isRec && dueDay > 0 && (
+            <div className="lt-nd-hint">Depois, todo dia {dueDay}{dueDay > 28 ? ' (ou o último dia, nos meses mais curtos)' : ''}</div>
+          )}
+          {inst && (
+            <Detail>
+              <div className="lt-nd-hint">
+                {defaultDay
+                  ? `Padrão ${type === 'CREDIT_CARD' ? 'do cartão' : 'do Pix parcelado'}: dia ${defaultDay}${dueEdited ? ' · data alterada' : ''}`
+                  : 'Sem dia padrão para este tipo'}
+              </div>
+            </Detail>
+          )}
+        </div>
+
+        <div className="lt-field">
+          {detail === 'lean' && !descOpen && !desc ? (
+            <button type="button" className="lt-more-link" style={{ padding: 0 }} onClick={() => setDescOpen(true)}>
+              <Icon name="plus" size={14} /> Descrição
+            </button>
+          ) : (
+            <Input label="Descrição" value={desc} onChange={setDesc} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} autoFocus={descOpen && !desc} />
+          )}
+        </div>
+
+        {isRec && amount > 0 && (
+          <Detail>
+            <section className="lt-nd-pv" aria-label="Prévia das cobranças">
+              <div className="lt-nd-pv-h">
+                <span><Icon name="history" size={16} /> {fmtMoney(amount / 100)} todo dia {dueDay}</span>
+              </div>
+              {recDates.map((d) => (
+                <div key={d} className="lt-nd-pv-row">
+                  <span className="lt-nd-pv-d">{fmtList(d)}</span>
+                  <b>{fmtMoney(amount / 100)}</b>
+                </div>
+              ))}
+              <div className="lt-nd-pv-end">
+                ⋯ {recEnd === 'never' ? 'sem data para terminar' : recEnd === 'count' ? `${months} ${months === 1 ? 'cobrança' : 'cobranças'} no total` : recUntil ? `última em ${fmtList(recUntil)}` : 'escolha a data final'}
+              </div>
+            </section>
+          </Detail>
         )}
 
-        <div style={{ position: 'sticky', bottom: 16, display: 'flex', gap: 10, marginTop: 4 }}>
-          <Button variant="secondary" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button full size="lg" icon="check" onClick={handleSubmit} disabled={createDebt.isPending}>
-            {createDebt.isPending
-              ? 'Criando…'
-              : `Criar dívida${selectedDebtor ? ` p/ ${selectedDebtor.name.split(' ')[0]}` : ''}`}
-          </Button>
+        {preview.length > 0 && (
+          <Detail>
+            <section className="lt-nd-pv" aria-label="Prévia das parcelas">
+              <div className="lt-nd-pv-h">
+                <span><Icon name="layers" size={16} /> Prévia das parcelas</span>
+                <span className="lt-nd-pv-k">{preview.length}× de até {fmtMoney(Math.max(...preview.map((p) => Number(p.amount))))}</span>
+              </div>
+              <div className="lt-nd-pv-list">
+                {preview.slice(0, 12).map((p) => (
+                  <div key={p.number} className="lt-nd-pv-row">
+                    <span className="lt-nd-pv-n">{p.number}</span>
+                    <span className="lt-nd-pv-d">{fmtList(p.dueDate)}</span>
+                    <b>{fmtMoney(p.amount)}</b>
+                  </div>
+                ))}
+                {preview.length > 12 && <div className="lt-nd-pv-end">+ {preview.length - 12} parcelas</div>}
+              </div>
+            </section>
+          </Detail>
+        )}
+
+        {err && <div className="lt-field-error" role="alert">{err}</div>}
+
+        <div className="lt-nd-foot">
+          <div className="lt-nd-need" role="status">
+            {missing && (
+              <>
+                <Icon name="info" size={14} /> {missing.text}
+              </>
+            )}
+          </div>
+          <div className="lt-nd-btns">
+            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back}>Cancelar</button>
+            <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || undefined} onClick={submit}>
+              <Icon name="check" size={17} />
+              {createDebt.isPending ? 'Criando…' : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}
+            </button>
+          </div>
         </div>
       </div>
 
-      <DebtorForm
-        open={debtorFormOpen}
-        onClose={() => setDebtorFormOpen(false)}
-        onSave={handleCreateDebtor}
-        loading={createDebtor.isPending}
-      />
+      <DebtorForm open={newDebtor !== null} initialName={newDebtor ?? ''} onClose={() => setNewDebtor(null)} onSave={saveDebtor} loading={createDebtor.isPending} />
     </main>
   )
 }

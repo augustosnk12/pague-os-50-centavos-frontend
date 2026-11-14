@@ -292,7 +292,8 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
   await page.goto('/dashboard')
   await page.getByRole('button', { name: /^Davi Desfaz, Bicicleta/ }).click()
   const sheet = page.getByRole('dialog', { name: 'Registrar pagamento de Davi Desfaz' })
-  await expect(sheet).toContainText('Bicicleta · 1/3 · atrasada há 2 dias')
+  await expect(sheet).toContainText('Bicicleta')
+  await expect(sheet).toContainText('Parcela 1/3 · atrasada há 2 dias')
   // S5: the button opens the reminder sheet (covered by its own scenario).
   await expect(sheet.getByRole('button', { name: 'Lembrar Davi no WhatsApp' })).toBeVisible()
   await a11y('payment-sheet-overdue')
@@ -664,5 +665,77 @@ test.describe('Receber várias de uma vez (S7)', () => {
     await expect.poll(paid).toBe(210)
     await page.getByRole('button', { name: 'Desfazer' }).click()
     await expect.poll(paid).toBe(0)
+  })
+})
+
+test.describe('Nova dívida (S8)', () => {
+  test('search the debtor, monthly Pix ending after 3 months, opens the profile on it (real API)', async ({ page, session, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Conceição Mensal' })
+    await page.goto('/debts/new')
+    await expect(page.locator('.lt-nd-foot').getByRole('status')).toContainText('Escolha para quem é a dívida')
+    await a11y('new-debt-empty')
+
+    await page.getByRole('button', { name: 'Buscar devedor', exact: true }).click()
+    const sheet = page.getByRole('dialog', { name: 'Para quem é a dívida?' })
+    await sheet.getByRole('textbox', { name: 'Buscar devedor pelo nome' }).fill('conceicao')
+    await sheet.getByRole('button', { name: /Conceição Mensal/ }).click()
+    await expect(page.getByRole('button', { name: 'Trocar devedor (Conceição Mensal)' })).toContainText('Sem saldo em aberto')
+
+    await page.getByRole('switch', { name: /Repetir todo mês/ }).click()
+    await page.getByRole('textbox', { name: /Valor por mês/ }).fill('15000')
+    await page.getByRole('button', { name: 'Após' }).click()
+    await page.locator('#nd-recn input').fill('3')
+    await page.getByPlaceholder('Empréstimo de junho').fill('Vaga de garagem')
+    await expect(page.getByRole('region', { name: 'Prévia das cobranças' })).toContainText('3 cobranças no total')
+    // At the end of the page the sticky footer sits in its place and covers nothing.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await a11y('new-debt-recurring')
+    await page.getByRole('button', { name: 'Criar dívida recorrente p/ Conceição' }).click()
+
+    await expect(page.getByRole('region', { name: 'Vaga de garagem' })).toBeVisible()
+    const debts = await session.api('GET', `/debtors/${d.id}/debts`)
+    expect(debts).toHaveLength(1)
+    expect(debts[0]).toMatchObject({ type: 'PIX', recurrence: 'MONTHLY', recurrenceActive: true })
+  })
+})
+
+test.describe('Término da recorrência', () => {
+  test('the card says when it ends; "Alterar término" extends it, refuses an end before what exists (real API)', async ({ page, session, a11y }) => {
+    const n = new Date()
+    const first = new Date(Date.UTC(n.getFullYear(), n.getMonth() + 1, 10))
+    const fmt = (d: Date) => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
+    const plus = (k: number) => new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + k, 10))
+    const d = await session.api('POST', '/debtors', { name: 'Vaga Mensal' })
+    await session.api('POST', '/debts', {
+      debtorId: d.id, type: 'PIX', description: 'Vaga de garagem', totalAmount: 150, numberOfInstallments: 1,
+      firstDueDate: first.toISOString(), recurrence: { type: 'MONTHLY', occurrences: 3 },
+    })
+
+    await page.goto(`/debtors/${d.id}`)
+    const card = page.getByRole('region', { name: 'Vaga de garagem' })
+    await expect(card).toContainText(`até ${fmt(plus(2))}`)
+    await card.getByRole('button', { name: 'Ações da dívida Vaga de garagem' }).click()
+    await page.getByRole('button', { name: /Alterar término/ }).click()
+    const sheet = page.getByRole('dialog', { name: 'Alterar término' })
+    await expect(sheet.getByRole('button', { name: 'Após' })).toHaveAttribute('aria-pressed', 'true')
+    await a11y('recurrence-end')
+
+    const count = sheet.getByRole('textbox', { name: 'Número de cobranças no total' })
+    await count.fill('0')
+    await expect(sheet.getByRole('status')).toContainText('o mínimo é 1')
+    await expect(sheet.getByRole('button', { name: /Salvar término/ })).toBeDisabled()
+    await count.fill('6')
+    await expect(sheet.getByRole('status')).toContainText(`Última cobrança em ${fmt(plus(5))}`)
+    await sheet.getByRole('button', { name: /Salvar término/ }).click()
+    await expect(page.getByText('Término alterado')).toBeVisible()
+    await expect(card).toContainText(`até ${fmt(plus(5))}`)
+
+    await card.getByRole('button', { name: 'Ações da dívida Vaga de garagem' }).click()
+    await page.getByRole('button', { name: /Alterar término/ }).click()
+    await page.getByRole('dialog', { name: 'Alterar término' }).getByRole('button', { name: 'Sem fim' }).click()
+    await page.getByRole('dialog', { name: 'Alterar término' }).getByRole('button', { name: /Salvar término/ }).click()
+    await expect(card).toContainText('sem fim')
+    const debts = await session.api('GET', `/debtors/${d.id}/debts`)
+    expect(debts[0]).toMatchObject({ recurrenceOccurrences: null, recurrenceEndsAt: null })
   })
 })
