@@ -17,6 +17,7 @@ import { DebtForm } from '../../components/shared/DebtForm'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
 import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import { BatchSheet } from '../../components/shared/BatchSheet'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
@@ -91,6 +92,7 @@ function DebtorProfile({ id }: { id: string }) {
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
+  const [batchOpen, setBatchOpen] = useState(false)
 
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
@@ -345,6 +347,14 @@ function DebtorProfile({ id }: { id: string }) {
         ) : tab === 'open' ? (
           open.length ? (
             <div className="lt-dsecs">
+              {openTotal > 1 && !archived && (
+                <button type="button" className="lt-batch-link" onClick={() => setBatchOpen(true)}>
+                  <Icon name="layers" size={16} />
+                  <span style={{ flex: 1 }}>Receber várias de uma vez</span>
+                  <span className="lt-batch-link-n">{openTotal} em aberto</span>
+                  <Icon name="chevronRight" size={15} />
+                </button>
+              )}
               {open.map((d) => (
                 <DebtSection
                   key={d.id}
@@ -554,6 +564,7 @@ function DebtorProfile({ id }: { id: string }) {
       </Modal>
 
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
+      <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
       <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     </main>

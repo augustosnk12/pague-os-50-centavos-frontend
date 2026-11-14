@@ -89,7 +89,8 @@ describe('PaymentSheet (S2)', () => {
     renderSheet(target(installment({ dueDate: '2026-11-20T00:00:00.000Z' })))
     await screen.findByRole('dialog')
     expect(screen.queryByRole('link', { name: /WhatsApp/ })).toBeNull()
-    expect(mocked.get).not.toHaveBeenCalled()
+    // The phone (GET /debtors/:id) is only fetched for an overdue one; the debts are (for "Pagou mais de uma?").
+    expect(mocked.get.mock.calls.map(([url]) => url).filter((u) => /^\/debtors\/[^/]+$/.test(String(u)))).toEqual([])
   })
 
   it('Total / Metade and the partial note; the button says what will happen', async () => {

@@ -1027,3 +1027,38 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 .lt-stats3 > div { padding: 10px; border-radius: 12px; background: var(--surface-2); }
 .lt-stats3 dt { font-size: 0.71875rem; font-weight: 700; color: var(--text-muted); }
 .lt-stats3 dd { margin: 2px 0 0; font-size: 0.9375rem; font-weight: 800; }
+
+/* ===== Receber várias de uma vez (S7) ===== */
+.lt-bt-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 0.78125rem; font-weight: 800; color: var(--text-muted); }
+.lt-bt-label .lt-more-link { padding: 0 2px; }
+.lt-bt-list > li + li { border-top: 1px solid var(--border); }
+.lt-bt-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border: none; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.lt-bt-row:hover { background: var(--surface-hover); }
+.lt-bt-row:focus-visible { outline: 2.5px solid var(--primary); outline-offset: -3px; border-radius: 12px; }
+.lt-bt-row[aria-checked="true"] .lt-check { background: var(--primary); border-color: var(--primary); }
+.lt-bt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lt-bt-t { font-weight: 800; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-bt-s { font-weight: 700; font-size: 0.75rem; color: var(--text-muted); }
+.lt-bt-s[data-late] { color: var(--overdue); }
+.lt-bt-right { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.lt-bt-v { font-weight: 800; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.lt-bt-tag { font-weight: 800; font-size: 0.71875rem; min-height: 1.1em; }
+.lt-bt-later { margin: 12px 0 0; }
+.lt-bt-label .lt-bt-all { padding: 0 2px; font-size: 0.78125rem; }
+.lt-bt-on { font-weight: 700; color: var(--text-muted); }
+.lt-bt-later + .lt-bt-list { margin-top: 6px; }
+.lt-bt-empty { margin: 0; font-size: 0.84375rem; color: var(--text-muted); }
+.lt-bt-k { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: center; margin-bottom: 4px; }
+.lt-amt-chips .lt-bt-k { margin: 0; }
+.lt-bt-sum { margin-top: 8px; text-align: center; font-size: 0.78125rem; font-weight: 800; }
+.lt-batch-link {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 11px 12px; cursor: pointer; text-align: left;
+  border: 1.5px dashed color-mix(in oklch, var(--primary) 40%, transparent); border-radius: var(--r-md);
+  background: var(--primary-weak); color: var(--primary); font: inherit; font-weight: 800; font-size: 0.84375rem;
+}
+.lt-batch-link:hover { border-style: solid; }
+.lt-batch-link-n { font-size: 0.71875rem; font-weight: 700; color: var(--text-muted); }
+.lt-pay-more { align-self: center; padding-top: 2px; font-size: 0.78125rem; }

@@ -631,3 +631,38 @@ test('Busca entre perfis e rolagem depois de folhas encadeadas (real API)', asyn
   await search('Geladeira', /Geladeira/)
   await expect(page.getByRole('region', { name: 'Geladeira' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toBeVisible()
 })
+
+test.describe('Receber várias de uma vez (S7)', () => {
+  const day = (offset: number) => {
+    const n = new Date()
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() + offset)).toISOString()
+  }
+
+  test('one amount for 3 installments of 2 debts: oldest first, last one partial, Desfazer (real API)', async ({ page, session, a11y }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Maria Lote', phone: '11912345678' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Notebook', totalAmount: 200, numberOfInstallments: 2, firstDueDate: day(-40) })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Mercado', totalAmount: 30, numberOfInstallments: 1, firstDueDate: day(-1) })
+    const paid = async () => {
+      const debts = await session.api('GET', `/debtors/${d.id}/debts`)
+      return debts
+        .flatMap((x: { installments: { paidAmount: string }[] }) => x.installments)
+        .reduce((sum: number, i: { paidAmount: string }) => sum + Number(i.paidAmount), 0)
+    }
+
+    await page.goto(`/debtors/${d.id}`)
+    await page.getByRole('button', { name: /Receber várias de uma vez/ }).click()
+    const sheet = page.getByRole('dialog', { name: /Receber várias parcelas de Maria Lote/ })
+    await expect(sheet.getByRole('checkbox')).toHaveCount(3)
+    for (const box of await sheet.getByRole('checkbox').all()) await expect(box).toHaveAttribute('aria-checked', 'true')
+    await expect(sheet.getByRole('textbox', { name: 'Valor recebido' })).toHaveValue('230,00')
+    await a11y('batch-sheet')
+
+    await sheet.getByRole('textbox', { name: 'Valor recebido' }).fill('210,00')
+    await expect(sheet.getByRole('status')).toContainText('Mercado fica parcial (restam R$ 20,00)')
+    await sheet.getByRole('button', { name: /^Registrar R\$\s210,00 em 3 parcelas$/ }).click()
+    await expect(page.getByText(/R\$\s210,00 registrados em 3 parcelas/)).toBeVisible()
+    await expect.poll(paid).toBe(210)
+    await page.getByRole('button', { name: 'Desfazer' }).click()
+    await expect.poll(paid).toBe(0)
+  })
+})
