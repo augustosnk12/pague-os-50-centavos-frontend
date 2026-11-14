@@ -756,10 +756,12 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 }
 .lt-rcpt-btn:hover { background: var(--paid-weak); color: var(--paid); }
 .lt-payoff-btn {
-  display: inline-flex; align-items: center; gap: 6px; border: 1px solid color-mix(in oklch, var(--paid) 35%, transparent);
-  background: var(--paid-weak); color: var(--paid); border-radius: 99px; padding: 6px 12px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--primary-weak-2);
+  background: var(--primary-weak); color: var(--primary); border-radius: 99px; padding: 6px 12px; cursor: pointer;
   font: inherit; font-weight: 800; font-size: 0.78125rem;
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
+.lt-payoff-btn:hover { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 
 /* ===== Busca e atalhos (S10) ===== */
 .lt-hsearch { position: relative; width: 340px; animation: ltPopIn var(--dur) var(--ease-out); }
@@ -1222,3 +1224,43 @@ html:has(.lt-nd-foot) { scroll-padding-bottom: 170px; }
   transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
 .lt-dsec-collapse:hover { background: var(--primary); color: var(--on-primary); }
+
+/* 20: focus never hidden behind the sticky header (WCAG 2.4.11); 44px targets on touch screens. */
+html { scroll-padding-top: calc(var(--app-head-h, 60px) + 12px); }
+@media (pointer: coarse) {
+  .lt-icon-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* 19: skeleton layouts. */
+.lt-skel-row { display: flex; gap: 10px; }
+.lt-skel-list { display: flex; flex-direction: column; margin-top: 18px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.lt-skel-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.lt-skel-list .lt-skel-item + .lt-skel-item { border-top: 1px solid var(--border); }
+
+/* 41: archived debtors. */
+.lt-arch-tag { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-muted); font-size: 0.6875rem; font-weight: 800; }
+.lt-arch-group { margin-top: 18px; }
+.lt-arch-link { padding: 4px 2px; color: var(--text-muted); }
+.lt-arch-link:hover { color: var(--primary); }
+
+/* 42: toasts and floating buttons in one stack, never on top of each other (nor of the bottom tabs). */
+.lt-toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
+body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-inset-bottom)); }
+@media (min-width: 880px) {
+  .lt-toast { bottom: 26px; }
+  body:has(.lt-float) .lt-toast { bottom: calc(24px + 40px + 12px); }
+}
+
+/* 32: "Enxuta" — "recebido de" line hidden; a discreet dot shows the mode is on. */
+.lt-hm-row[data-lean] { display: none; }
+.lt-lean-dot { position: relative; }
+.lt-tab-dot, .lt-lean-dot::after {
+  position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
+/* Desktop: on the account button; phone: on the Conta tab only. */
+@media (min-width: 880px) { .lt-lean-dot::after { content: ''; } }
+.lt-tab-dot { top: -2px; right: -5px; }
+
+/* 21: "Ver todos" at the end of the search results. */
+.lt-sr-all { font-weight: 800; color: var(--primary); }

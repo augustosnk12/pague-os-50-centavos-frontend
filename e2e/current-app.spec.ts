@@ -185,6 +185,9 @@ test.describe('failures (F4)', () => {
 
   test('expired session: log in again and come back to the same screen', async ({ page, session }) => {
     const l = createLenderWithLoginToken('Volta Pra Cá')
+    // A device that does not know the account (no saved e-mail): back to the login screen.
+    // (Knowing it, a sheet logs in again on the same screen — see the "grupo A" test.)
+    await page.addInitScript(() => localStorage.removeItem('pague50_lender'))
     // A token for an account that does not exist → the API answers 401 (lender guard).
     await page.context().addCookies([{ name: 'pague50_token', value: session.token.replace(/\.[^.]+$/, '.x'), url: 'http://localhost:5199' }])
     await page.goto('/installments?period=week')
@@ -792,4 +795,71 @@ test('expanded debt card: the header stays on screen while scrolling; "Recolher"
   await recolher.click()
   await expect(card.getByRole('list', { name: 'Parcelas de Moto' }).locator('> li')).toHaveCount(3)
   await expect(card.getByRole('heading', { name: 'Moto' })).toBeInViewport()
+})
+
+test.describe('Pendências das etapas anteriores (grupo A)', () => {
+  const day = (offset: number) => {
+    const n = new Date()
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() + offset)).toISOString()
+  }
+
+  test('41: archived people in "Arquivados (n)" at the end of Devedores, and the search finds them (real API)', async ({ page, session }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Zuleica Arquivada' })
+    await session.api('PATCH', `/debtors/${d.id}/archive`)
+    await session.api('POST', '/debtors', { name: 'Ativa Pessoa' })
+    await page.goto('/debtors')
+    await expect(page.getByRole('link', { name: /Ativa Pessoa/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Zuleica/ })).toHaveCount(0)
+    await page.getByRole('button', { name: /Arquivados \(1\)/ }).click()
+    await expect(page.getByRole('link', { name: /Zuleica Arquivada.*Arquivado/ })).toBeVisible()
+    // The search (on any screen size) also finds them, tagged.
+    await page.getByRole('searchbox', { name: 'Buscar devedor ou dívida' }).fill('zuleica')
+    await page.getByRole('link', { name: /Zuleica Arquivada/ }).first().click()
+    await expect(page.getByText('Arquivado · fora das listas e dos totais')).toBeVisible()
+  })
+
+  test('24: "Voltar" says where it goes; 48: Parcelas on a new account offers "Nova dívida" (real API)', async ({ page, session }) => {
+    void session
+    await page.goto('/installments')
+    await expect(page.getByText('Nenhuma parcela ainda')).toBeVisible()
+    await page.getByRole('button', { name: 'Nova dívida' }).last().click()
+    await expect(page).toHaveURL(/\/debts\/new$/)
+    await expect(page.getByRole('button', { name: 'Voltar para Parcelas' })).toContainText('Parcelas')
+  })
+
+  test('32: "Enxuta" moves Pagamentos to the ⋯ and shows a dot on Conta (real API)', async ({ page, session }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Lia Enxuta' })
+    const debt = await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Fone', totalAmount: 50, numberOfInstallments: 1, firstDueDate: day(-2) })
+    await session.api('POST', `/installments/${debt.installments[0].id}/payments`, { amount: 20, paidAt: day(-1).slice(0, 10) })
+    await page.addInitScript(() => localStorage.setItem('pague50_prefs', JSON.stringify({ detail: 'lean', textSize: 'm' })))
+    await page.goto(`/debtors/${d.id}`)
+    await expect(page.getByRole('tab', { name: /Em aberto/ })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /Pagamentos/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Mais ações' }).click()
+    await page.getByRole('button', { name: /Pagamentos.*1 pagamento/ }).click()
+    await expect(page.getByRole('dialog', { name: 'Pagamentos' }).getByRole('list', { name: 'Pagamentos' })).toContainText('Fone')
+    // One discreet dot: the account button on desktop, the Conta tab on phones.
+    const dots = await page.evaluate(() => Array.from(document.querySelectorAll('.lt-tab-dot, .lt-lean-dot')).filter((el) => {
+      const box = (el.classList.contains('lt-lean-dot') ? getComputedStyle(el, '::after').content : 'x') !== 'none' && (el as HTMLElement).offsetParent !== null
+      return box
+    }).length)
+    expect(dots).toBe(1)
+  })
+
+  test('47: session expired while using the app: a sheet logs in again and the screen stays (real API)', async ({ page, session }) => {
+    const l = createLenderWithCode('731904', { name: 'Sessão Volta' })
+    await page.route(`${API_URL}/auth/login`, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"message":"ok"}' }))
+    // The app knows the account (as after a login), but the token is no longer valid.
+    await page.addInitScript(([id, email]) => localStorage.setItem('pague50_lender', JSON.stringify({ id, email, name: 'Sessão Volta' })), [l.id, l.email])
+    await page.context().addCookies([{ name: 'pague50_token', value: session.token.replace(/\.[^.]+$/, '.x'), url: 'http://localhost:5199' }])
+    await page.goto('/installments?period=week')
+    const sheet = page.getByRole('dialog', { name: 'Sua sessão expirou' })
+    await expect(sheet).toBeVisible()
+    await expect(page).toHaveURL(/\/installments\?period=week$/)
+    await sheet.getByRole('button', { name: /Enviar código/ }).click()
+    await sheet.getByRole('textbox', { name: 'Código de 6 dígitos' }).fill('731904')
+    await expect(sheet).toHaveCount(0)
+    await expect(page).toHaveURL(/\/installments\?period=week$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
+  })
 })

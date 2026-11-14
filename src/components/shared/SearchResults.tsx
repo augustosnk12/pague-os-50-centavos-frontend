@@ -20,6 +20,7 @@ interface SearchResultsProps {
 export function SearchResults({ hits, activeId, listId, onPick, emptyText }: SearchResultsProps) {
   const debtors = hits.filter((h) => h.kind === 'debtor')
   const debts = hits.filter((h) => h.kind === 'debt')
+  const all = hits.find((h) => h.kind === 'all')
   const option = (h: SearchHit) => (
     // Keyboard: the combobox input moves aria-activedescendant and picks with Enter.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
@@ -33,7 +34,9 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => onPick(h)}
     >
-      {h.kind === 'debtor' ? (
+      {h.kind === 'all' ? (
+        <span className="lt-sr-main lt-sr-all">Ver todos os resultados para “{h.term}”</span>
+      ) : h.kind === 'debtor' ? (
         <>
           <Avatar name={h.hit.name} size={32} hue={h.hit.avatarHue} emoji={h.hit.avatarEmoji} />
           <span className="lt-sr-main">
@@ -72,6 +75,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
           {debts.map(option)}
         </div>
       )}
+      {all && option(all)}
       {!hits.length && emptyText && <div className="lt-sr-empty">{emptyText}</div>}
     </div>
   )

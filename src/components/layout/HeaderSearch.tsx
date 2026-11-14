@@ -25,7 +25,7 @@ export function HeaderSearch({ open, onOpenChange }: HeaderSearchProps) {
   const trigger = useRef<HTMLButtonElement>(null)
   const listId = useId()
   const { data, active: searching, settled } = useSearch(q)
-  const hits = searchHits(data)
+  const hits = searchHits(data, q.trim())
 
   useEffect(() => {
     if (open) input.current?.focus()

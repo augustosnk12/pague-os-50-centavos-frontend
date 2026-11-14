@@ -46,7 +46,6 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
       style={{
         position: 'fixed',
         left: '50%',
-        bottom: 26,
         zIndex: 400,
         background: 'var(--text)',
         color: 'var(--bg)',

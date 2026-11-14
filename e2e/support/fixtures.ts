@@ -8,7 +8,7 @@ export interface Session {
   token: string
   lender: { id: string; email: string; name: string }
   /** Authenticated call to the real API (used to seed data). */
-  api: (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown) => Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any -- JSON payloads of many shapes
+  api: (method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) => Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any -- JSON payloads of many shapes
 }
 
 /**

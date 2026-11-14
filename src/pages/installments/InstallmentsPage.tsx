@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAccountSummary } from '../../hooks/account/useAccountSummary'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
@@ -14,10 +15,11 @@ import { RemindSheet } from '../../components/shared/RemindSheet'
 import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
 import type { ReceiptRequest } from '../../lib/receipt'
 import { whatsappLink } from '../../lib/whatsapp'
-import { Detail } from '../../contexts/PreferencesContext'
+import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
 import { localToday } from '../../lib/date'
+import { scrollBehavior } from '../../lib/scroll'
 import { fmtMoney } from '../../lib/format'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import {
@@ -50,6 +52,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  */
 export function InstallmentsPage() {
   const today = localToday()
+  const lean = usePreferences().detail === 'lean'
   const [params, setParams] = useSearchParams()
   const url = readUrlState(params, today)
   const { period, anchor, tab, debtorIds } = url
@@ -75,6 +78,11 @@ export function InstallmentsPage() {
 
   // A new period, tab or filter starts from the first rows again.
   const viewKey = `${period}|${anchor}|${tab}|${debtorKey}`
+  const navigate = useNavigate()
+  // Nothing at all in this period: maybe an account with no debt yet (confirmed with /me/summary).
+  const nothing = !!query.data && items.length === 0
+  const summary = useAccountSummary({ enabled: nothing })
+  const firstUse = nothing && summary.data?.debts === 0
   const [lastKey, setLastKey] = useState(viewKey)
   if (lastKey !== viewKey) {
     setLastKey(viewKey)
@@ -127,7 +135,7 @@ export function InstallmentsPage() {
   }, [])
   const top = useRef<HTMLHeadingElement>(null)
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: scrollBehavior() })
     top.current?.focus({ preventScroll: true })
   }
 
@@ -204,11 +212,13 @@ export function InstallmentsPage() {
       {period === 'day' && <WeekStrip anchor={anchor} today={today} items={items} debtorIds={debtorIds} onPick={(d) => update({ anchor: d })} />}
 
       {!loading && !failed && (
-        <Totals view={view} period={period} tab={tab} open={totalsOpen} onToggle={toggleTotals} onFilter={(t) => update({ tab: t })} />
+        <Detail>
+          <Totals view={view} period={period} tab={tab} open={totalsOpen} onToggle={toggleTotals} onFilter={(t) => update({ tab: t })} />
+        </Detail>
       )}
 
       <Tabs
-        items={TABS.map(([id, label]) => ({ id, label, count: loading || failed ? null : view.counts[id], late: id === 'overdue' }))}
+        items={TABS.map(([id, label]) => ({ id, label, count: loading || failed || (lean && id !== 'overdue') ? null : view.counts[id], late: id === 'overdue' }))}
         value={tab}
         onChange={(t) => update({ tab: t })}
         label="Situação"
@@ -249,6 +259,18 @@ export function InstallmentsPage() {
                 receiptFor={receiptFor}
               />
             ) : (
+              firstUse ? (
+                <EmptyState
+                  icon="calendar"
+                  title="Nenhuma parcela ainda"
+                  sub="As parcelas aparecem aqui quando você registra uma dívida."
+                  action={
+                    <button type="button" className="lt-btn-lg" data-variant="primary" style={{ width: 'auto', padding: '0 20px' }} onClick={() => navigate('/debts/new')}>
+                      <Icon name="plus" size={16} /> Nova dívida
+                    </button>
+                  }
+                />
+              ) : (
               <>
                 <EmptyState
                   icon={tab === 'paid' ? 'wallet' : 'check'}
@@ -261,6 +283,7 @@ export function InstallmentsPage() {
                   </div>
                 )}
               </>
+              )
             )}
           </>
         )}
@@ -421,7 +444,7 @@ function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid,
           <span>
             <span aria-hidden="true">
               {label}
-              {count > 1 && <span className="lt-dh-n">{count}</span>}
+              {count > 1 && <Detail><span className="lt-dh-n">{count}</span></Detail>}
             </span>
             {/* One string for screen readers: "Hoje, quinta, 5 de novembro, 2 parcelas". */}
             <span className="lt-sr-only">
@@ -511,7 +534,7 @@ function FloatingNav({ hasToday, onTop }: { hasToday: boolean; onTop: () => void
         className="lt-float"
         onClick={() => {
           const el = document.getElementById('dia-hoje')
-          el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          el?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
           el?.querySelector<HTMLButtonElement>('.lt-lrow-hit')?.focus({ preventScroll: true })
         }}
       >

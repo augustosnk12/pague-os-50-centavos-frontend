@@ -11,8 +11,10 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { Avatar } from '../ui/Avatar'
 import { NAV } from '../../constants/nav'
+import { usePreferences } from '../../contexts/PreferencesContext'
 
 function UserMenu({ onCalc }: { onCalc: () => void }) {
+  const lean = usePreferences().detail === 'lean'
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -73,7 +75,8 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
       <IconButton
         ref={trigger}
         name="user"
-        label="Conta"
+        label={lean ? 'Conta (modo enxuto)' : 'Conta'}
+        className={lean ? 'lt-lean-dot' : undefined}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? 'user-menu' : undefined}

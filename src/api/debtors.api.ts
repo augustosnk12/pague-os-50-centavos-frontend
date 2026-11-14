@@ -37,6 +37,9 @@ export const debtorsApi = {
   list: (reliability?: DebtorReliability, archived?: 'true' | 'all') =>
     api.get<Debtor[]>('/debtors', { params: reliability || archived ? { reliability, archived } : undefined }),
 
+  /** Only the archived ones (the URL carries the query, so tests can fake it by URL). */
+  listArchived: () => api.get<Debtor[]>('/debtors?archived=true'),
+
   get: (id: string) =>
     api.get<Debtor>(`/debtors/${id}`),
 

@@ -8,6 +8,7 @@ import { Calculator } from '../shared/Calculator'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
 import { useRouteAnnouncer } from '../../hooks/useRouteAnnouncer'
 import { OfflineBanner } from './OfflineBanner'
+import { SessionSheet } from './SessionSheet'
 import { useShortcuts } from '../../hooks/useShortcuts'
 
 // Loaded on first use: it brings the payment sheet, which most visits never open.
@@ -60,6 +61,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <RegisterPicker open={registerOpen} onClose={() => setRegisterOpen(false)} />
         </Suspense>
       )}
+      <SessionSheet />
       <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} onCalc={openCalc} />
       <Modal open={calcOpen} onClose={() => setCalcOpen(false)} title="Calculadora">
         <Calculator />

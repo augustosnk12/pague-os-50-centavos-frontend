@@ -41,6 +41,8 @@ interface InstallmentLineProps {
  * payment sheet (one stretched button), the avatar opens the debtor. Amount
  * shown is what is still owed.
  */
+const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
 export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false }: InstallmentLineProps) {
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
@@ -127,7 +129,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
             <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
           ))}
         <div className="lt-lrow-main" aria-hidden="true">
-          <div className="lt-lrow-name">{inDebt ? (position.startsWith('↻') ? `Mensalidade · ${fmtList(inst.dueDate)}` : `Parcela ${position.replace('parcela ', '')}`) : name}</div>
+          <div className="lt-lrow-name">{inDebt ? (position.startsWith('↻') ? `Mensalidade de ${MONTH_NAMES[Number(inst.dueDate.slice(5, 7)) - 1]}` : `Parcela ${position.replace('parcela ', '')}`) : name}</div>
           <Detail>
             {inDebt ? (
               <div className="lt-lrow-sub">{fmtList(inst.dueDate)}</div>

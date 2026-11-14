@@ -4,6 +4,7 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Avatar } from '../../components/ui/Avatar'
 import { Icon } from '../../components/ui/Icon'
+import { Modal } from '../../components/ui/Modal'
 import { IconButton } from '../../components/ui/IconButton'
 import { Money } from '../../components/ui/Money'
 import { Button } from '../../components/ui/Button'
@@ -29,6 +30,8 @@ import { getReliabilityOption } from '../../constants/reliability'
 import { translateApiError, DEBT_TYPE_META } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
 import { localToday } from '../../lib/date'
+import { backLabel } from '../../lib/navOrigin'
+import { failedSave } from '../../lib/saveError'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { installmentPosition } from '../../lib/installmentTag'
 import { whatsappLink } from '../../lib/whatsapp'
@@ -92,6 +95,7 @@ function DebtorProfile({ id }: { id: string }) {
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
   const [endFor, setEndFor] = useState<DebtWithInstallments | null>(null)
+  const [paysOpen, setPaysOpen] = useState(false)
 
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
@@ -108,8 +112,20 @@ function DebtorProfile({ id }: { id: string }) {
     return (
       <main className="lt-page" aria-busy="true">
         <span className="lt-sr-only">Carregando…</span>
-        <div className="lt-skel" style={{ height: 70, borderRadius: 16 }} />
-        <div className="lt-skel" style={{ height: 220, borderRadius: 16, marginTop: 16 }} />
+        <div className="lt-skel" style={{ height: 18, width: 70, borderRadius: 8 }} />
+        <div className="lt-skel-item" style={{ padding: '16px 0 12px' }}>
+          <div className="lt-skel" style={{ width: 58, height: 58, borderRadius: 18 }} />
+          <div style={{ flex: 1 }}>
+            <div className="lt-skel" style={{ height: 20, width: '50%' }} />
+            <div className="lt-skel" style={{ height: 12, width: '65%', marginTop: 8 }} />
+          </div>
+        </div>
+        <div className="lt-skel-row">
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
+        </div>
+        <div className="lt-skel" style={{ height: 40, borderRadius: 10, marginTop: 14 }} />
+        <div className="lt-skel" style={{ height: 210, borderRadius: 18, marginTop: 14 }} />
       </main>
     )
   }
@@ -150,6 +166,8 @@ function DebtorProfile({ id }: { id: string }) {
 
   const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
   const back = () => (location.key !== 'default' ? navigate(-1) : navigate('/debtors'))
+  // "‹ Parcelas", "‹ Painel"…: where Voltar goes (improvement 24).
+  const origin = location.key !== 'default' ? backLabel() : 'Devedores'
   const openPayment = (inst: Parameters<typeof paymentTarget>[0]) => setPayTarget(paymentTarget(inst))
   const toggle = (debtId: string) =>
     setExpanded((s) => {
@@ -239,15 +257,22 @@ function DebtorProfile({ id }: { id: string }) {
             },
           })
         },
-        onError: fail('Não foi possível registrar.'),
+        onError: failedSave(showToast, `${monthly ? 'registrar' : 'quitar'} ${fmtMoney(openInstallments(d).reduce((s, i) => s + leftOf(i), 0) / 100)}`, () => confirmPayoff(d, paidAt)),
       },
     )
   }
 
-  const setRecurrence = (d: DebtWithInstallments, active: boolean) =>
+  const setRecurrence = (d: DebtWithInstallments, active: boolean, undoable = true): void =>
     recurrenceM.mutate(
       { debtId: d.id, active },
-      { onSuccess: () => showToast(active ? 'Recorrência retomada' : 'Recorrência encerrada'), onError: fail('Não foi possível alterar a recorrência.') },
+      {
+        onSuccess: () =>
+          showToast(`Recorrência de ${d.description || 'dívida'} ${active ? 'retomada' : 'encerrada'}`, {
+            icon: 'history',
+            action: undoable ? { label: 'Desfazer', onClick: () => setRecurrence(d, !active, false) } : undefined,
+          }),
+        onError: fail('Não foi possível alterar a recorrência.'),
+      },
     )
 
   const saveRecurrenceEnd = (d: DebtWithInstallments, end: { occurrences: number | null; endsAt: string | null }) =>
@@ -261,6 +286,40 @@ function DebtorProfile({ id }: { id: string }) {
         onError: fail('Não foi possível alterar o término.'),
       },
     )
+
+  // The payment timeline: a tab in "Detalhada", a sheet from the ⋯ in "Enxuta" (improvement 32).
+  const shownTab: Tab = detail === 'lean' && tab === 'pays' ? 'open' : tab
+  const paymentsList = timeline.length ? (
+          <ul className="lt-lgroup" aria-label="Pagamentos" style={{ marginTop: 12 }}>
+            {timeline.map(({ payment, installment, debt, daysLate }) => {
+              const pos = installmentPosition(installment.number, debt.installments.length, debt.recurrence)
+              const spoken = pos.startsWith('↻') ? 'mensalidade' : pos.includes('/') ? `parcela ${pos.replace('/', ' de ')}` : pos
+              return (
+                <li key={payment.id} className="lt-lrow">
+                  <div className="lt-lrow-in">
+                    <button
+                      type="button"
+                      className="lt-lrow-hit"
+                      onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
+                      aria-label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
+                    />
+                    <span className="lt-hist-ok" style={{ width: 30, height: 30 }} aria-hidden="true"><Icon name="check" size={13} strokeWidth={2.8} /></span>
+                    <div className="lt-lrow-main" aria-hidden="true">
+                      <div className="lt-lrow-name">{debt.description || 'Dívida'} · {pos}</div>
+                      <div className="lt-lrow-sub">
+                        {fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}
+                      </div>
+                    </div>
+                    <span aria-hidden="true"><Money value={payment.amount} size={14.5} color="var(--paid)" /></span>
+                    <span className="lt-rcpt-ic" aria-hidden="true"><Icon name="receipt" size={17} /></span>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <EmptyState icon="history" title="Nenhum pagamento ainda" sub="Os pagamentos registrados aparecem aqui." />
+        )
 
   const summary =
     numbers.owed === 0 ? (
@@ -281,8 +340,8 @@ function DebtorProfile({ id }: { id: string }) {
   return (
     <main className="lt-page lt-anim-fade">
       <div className="lt-prof-top">
-        <button type="button" className="lt-back" onClick={back}>
-          <Icon name="chevronLeft" size={17} /> Voltar
+        <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
+          <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
         </button>
         <IconButton name="dots" label="Mais ações" onClick={() => setActionsOpen(true)} />
       </div>
@@ -301,7 +360,7 @@ function DebtorProfile({ id }: { id: string }) {
           <h1 className="lt-h1 lt-prof-name">
             <span>{debtor.name}</span> <Icon name="chevronRight" size={18} />
           </h1>
-          <div className="lt-prof-sum">{debtsQuery.isLoading ? 'Carregando…' : summary}</div>
+          <div className="lt-prof-sum">{debtsQuery.isLoading ? <span className="lt-skel" style={{ display: 'inline-block', height: 12, width: 170, verticalAlign: 'middle' }} /> : summary}</div>
         </div>
       </div>
 
@@ -340,21 +399,21 @@ function DebtorProfile({ id }: { id: string }) {
         items={[
           { id: 'open' as const, label: 'Em aberto', count: debtsQuery.isLoading ? null : open.length },
           { id: 'paid' as const, label: 'Quitadas', count: debtsQuery.isLoading ? null : paid.length },
-          { id: 'pays' as const, label: 'Pagamentos', count: debtsQuery.isLoading ? null : timeline.length },
+          ...(detail === 'lean' ? [] : [{ id: 'pays' as const, label: 'Pagamentos', count: debtsQuery.isLoading ? null : timeline.length }]),
         ]}
-        value={tab}
+        value={shownTab}
         onChange={setTab}
         label="Dívidas"
         panelId="devedor-painel"
         idPrefix="dtab"
       />
 
-      <div role="tabpanel" id="devedor-painel" aria-labelledby={`dtab-${tab}`}>
+      <div role="tabpanel" id="devedor-painel" aria-labelledby={`dtab-${shownTab}`}>
         {debtsQuery.isError && !debtsQuery.data ? (
           <ErrorState title="Não foi possível carregar as dívidas" onRetry={() => void debtsQuery.refetch()} retrying={debtsQuery.isFetching} />
         ) : debtsQuery.isLoading ? (
           <div className="lt-skel" style={{ height: 200, borderRadius: 16, marginTop: 12 }} />
-        ) : tab === 'open' ? (
+        ) : shownTab === 'open' ? (
           open.length ? (
             <div className="lt-dsecs">
               {openTotal > 1 && !archived && (
@@ -399,7 +458,7 @@ function DebtorProfile({ id }: { id: string }) {
               action={!archived && <Button icon="plus" onClick={() => navigate(`/debts/new?debtorId=${debtor.id}`)}>Nova dívida</Button>}
             />
           )
-        ) : tab === 'paid' ? (
+        ) : shownTab === 'paid' ? (
           paid.length ? (
             <ul className="lt-lgroup" aria-label="Dívidas quitadas" style={{ marginTop: 12 }}>
               {paid.map((d) => {
@@ -432,36 +491,8 @@ function DebtorProfile({ id }: { id: string }) {
           ) : (
             <EmptyState icon="check" title="Nenhuma dívida quitada ainda" sub="As dívidas totalmente pagas aparecem aqui." />
           )
-        ) : timeline.length ? (
-          <ul className="lt-lgroup" aria-label="Pagamentos" style={{ marginTop: 12 }}>
-            {timeline.map(({ payment, installment, debt, daysLate }) => {
-              const pos = installmentPosition(installment.number, debt.installments.length, debt.recurrence)
-              const spoken = pos.startsWith('↻') ? 'mensalidade' : pos.includes('/') ? `parcela ${pos.replace('/', ' de ')}` : pos
-              return (
-                <li key={payment.id} className="lt-lrow">
-                  <div className="lt-lrow-in">
-                    <button
-                      type="button"
-                      className="lt-lrow-hit"
-                      onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
-                      aria-label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
-                    />
-                    <span className="lt-hist-ok" style={{ width: 30, height: 30 }} aria-hidden="true"><Icon name="check" size={13} strokeWidth={2.8} /></span>
-                    <div className="lt-lrow-main" aria-hidden="true">
-                      <div className="lt-lrow-name">{debt.description || 'Dívida'} · {pos}</div>
-                      <div className="lt-lrow-sub">
-                        {fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}
-                      </div>
-                    </div>
-                    <span aria-hidden="true"><Money value={payment.amount} size={14.5} color="var(--paid)" /></span>
-                    <span className="lt-rcpt-ic" aria-hidden="true"><Icon name="receipt" size={17} /></span>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
         ) : (
-          <EmptyState icon="history" title="Nenhum pagamento ainda" sub="Os pagamentos registrados aparecem aqui." />
+          paymentsList
         )}
       </div>
 
@@ -471,6 +502,8 @@ function DebtorProfile({ id }: { id: string }) {
         debtor={debtor}
         archive={{ archived, blockedBy }}
         onInfo={() => setInfoOpen(true)}
+        onPayments={detail === 'lean' ? () => setPaysOpen(true) : undefined}
+        paymentsCount={timeline.length}
         onEdit={() => setEditOpen(true)}
         onArchive={(v) => setArchived(v)}
         onDelete={() => setConfirmDelete(true)}
@@ -537,6 +570,10 @@ function DebtorProfile({ id }: { id: string }) {
       />
 
       <DeleteDebtSheet debt={confirmDelDebt} busy={deleteDebt.isPending} onClose={() => setConfirmDelDebt(null)} onConfirm={handleDeleteDebt} />
+
+      <Modal open={paysOpen} onClose={() => setPaysOpen(false)} title="Pagamentos">
+        {paymentsList}
+      </Modal>
 
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
       <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />

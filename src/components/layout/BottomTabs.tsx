@@ -5,6 +5,7 @@ import { scrollTopIfActive } from '../../lib/scroll'
 import { preloadRoute } from '../../router/routes'
 import { Icon } from '../ui/Icon'
 import { NAV } from '../../constants/nav'
+import { usePreferences } from '../../contexts/PreferencesContext'
 
 interface BottomTabsProps {
   onAccount: () => void
@@ -17,6 +18,7 @@ interface BottomTabsProps {
 const HOLD_MS = 450
 
 export function BottomTabs({ onAccount, overdueCount, onRegister }: BottomTabsProps) {
+  const lean = usePreferences().detail === 'lean'
   const [menuOpen, setMenuOpen] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const held = useRef(false)
@@ -111,7 +113,7 @@ export function BottomTabs({ onAccount, overdueCount, onRegister }: BottomTabsPr
       <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
       {/* Conta (opens a sheet today; becomes a screen in S11) */}
-      <Tab label="Conta" icon="user" active={false} onClick={onAccount} />
+      <Tab label="Conta" badgeLabel={lean ? 'modo enxuto' : undefined} icon="user" active={false} onClick={onAccount} dot={lean} />
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
         <div className="lt-fab-menu">
@@ -140,10 +142,12 @@ interface TabProps {
   badge?: number
   /** Singular noun read with the badge, e.g. "atrasada" → "Parcelas, 4 atrasadas". */
   badgeLabel?: string
+  /** A small dot (e.g. "Enxuta" is on). */
+  dot?: boolean
 }
 
-function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabProps) {
-  const name = badge > 0 && badgeLabel ? `${label}, ${badge} ${badgeLabel}${badge > 1 ? 's' : ''}` : label
+function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel, dot }: TabProps) {
+  const name = badge > 0 && badgeLabel ? `${label}, ${badge} ${badgeLabel}${badge > 1 ? 's' : ''}` : dot && badgeLabel ? `${label} (${badgeLabel})` : label
   const style: CSSProperties = {
         flex: 1,
         display: 'flex',
@@ -163,6 +167,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
     <>
       <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
         <Icon name={icon} size={23} strokeWidth={active ? 2.4 : 2} />
+        {dot && <span className="lt-tab-dot" aria-hidden="true" />}
         {badge > 0 && (
           <span
             aria-hidden="true"

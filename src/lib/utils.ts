@@ -148,7 +148,7 @@ const API_ERROR_MAP: Record<string, string> = {
   'Debtor with this email already exists': 'Já existe um devedor com este e-mail.',
   'Name already in use by another debtor': 'Este nome já está em uso por outro devedor.',
   'Email already in use by another debtor': 'Este e-mail já está em uso por outro devedor.',
-  'Debt not found': 'Cobrança não encontrada.',
+  'Debt not found': 'Dívida não encontrada.',
   'Number of installments must be at least 1': 'O número de parcelas deve ser pelo menos 1.',
   'Installment not found': 'Parcela não encontrada.',
   'Installment is already paid': 'Esta parcela já foi paga.',

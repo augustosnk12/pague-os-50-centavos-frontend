@@ -16,6 +16,7 @@ import { fmtList, fmtMoney } from '../../lib/format'
 import { installmentPosition } from '../../lib/installmentTag'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
+import { failedSave } from '../../lib/saveError'
 import type { ReceiptRequest } from '../../lib/receipt'
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
@@ -151,7 +152,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
           secondary: r.payments[0] ? { label: 'Comprovante', onClick: () => setReceipt({ debtorId: id, paymentId: r.payments[0].id }) } : undefined,
         })
       },
-      onError: fail('Erro ao registrar os pagamentos.'),
+      onError: failedSave(showToast, `registrar ${fmtMoney(amount / 100)}`, confirm),
     })
   }
 

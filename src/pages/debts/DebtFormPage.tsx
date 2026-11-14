@@ -16,6 +16,8 @@ import { genInstallments, translateApiError } from '../../lib/utils'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
 import { getApiError } from '../../lib/api'
 import { localToday } from '../../lib/date'
+import { backLabel } from '../../lib/navOrigin'
+import { scrollBehavior } from '../../lib/scroll'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { defaultDue, isInstallmentType, recurringPreview, type RecurrenceEnd } from '../../lib/newDebt'
 import type { DebtType } from '../../types/debt'
@@ -98,9 +100,11 @@ export function DebtFormPage() {
     const box = document.getElementById(field)
     const el = box?.matches('input, button') ? box : box?.querySelector<HTMLElement>('input, button')
     el?.focus()
-    box?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    box?.scrollIntoView({ block: 'center', behavior: scrollBehavior() })
   }
 
+  // "‹ Parcelas", "‹ Maria Rocha"…: where Voltar goes (improvement 24).
+  const origin = (window.history.state as { idx?: number } | null)?.idx ? backLabel() : 'Painel'
   const back = () => {
     // Opened directly (no history in the app): go to the Painel.
     if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1)
@@ -163,11 +167,13 @@ export function DebtFormPage() {
   const showMissing = tried && missing
   return (
     <main className="lt-page lt-nd">
-      <button type="button" className="lt-back" onClick={back}>
-        <Icon name="chevronLeft" size={17} /> Voltar
+      <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
+        <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
       </button>
       <h1 className="lt-nd-h">Nova dívida</h1>
-      <p className="lt-nd-sub">Registre quanto a pessoa deve e gere as parcelas.</p>
+      <Detail>
+        <p className="lt-nd-sub">Registre quanto a pessoa deve e gere as parcelas.</p>
+      </Detail>
 
       <div className="lt-nd-form">
         <DebtorPicker

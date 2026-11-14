@@ -216,7 +216,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
         )}
 
         <div id="df-name">
-          <Input label="Nome" value={v.name} onChange={(x) => set('name', x)} placeholder="Maria Souza" required maxLength={100} error={errors.name} autoFocus={!editing} />
+          <Input label="Nome" value={v.name} onChange={(x) => set('name', x)} placeholder="Maria Souza" required maxLength={100} autoComplete="off" error={errors.name} autoFocus={!editing} />
         </div>
         <div id="df-phone">
           <Input
@@ -225,6 +225,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
             onChange={(x) => set('phone', maskPhone(x))}
             placeholder="(11) 98765-4321"
             inputMode="tel"
+            autoComplete="off"
             maxLength={20}
             hint={errors.phone ? undefined : 'Para cobrar no WhatsApp'}
             error={errors.phone}
@@ -276,7 +277,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                 <legend className="lt-flabel">Endereço</legend>
                 <div className="lt-df-zip">
                   <div id="df-zip" style={{ maxWidth: 200 }}>
-                    <Input label="CEP" value={formatCep(v.zip)} onChange={onZip} placeholder="00000-000" inputMode="numeric" maxLength={9} />
+                    <Input label="CEP" value={formatCep(v.zip)} onChange={onZip} placeholder="00000-000" inputMode="numeric" maxLength={9} autoComplete="postal-code" />
                   </div>
                   {addr === 'cep' && cep !== 'loading' && (
                     <button
@@ -308,17 +309,17 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                 {addr === 'full' && (
                   <>
                     <div id="df-street">
-                      <Input label="Rua" value={v.street} onChange={(x) => set('street', x)} placeholder="Rua ou avenida" maxLength={200} />
+                      <Input label="Rua" value={v.street} onChange={(x) => set('street', x)} placeholder="Rua ou avenida" maxLength={200} autoComplete="address-line1" />
                     </div>
                     <div className="lt-df-2">
                       <div id="df-number">
                         <Input label="Número" value={v.number} onChange={(x) => set('number', x)} placeholder="123" inputMode="numeric" maxLength={20} />
                       </div>
-                      <Input label="Complemento" value={v.complement} onChange={(x) => set('complement', x)} placeholder="Apto, bloco" maxLength={100} />
+                      <Input label="Complemento" value={v.complement} onChange={(x) => set('complement', x)} placeholder="Apto, bloco" maxLength={100} autoComplete="address-line2" />
                     </div>
-                    <Input label="Bairro" value={v.neighborhood} onChange={(x) => set('neighborhood', x)} placeholder="Bairro" maxLength={100} />
+                    <Input label="Bairro" value={v.neighborhood} onChange={(x) => set('neighborhood', x)} placeholder="Bairro" maxLength={100} autoComplete="address-level3" />
                     <div className="lt-df-city">
-                      <Input label="Cidade" value={v.city} onChange={(x) => set('city', x)} placeholder="Cidade" maxLength={100} />
+                      <Input label="Cidade" value={v.city} onChange={(x) => set('city', x)} placeholder="Cidade" maxLength={100} autoComplete="address-level2" />
                       <Select label="UF" value={v.state} onChange={(x) => set('state', x)} options={UF_OPTIONS} />
                     </div>
                   </>

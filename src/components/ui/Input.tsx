@@ -20,6 +20,8 @@ interface InputProps {
   disabled?: boolean
   rows?: number
   maxLength?: number
+  /** Browser autofill hint (autocomplete="…"). */
+  autoComplete?: string
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
@@ -43,6 +45,7 @@ export function Input({
   rows = 3,
   maxLength,
   onKeyDown,
+  autoComplete,
 }: InputProps) {
   const [focus, setFocus] = useState(false)
   const id = useId()
@@ -116,6 +119,7 @@ export function Input({
             disabled={disabled}
             onChange={(e) => onChange(e.target.value)}
             maxLength={maxLength}
+            autoComplete={autoComplete}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             onKeyDown={onKeyDown}

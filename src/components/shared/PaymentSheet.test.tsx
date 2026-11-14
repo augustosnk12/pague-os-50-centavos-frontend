@@ -200,10 +200,13 @@ describe('PaymentSheet (S2)', () => {
 
   it('a failure keeps the sheet open and says nothing was saved', async () => {
     const user = userEvent.setup()
-    mocked.post.mockRejectedValue({ response: { data: { error: 'boom' } } })
+    mocked.post.mockRejectedValue({ response: { status: 500, data: { error: 'boom' } } })
     renderSheet(target())
     await user.click(await screen.findByRole('button', { name: /^Quitar parcela/ }))
-    expect(await screen.findByText(/Erro ao registrar pagamento|boom/)).toBeInTheDocument()
+    // Says what was not saved and offers to try again (improvement 47).
+    expect((await screen.findAllByText(/Não foi possível registrar R\$\s250,00 · nada foi salvo/)).length).toBeGreaterThan(0)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(mocked.post).toHaveBeenCalledTimes(2)
   })
 })

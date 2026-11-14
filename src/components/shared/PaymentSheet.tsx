@@ -23,6 +23,7 @@ import { leftOf } from '../../lib/debtorProfile'
 import type { ReceiptRequest } from '../../lib/receipt'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
+import { failedSave } from '../../lib/saveError'
 import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { Payment } from '../../types/payment'
@@ -149,7 +150,8 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
           secondary: { label: 'Comprovante', onClick: () => setReceipt({ debtorId, paymentId: payment.id }) },
         })
       },
-      onError: fail('Erro ao registrar pagamento.'),
+      // Not saved: say what, and offer "Tentar de novo" (improvement 47). The sheet stays filled.
+      onError: failedSave(showToast, `registrar ${fmtMoney(amount / 100)}`, confirm),
     })
   }
 

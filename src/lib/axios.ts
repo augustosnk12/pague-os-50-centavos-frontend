@@ -1,14 +1,15 @@
 import axios, { AxiosError } from 'axios'
-import { getToken, removeToken } from './cookies'
+import { getLenderFromStorage, getToken, removeToken } from './cookies'
+import { notifySessionExpired, SESSION_SAVE_ERROR } from './session'
 import { rememberReturnPath } from './returnPath'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 })
 
-/** Shown when a change cannot reach the server (improvement 47). */
-export const OFFLINE_SAVE_ERROR = 'Sem conexão · nada foi salvo. Tente quando a conexão voltar.'
-export const NETWORK_SAVE_ERROR = 'Não foi possível falar com o servidor · nada foi salvo. Tente de novo.'
+import { NETWORK_SAVE_ERROR, OFFLINE_SAVE_ERROR } from './saveMessages'
+
+export { NETWORK_SAVE_ERROR, OFFLINE_SAVE_ERROR }
 
 /** Rejects like an API error, so every onError (getApiError) shows the message. */
 function asApiError(config: AxiosError['config'], message: string): AxiosError {
@@ -35,8 +36,13 @@ let redirecting = false
 api.interceptors.response.use(
   (res) => res,
   (error: AxiosError) => {
-    if (error.response?.status === 401 && !redirecting) {
-      // Session expired: remember the screen, log in again, come back to it.
+    const isAuthCall = (error.config?.url ?? '').startsWith('/auth/')
+    // Session expired while using the app: a sheet logs in again on this screen (improvement 47).
+    if (error.response?.status === 401 && !isAuthCall && getLenderFromStorage()?.email && notifySessionExpired()) {
+      return Promise.reject(isChange(error.config?.method) ? asApiError(error.config, SESSION_SAVE_ERROR) : error)
+    }
+    if (error.response?.status === 401 && !isAuthCall && !redirecting) {
+      // No known account (opened on a new device): log in again, then come back to this screen.
       redirecting = true
       rememberReturnPath(window.location.pathname + window.location.search)
       removeToken()

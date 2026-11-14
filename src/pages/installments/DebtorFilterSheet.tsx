@@ -3,8 +3,8 @@ import { Modal } from '../../components/ui/Modal'
 import { Avatar } from '../../components/ui/Avatar'
 import { Icon } from '../../components/ui/Icon'
 import type { Debtor } from '../../types/debtor'
+import { rankByTerm } from '../../lib/searchMatch'
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 interface DebtorFilterSheetProps {
   open: boolean
@@ -17,7 +17,7 @@ interface DebtorFilterSheetProps {
 /** "Filtrar por devedor" (improvement 14): search, toggle people, "Limpar". Applies as you tap. */
 export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }: DebtorFilterSheetProps) {
   const [q, setQ] = useState('')
-  const matches = debtors.filter((d) => norm(d.name).includes(norm(q.trim())))
+  const matches = rankByTerm(debtors, q, (d) => d.name)
   const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
   const close = () => {
     setQ('')

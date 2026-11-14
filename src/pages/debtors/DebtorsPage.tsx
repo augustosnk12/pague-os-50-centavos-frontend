@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useDebtors } from '../../hooks/debtors/useDebtors'
+import { useArchivedDebtors, useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
 import { useSearch } from '../../hooks/search/useSearch'
+import { scrollBehavior } from '../../lib/scroll'
+import { rankByTerm } from '../../lib/searchMatch'
 import { useToast } from '../../contexts/ToastContext'
 import { translateApiError } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
@@ -16,6 +18,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { RELIABILITY_OPTIONS, getReliabilityOption } from '../../constants/reliability'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
+import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 
 /** Accent- and case-insensitive ("joao" finds "João", "c" finds "ç"). */
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -24,19 +27,24 @@ const AZ_FROM = 15
 
 export function DebtorsPage() {
   const [params, setParams] = useSearchParams()
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(() => params.get('q') ?? '')
   const [reliabilityFilter, setReliabilityFilter] = useState<DebtorReliability | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const { detail } = usePreferences()
   const { showToast } = useToast()
 
   const { data: debtors = [], isLoading, isError, refetch, isFetching } = useDebtors(reliabilityFilter ?? undefined)
+  // Archived: out of the list, in a group at the end; the search still finds them (improvement 41).
+  const { data: archivedAll = [] } = useArchivedDebtors()
+  const [showArchived, setShowArchived] = useState(false)
   const createDebtor = useCreateDebtor()
   // Debts by description come from the API (improvement 21).
   const { data: found, active: searching } = useSearch(q)
   const debtHits = searching ? found?.debts ?? [] : []
 
   const term = norm(q.trim())
-  const filtered = debtors.filter((d) => norm(d.name).includes(term))
+  const filtered = rankByTerm(debtors, term, (d) => d.name)
+  const archivedHits = term ? rankByTerm(archivedAll, term, (d) => d.name) : []
 
   // Letter groups (A, B, C…) for long lists, no side index.
   const groups = useMemo(() => {
@@ -76,7 +84,7 @@ export function DebtorsPage() {
       const el = document.getElementById(`letra-${target}`)
       if (!el) return
       e.preventDefault()
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
       el.querySelector<HTMLElement>('a')?.focus({ preventScroll: true })
       setFlash(target)
       setAnnounce(`Letra ${target}, ${groups.find(([l]) => l === target)?.[1].length ?? 0} pessoas`)
@@ -124,8 +132,24 @@ export function DebtorsPage() {
 
   if (isLoading) {
     return (
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
-        <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', paddingTop: 60 }}>Carregando…</div>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} aria-busy="true">
+        <span className="lt-sr-only">Carregando devedores…</span>
+        <div className="lt-skel" style={{ height: 30, width: 160, borderRadius: 10 }} />
+        <div className="lt-skel" style={{ height: 46, borderRadius: 14, marginTop: 18 }} />
+        <div className="lt-skel-row" style={{ marginTop: 12 }}>
+          {[90, 110, 96].map((w) => <div key={w} className="lt-skel" style={{ height: 34, width: w, borderRadius: 99 }} />)}
+        </div>
+        <div className="lt-skel-list">
+          {[0, 1, 2, 3, 4].map((k) => (
+            <div key={k} className="lt-skel-item">
+              <div className="lt-skel" style={{ width: 40, height: 40, borderRadius: 12 }} />
+              <div style={{ flex: 1 }}>
+                <div className="lt-skel" style={{ height: 13, width: '55%' }} />
+                <div className="lt-skel" style={{ height: 10, width: '35%', marginTop: 7 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </main>
     )
   }
@@ -140,7 +164,7 @@ export function DebtorsPage() {
     )
   }
 
-  const row = (dt: Debtor, idx: number) => (
+  const row = (dt: Debtor, idx: number, archived = false) => (
     // The row opens the profile: a real link (keyboard, middle-click, screen readers).
     <Link
       key={dt.id}
@@ -160,7 +184,7 @@ export function DebtorsPage() {
         animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${Math.min(idx, 12) * 0.04}s both`,
       }}
     >
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{ position: 'relative', flexShrink: 0 }} hidden={detail === 'lean'}>
         <Avatar name={dt.name} size={48} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
         {(() => {
           const opt = getReliabilityOption(dt.reliability)
@@ -181,6 +205,7 @@ export function DebtorsPage() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>
+          {archived && <span className="lt-arch-tag"><Icon name="archive" size={11} /> Arquivado</span>}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'}
@@ -192,7 +217,7 @@ export function DebtorsPage() {
     </Link>
   )
 
-  const nothing = filtered.length === 0 && debtHits.length === 0
+  const nothing = filtered.length === 0 && debtHits.length === 0 && archivedHits.length === 0
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
@@ -200,9 +225,11 @@ export function DebtorsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
-          <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>
-            {debtors.length} {debtors.length === 1 ? 'pessoa' : 'pessoas'}
-          </p>
+          <Detail>
+            <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>
+              {debtors.length} {debtors.length === 1 ? 'pessoa' : 'pessoas'}
+            </p>
+          </Detail>
         </div>
         <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
           Adicionar
@@ -272,15 +299,32 @@ export function DebtorsPage() {
                     <span>{letter}</span>
                     <span className="lt-group-line" aria-hidden="true" />
                   </h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.map(row)}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.map((d, i) => row(d, i))}</div>
                 </section>
               ))}
             </>
           ) : (
             <>
               {term && filtered.length > 0 && debtHits.length > 0 && <h2 className="lt-group-label"><span>Devedores · {filtered.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{filtered.map(row)}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{filtered.map((d, i) => row(d, i))}</div>
             </>
+          )}
+          {archivedHits.length > 0 && (
+            <>
+              <h2 className="lt-group-label"><span>Arquivados · {archivedHits.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{archivedHits.map((d, i) => row(d, i, true))}</div>
+            </>
+          )}
+          {!term && !reliabilityFilter && archivedAll.length > 0 && (
+            <div className="lt-arch-group">
+              <button type="button" className="lt-more-link lt-arch-link" aria-expanded={showArchived} onClick={() => setShowArchived((v) => !v)}>
+                <Icon name="archive" size={14} /> Arquivados ({archivedAll.length})
+                <Icon name="chevronDown" size={13} style={showArchived ? { transform: 'rotate(180deg)' } : undefined} />
+              </button>
+              {showArchived && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 10 }}>{archivedAll.map((d, i) => row(d, i, true))}</div>
+              )}
+            </div>
           )}
           {debtHits.length > 0 && (
             <>

@@ -7,5 +7,5 @@ export interface SearchResult {
 }
 
 export const searchApi = {
-  search: (q: string, limit = 8) => api.get<SearchResult>('/search', { params: { q, limit } }),
+  search: (q: string, limit = 8, signal?: AbortSignal) => api.get<SearchResult>('/search', { params: { q, limit }, signal }),
 }

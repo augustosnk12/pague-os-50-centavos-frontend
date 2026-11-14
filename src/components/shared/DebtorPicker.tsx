@@ -7,10 +7,10 @@ import { fmtMoney } from '../../lib/format'
 import { profileNumbers } from '../../lib/debtorProfile'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { byRecent } from '../../lib/recentDebtors'
+import { rankByTerm } from '../../lib/searchMatch'
 import type { Debtor } from '../../types/debtor'
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
-const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
 /** "Já deve R$ X · N em atraso" of the chosen debtor. */
 function Balance({ id }: { id: string }) {
@@ -53,8 +53,8 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const sorted = byRecent(debtors)
-  const term = norm(q.trim())
-  const list = term ? sorted.filter((d) => norm(d.name).includes(term)) : sorted
+  const term = q.trim()
+  const list = rankByTerm(sorted, term, (d) => d.name)
 
   const pick = (d: Debtor) => {
     setOpen(false)
