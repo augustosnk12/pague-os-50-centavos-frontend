@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import { IconButton } from '../../../components/ui/IconButton'
 import { ListGroup } from '../../../components/ui/ListGroup'
@@ -40,13 +41,29 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
   const late = debtLate(debt, today)
   const show = lean ? 1 : 3
   const rows = expanded ? [...debt.installments].sort((a, b) => a.number - b.number) : open.slice(0, show)
-  const hidden = expanded ? 0 : total - rows.length
+  // Opened expanded (search, new debt) with nothing to hide: no "Mostrar só as em aberto".
+  const canToggle = total > open.slice(0, show).length
   const title = debt.description || DEBT_TYPE_META[debt.type]?.label || 'Dívida'
   const monthly = debt.recurrence === 'MONTHLY'
+  const sectionRef = useRef<HTMLElement>(null)
+  const sticky = expanded && canToggle
+
+  /** Recolher: collapse and, if the card's top went off screen, bring it back (improvement 12). */
+  const toggle = () => {
+    const collapsing = expanded
+    onToggle()
+    if (!collapsing) return
+    requestAnimationFrame(() => {
+      const el = sectionRef.current
+      const head = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-head-h')) || 60
+      if (el && el.getBoundingClientRect().top < head) el.scrollIntoView({ block: 'start' })
+    })
+  }
 
   return (
-    <section id={`divida-${debt.id}`} className="lt-dsec" data-late={late || undefined} aria-labelledby={`divida-h-${debt.id}`}>
-      <div className="lt-dsec-h">
+    <section ref={sectionRef} id={`divida-${debt.id}`} className="lt-dsec" data-late={late || undefined} aria-labelledby={`divida-h-${debt.id}`}>
+      {/* Expanded, the header stays on screen while scrolling, with "Recolher". */}
+      <div className="lt-dsec-h" data-sticky={sticky || undefined}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 id={`divida-h-${debt.id}`} className="lt-dsec-t">{title}</h3>
           <Detail>
@@ -61,7 +78,13 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           <div className="lt-dsec-v">{fmtMoney(left / 100)}</div>
           <Detail><div className="lt-dsec-k">restam</div></Detail>
         </div>
-        <IconButton name="dots" size={17} label={`Ações da dívida ${title}`} onClick={onActions} />
+        {sticky ? (
+          <button type="button" className="lt-dsec-collapse" aria-expanded onClick={toggle} aria-label={`Recolher ${title}`}>
+            Recolher <Icon name="chevronDown" size={13} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+        ) : (
+          <IconButton name="dots" size={17} label={`Ações da dívida ${title}`} onClick={onActions} />
+        )}
       </div>
       <Detail>
         <div className="lt-dsec-bar" aria-hidden="true"><span style={{ width: `${expected ? (received / expected) * 100 : 0}%` }} /></div>
@@ -71,10 +94,10 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           <InstallmentLine key={i.id} inst={enrich(i, debt, debtor)} today={today} onOpen={onOpen} inDebt showDate={false} onReceipt={onReceipt} />
         ))}
       </ListGroup>
-      {(hidden > 0 || expanded || open.length > 1) && (
+      {(canToggle || open.length > 1) && (
         <div className="lt-dsec-foot">
-          {hidden > 0 || expanded ? (
-            <button type="button" className="lt-more-link" aria-expanded={expanded} onClick={onToggle}>
+          {canToggle ? (
+            <button type="button" className="lt-more-link" aria-expanded={expanded} onClick={toggle}>
               {expanded ? 'Mostrar só as em aberto' : `Ver todas as ${total} parcelas`}
               <Icon name="chevronDown" size={13} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
             </button>

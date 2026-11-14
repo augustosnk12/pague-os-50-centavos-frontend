@@ -376,3 +376,102 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
     </Modal>
   )
 }
+
+/* ---------- Excluir dívida / devedor (improvement 46) ---------- */
+
+const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase()
+
+/** Simple confirmation; only reached for a debt with no payments. */
+export function DeleteDebtSheet({ debt, busy, onClose, onConfirm }: {
+  debt: DebtWithInstallments | null
+  busy: boolean
+  onClose: () => void
+  onConfirm: (d: DebtWithInstallments) => void
+}) {
+  const [last, setLast] = useState(debt)
+  if (debt && debt !== last) setLast(debt)
+  const d = debt ?? last
+  if (!d) return null
+  const n = d.installments.length
+  return (
+    <Modal
+      open={!!debt}
+      onClose={onClose}
+      title={`Excluir ${d.description || 'dívida'}?`}
+      footer={
+        <button type="button" className="lt-btn-lg" data-variant="danger" disabled={busy} onClick={() => onConfirm(d)}>
+          <Icon name="trash" size={16} /> {busy ? 'Excluindo…' : 'Excluir dívida'}
+        </button>
+      }
+    >
+      <p className="lt-del-p">{n > 1 ? `As ${n} parcelas dessa dívida serão apagadas.` : 'A parcela dessa dívida será apagada.'} Não dá para desfazer.</p>
+    </Modal>
+  )
+}
+
+/**
+ * Excluir devedor: with no debts, a simple confirmation. With history, it
+ * first suggests Arquivar (keeps the history) and, to delete everything,
+ * asks only for the first name (accents and case don't matter).
+ */
+export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, received, busy, onArchive, onDelete }: {
+  open: boolean
+  onClose: () => void
+  debtor: Debtor
+  debts: DebtWithInstallments[]
+  archive: ArchiveState
+  /** Received on everything, cents. */
+  received: number
+  busy: boolean
+  onArchive: () => void
+  onDelete: () => void
+}) {
+  const [typed, setTyped] = useState('')
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setTyped('')
+  }
+  const first = firstName(debtor.name)
+  const hasHistory = debts.length > 0
+  const payments = debts.reduce((n, d) => n + d.installments.reduce((m, i) => m + (i.payments?.length ?? 0), 0), 0)
+  const ok = !hasHistory || norm(typed) === norm(first)
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Excluir ${first}?`}
+      footer={
+        <button type="button" className="lt-btn-lg" data-variant="danger" aria-disabled={!ok || undefined} disabled={busy} onClick={() => ok && onDelete()}>
+          <Icon name="trash" size={16} /> {busy ? 'Excluindo…' : hasHistory ? 'Excluir tudo' : 'Excluir devedor'}
+        </button>
+      }
+    >
+      {!hasHistory ? (
+        <p className="lt-del-p">{debtor.name} não tem dívidas. O cadastro será apagado e não dá para desfazer.</p>
+      ) : (
+        <div className="lt-del">
+          {!archive.archived && (
+            <div className="lt-del-arch">
+              <div className="lt-del-arch-t"><Icon name="archive" size={15} /> Prefere arquivar?</div>
+              <div className="lt-del-arch-s">Some das listas e mantém o histórico de {fmtMoney(received / 100)} recebidos. Dá para reativar.</div>
+              {archive.blockedBy ? (
+                <div className="lt-del-arch-why">{archive.blockedBy}</div>
+              ) : (
+                <button type="button" className="lt-chip" onClick={onArchive}>Arquivar {first}</button>
+              )}
+            </div>
+          )}
+          <div>
+            <div className="lt-del-all-t">{archive.archived ? 'Excluir tudo' : 'Ou excluir tudo'}</div>
+            <div className="lt-del-all-s">
+              Apaga {debts.length} {debts.length === 1 ? 'dívida' : 'dívidas'} e {payments} {payments === 1 ? 'pagamento' : 'pagamentos'}. Não dá para desfazer.
+            </div>
+            <label className="lt-flabel" htmlFor="dd-confirm">Digite “{first}” para confirmar</label>
+            <input id="dd-confirm" className="lt-del-input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}

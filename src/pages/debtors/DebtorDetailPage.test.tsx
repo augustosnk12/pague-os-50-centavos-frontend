@@ -146,6 +146,72 @@ describe('Perfil do devedor (S4)', () => {
     expect(await screen.findByRole('dialog', { name: 'Comprovante' })).toBeInTheDocument()
   })
 
+  it('Editar dívida: with payments the type is fixed and it cannot be deleted', async () => {
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: 'Ações da dívida Notebook' }))
+    await user.click(await screen.findByRole('button', { name: /Editar dívida/ }))
+    const sheet = await screen.findByRole('dialog', { name: 'Editar dívida' })
+    expect(sheet).toHaveTextContent('Fixo: já há pagamentos')
+    // Only the type it has, not options that can't be chosen.
+    expect(within(sheet).queryByRole('button', { name: /^(Dinheiro|Pix|Cartão de crédito|Pix parcelado)$/ })).toBeNull()
+    expect(sheet.querySelector('.lt-de-type-fixed')).toHaveTextContent('Pix parcelado')
+    expect(sheet).toHaveTextContent('Não dá para excluir')
+    expect(within(sheet).queryByRole('button', { name: /Excluir dívida/ })).toBeNull()
+  })
+
+  it('Excluir dívida without payments: simple confirmation saying what goes away', async () => {
+    const user = userEvent.setup()
+    del.mockResolvedValue({ data: { message: 'ok' } })
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: 'Ações da dívida Mercado' }))
+    await user.click(await screen.findByRole('button', { name: /Editar dívida/ }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Editar dívida' })).getByRole('button', { name: /Excluir dívida/ }))
+    const confirm = await screen.findByRole('dialog', { name: 'Excluir Mercado?' })
+    expect(confirm).toHaveTextContent('A parcela dessa dívida será apagada. Não dá para desfazer.')
+    await user.click(within(confirm).getByRole('button', { name: /Excluir dívida/ }))
+    expect(del).toHaveBeenCalledWith('/debts/mk')
+  })
+
+  it('Excluir devedor with history: suggests Arquivar first; deleting asks only for the first name (no accents needed)', async () => {
+    const user = userEvent.setup()
+    del.mockResolvedValue({ data: { message: 'ok' } })
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: 'Mais ações' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'João Araújo' })).getByRole('button', { name: /Excluir João/ }))
+    const sheet = await screen.findByRole('dialog', { name: 'Excluir João?' })
+    expect(sheet).toHaveTextContent('Prefere arquivar?')
+    expect(sheet).toHaveTextContent(/Quite os R\$\s430,00 em aberto para arquivar/)
+    expect(sheet).toHaveTextContent('Apaga 3 dívidas e 2 pagamentos. Não dá para desfazer.')
+    const go = within(sheet).getByRole('button', { name: /Excluir tudo/ })
+    expect(go).toHaveAttribute('aria-disabled', 'true')
+    await user.click(go)
+    expect(del).not.toHaveBeenCalled()
+    await user.type(within(sheet).getByRole('textbox', { name: /Digite “João” para confirmar/ }), 'joao')
+    expect(go).not.toHaveAttribute('aria-disabled')
+    await user.click(go)
+    expect(del).toHaveBeenCalledWith('/debtors/d1')
+  })
+
+  it('expanded: the header gets "Recolher" (it stays on screen while scrolling) and collapses back', async () => {
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    const nb = (await screen.findAllByRole('region', { name: 'Notebook' }))[0]
+    expect(within(nb).queryByRole('button', { name: 'Recolher Notebook' })).toBeNull()
+    await user.click(within(nb).getByRole('button', { name: 'Ver todas as 5 parcelas' }))
+    expect(nb.querySelector('.lt-dsec-h')).toHaveAttribute('data-sticky')
+    await user.click(within(nb).getByRole('button', { name: 'Recolher Notebook' }))
+    expect(within(nb).getByRole('list', { name: 'Parcelas de Notebook' }).children).toHaveLength(3)
+    expect(nb.querySelector('.lt-dsec-h')).not.toHaveAttribute('data-sticky')
+  })
+
+  it('opened expanded with a single installment: no "Mostrar só as em aberto" (nothing to hide)', async () => {
+    renderApp('/debtors/d1?divida=mk')
+    const card = await screen.findByRole('region', { name: 'Mercado' })
+    await waitFor(() => expect(within(card).getByRole('list', { name: 'Parcelas de Mercado' }).children).toHaveLength(1))
+    expect(within(card).queryByRole('button', { name: /Mostrar só as em aberto|Ver todas/ })).toBeNull()
+  })
+
   it('a paid-off debt picked in the search opens in Quitadas, expanded', async () => {
     renderApp('/debtors/d1?divida=cel')
     await waitFor(() => expect(screen.getByRole('tab', { name: /Quitadas/ })).toHaveAttribute('aria-selected', 'true'))

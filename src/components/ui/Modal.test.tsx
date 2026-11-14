@@ -132,3 +132,33 @@ describe('Modal: Esc right after opening', () => {
     expect(outer).not.toHaveBeenCalled()
   })
 })
+
+describe('Modal: one sheet opening another', () => {
+  function Chain() {
+    const [menu, setMenu] = useState(false)
+    const [confirm, setConfirm] = useState(false)
+    return (
+      <>
+        <button type="button" onClick={() => setMenu(true)}>Mais ações</button>
+        <Modal open={menu} title="Menu" onClose={() => setMenu(false)}>
+          <button type="button" onClick={() => { setMenu(false); setConfirm(true) }}>Excluir</button>
+        </Modal>
+        <Modal open={confirm} title="Confirmar" onClose={() => setConfirm(false)}>
+          <input aria-label="Nome" />
+        </Modal>
+      </>
+    )
+  }
+
+  it('the first one closing later does not pull the focus out of the second', async () => {
+    const user = userEvent.setup()
+    render(<Chain />)
+    await user.click(screen.getByRole('button', { name: 'Mais ações' }))
+    await user.click(await screen.findByRole('button', { name: 'Excluir' }))
+    const input = await screen.findByRole('textbox', { name: 'Nome' })
+    await waitFor(() => expect(input).toHaveFocus())
+    // The menu finishes its exit animation and unmounts.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).toBeNull(), { timeout: MODAL_EXIT_MS + 2000 })
+    expect(input).toHaveFocus()
+  })
+})

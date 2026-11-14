@@ -408,7 +408,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: background-color var(--dur-fast) var(--ease-std);
 }
 .lt-btn-lg[data-variant="primary"] { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-primary); }
-.lt-btn-lg[data-variant="primary"]:hover:not(:disabled) { background: var(--primary-hover); }
+.lt-btn-lg[data-variant="primary"]:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--primary-hover); }
 .lt-btn-lg[data-variant="secondary"] { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
 .lt-btn-lg:disabled { cursor: not-allowed; background: var(--surface-2); color: var(--text-muted); box-shadow: none; border-color: var(--border); }
 
@@ -1163,3 +1163,62 @@ html:has(.lt-nd-foot) { scroll-padding-bottom: 170px; }
 .lt-lrow-desc + .lt-lrow-pos { margin-left: 0.3em; }
 .lt-pay-desc { margin-top: 1px; font-size: 0.78125rem; font-weight: 700; color: var(--text); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .lt-pay-desc + .lt-pay-sub { white-space: normal; }
+
+/* ===== Cadastro e exclusão (S9) ===== */
+.lt-df { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+.lt-df-av { display: flex; align-items: center; gap: 12px; }
+.lt-df-av-btn { border: none; padding: 0; background: none; border-radius: 30%; cursor: pointer; line-height: 0; }
+.lt-df-more { align-self: flex-start; padding: 0; }
+.lt-df-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lt-df-rel { display: inline-flex; align-items: center; gap: 6px; }
+.lt-df-rel[aria-pressed="true"] { background: var(--surface); border-width: 1.5px; }
+.lt-df-addr { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--r-md); }
+.lt-df-addr legend { padding: 0 4px; margin: 0; }
+.lt-df-zip { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.lt-df-zip .lt-more-link { margin-bottom: 15px; }
+.lt-df-cep { display: flex; align-items: center; gap: 5px; margin-top: -6px; font-size: 0.78125rem; font-weight: 700; color: var(--text-muted); }
+.lt-df-cep:empty { display: none; }
+.lt-df-cep[data-tone="found"] { color: var(--paid); }
+.lt-df-cep[data-tone="notfound"] { color: var(--pending); }
+.lt-df-2 { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 10px; }
+.lt-df-city { display: grid; grid-template-columns: 1fr 96px; gap: 10px; }
+
+.lt-de-label { display: flex; justify-content: space-between; gap: 10px; }
+.lt-de-fixed { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.lt-de-type-fixed { cursor: default; background: var(--surface-2); }
+.lt-de-type-fixed:hover { background: var(--surface-2); }
+.lt-de-danger { padding-top: 12px; border-top: 1px solid var(--border); }
+.lt-de-danger-t { font-weight: 800; font-size: 0.875rem; }
+.lt-de-danger-s { margin-top: 2px; font-weight: 600; font-size: 0.78125rem; color: var(--text-muted); }
+.lt-de-del { display: inline-flex; align-items: center; gap: 7px; padding: 8px 0; border: none; background: none; cursor: pointer; font: inherit; font-weight: 800; font-size: 0.875rem; color: var(--overdue); }
+
+.lt-btn-lg[data-variant="danger"] { background: var(--overdue); color: var(--surface); }
+.lt-btn-lg[data-variant="danger"]:hover:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in oklch, var(--overdue) 88%, black); }
+.lt-btn-lg[data-variant="danger"][aria-disabled="true"] { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+.lt-del { display: flex; flex-direction: column; gap: 16px; padding-top: 4px; }
+.lt-del-p { margin: 0; padding-top: 4px; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); line-height: 1.5; }
+.lt-del-arch { padding: 12px; border-radius: var(--r-md); background: var(--surface-2); }
+.lt-del-arch-t { display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: 0.875rem; }
+.lt-del-arch-s { margin: 3px 0 10px; font-weight: 600; font-size: 0.78125rem; color: var(--text-muted); }
+.lt-del-arch-why { font-weight: 700; font-size: 0.78125rem; color: var(--pending); }
+.lt-del-all-t { font-weight: 800; font-size: 0.875rem; color: var(--overdue); }
+.lt-del-all-s { margin: 3px 0 10px; font-weight: 600; font-size: 0.78125rem; color: var(--text-muted); }
+.lt-del-input {
+  width: 100%; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--border-input); background: var(--surface);
+  color: var(--text); font: inherit; font-size: 1rem; outline: none;
+}
+.lt-del-input:focus { border-color: var(--overdue); }
+
+/* Expanded debt card: its header stays below the app header while scrolling (improvement 12). */
+.lt-dsec-h[data-sticky] {
+  position: sticky; top: var(--app-head-h, 60px); z-index: 3; margin: -12px -12px 8px; padding: 12px 12px 8px 16px;
+  background: color-mix(in oklch, var(--surface) 94%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border); border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.lt-dsec[data-late] .lt-dsec-h[data-sticky] { margin-left: -12px; }
+.lt-dsec-collapse {
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 6px 10px; border-radius: 99px; cursor: pointer;
+  border: 1.5px solid var(--primary-weak-2); background: var(--primary-weak); color: var(--primary); font: inherit; font-weight: 800; font-size: 0.75rem;
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+}
+.lt-dsec-collapse:hover { background: var(--primary); color: var(--on-primary); }

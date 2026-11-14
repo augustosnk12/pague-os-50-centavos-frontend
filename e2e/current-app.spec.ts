@@ -274,7 +274,7 @@ test.describe('Painel (S1)', () => {
     await expect(card.getByRole('button', { name: 'Nova dívida' })).toHaveAttribute('aria-disabled', 'true')
     await card.getByRole('button', { name: 'Adicionar' }).click()
     await page.getByLabel('Nome').fill('Maria Primeira')
-    await page.getByRole('dialog').getByRole('button', { name: 'Adicionar' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: /Salvar devedor/ }).click()
     await expect(card.getByText('✓ Maria cadastrada')).toBeVisible()
     await a11y('dashboard-first-use-step2')
     await card.getByRole('button', { name: 'Nova dívida' }).click()
@@ -321,7 +321,7 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
   expect(payment.paidAt.slice(0, 10)).toBe(`${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`)
 
   await page.getByRole('button', { name: 'Desfazer' }).click()
-  await expect(page.getByText('Pagamento desfeito')).toBeVisible()
+  await expect(page.locator('.lt-toast').getByText('Pagamento desfeito')).toBeVisible()
   await expect.poll(paid).toBe(0)
 })
 
@@ -487,7 +487,10 @@ test.describe('Busca e atalhos (S10)', () => {
     }
     await expect(page).toHaveURL(new RegExp(`/debtors/${d.id}\\?divida=${debt.debt.id}$`))
     // The debt starts expanded.
-    await expect(page.getByRole('region', { name: 'Curso de inglês' }).getByRole('button', { name: 'Mostrar só as em aberto' })).toHaveAttribute('aria-expanded', 'true')
+    // Its card is on screen with its installment; one installment: nothing to expand or collapse.
+    const card = page.getByRole('region', { name: 'Curso de inglês' })
+    await expect(card.getByRole('list', { name: 'Parcelas de Curso de inglês' })).toBeInViewport()
+    await expect(card.getByRole('button', { name: /Mostrar só as em aberto|Ver todas/ })).toHaveCount(0)
 
     if (desktop) {
       await page.keyboard.press('Alt+r')
@@ -568,7 +571,7 @@ test.describe('Perfil do devedor (S4)', () => {
     const sheet = page.getByRole('dialog', { name: 'Quitar Geladeira' })
     await expect(sheet).toContainText('3 parcelas em aberto')
     await sheet.getByRole('button', { name: /^Quitar dívida · R\$\s300,00$/ }).click()
-    await expect(page.getByText('Geladeira quitada')).toBeVisible()
+    await expect(page.locator('.lt-toast').getByText('Geladeira quitada')).toBeVisible()
     await expect.poll(left).toBe(0)
     await page.getByRole('button', { name: 'Desfazer' }).click()
     await expect.poll(left).toBe(3)
@@ -727,7 +730,7 @@ test.describe('Término da recorrência', () => {
     await count.fill('6')
     await expect(sheet.getByRole('status')).toContainText(`Última cobrança em ${fmt(plus(5))}`)
     await sheet.getByRole('button', { name: /Salvar término/ }).click()
-    await expect(page.getByText('Término alterado')).toBeVisible()
+    await expect(page.locator('.lt-toast').getByText('Término alterado')).toBeVisible()
     await expect(card).toContainText(`até ${fmt(plus(5))}`)
 
     await card.getByRole('button', { name: 'Ações da dívida Vaga de garagem' }).click()
@@ -738,4 +741,55 @@ test.describe('Término da recorrência', () => {
     const debts = await session.api('GET', `/debtors/${d.id}/debts`)
     expect(debts[0]).toMatchObject({ recurrenceOccurrences: null, recurrenceEndsAt: null })
   })
+})
+
+test.describe('Cadastro de devedor (S9)', () => {
+  test('lean sheet with phone mask and manual address; then delete with only the first name (real API)', async ({ page, session, a11y }) => {
+    void session
+    await page.goto('/debtors')
+    await page.getByRole('button', { name: /Novo devedor|Adicionar|Cadastrar/ }).first().click()
+    const sheet = page.getByRole('dialog', { name: 'Novo devedor' })
+    await sheet.getByRole('textbox', { name: /Nome/ }).fill('Conceição Teste')
+    await sheet.getByRole('textbox', { name: /Telefone/ }).pressSequentially('11987654321')
+    await expect(sheet.getByRole('textbox', { name: /Telefone/ })).toHaveValue('(11) 98765-4321')
+    await sheet.getByRole('button', { name: 'Mais dados' }).click()
+    await sheet.getByRole('button', { name: /Adicionar endereço/ }).click()
+    await sheet.getByRole('button', { name: 'Não sei o CEP' }).click()
+    await sheet.getByRole('textbox', { name: 'Rua' }).fill('Rua das Flores')
+    await sheet.getByRole('textbox', { name: 'Número' }).fill('12')
+    await a11y('debtor-form')
+    await sheet.getByRole('button', { name: /Salvar devedor/ }).click()
+    await expect(sheet).toHaveCount(0)
+
+    const list = await session.api('GET', '/debtors')
+    const d = list.find((x: { name: string }) => x.name === 'Conceição Teste')
+    expect(d).toMatchObject({ phone: '(11) 98765-4321', address: { street: 'Rua das Flores', number: '12' } })
+
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Fone', totalAmount: 50, numberOfInstallments: 1, firstDueDate: new Date().toISOString() })
+    await page.goto(`/debtors/${d.id}`)
+    await page.getByRole('button', { name: 'Mais ações' }).click()
+    await page.getByRole('button', { name: /Excluir Conceição/ }).click()
+    const del = page.getByRole('dialog', { name: 'Excluir Conceição?' })
+    await expect(del).toContainText('Apaga 1 dívida e 0 pagamentos')
+    await a11y('delete-debtor')
+    await del.getByRole('textbox', { name: /Digite/ }).fill('conceicao')
+    await del.getByRole('button', { name: /Excluir tudo/ }).click()
+    await expect(page).toHaveURL(/\/debtors$/)
+    expect((await session.api('GET', '/debtors')).some((x: { id: string }) => x.id === d.id)).toBe(false)
+  })
+})
+
+test('expanded debt card: the header stays on screen while scrolling; "Recolher" brings the card back (real API)', async ({ page, session }) => {
+  const d = await session.api('POST', '/debtors', { name: 'Rolagem Teste' })
+  await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Moto', totalAmount: 2400, numberOfInstallments: 24, firstDueDate: new Date().toISOString() })
+  await page.goto(`/debtors/${d.id}`)
+  const card = page.getByRole('region', { name: 'Moto' })
+  await card.getByRole('button', { name: 'Ver todas as 24 parcelas' }).click()
+  // Scroll to the last installment: the card's own header is still visible.
+  await card.getByRole('button', { name: /parcela 24 de 24/ }).scrollIntoViewIfNeeded()
+  const recolher = card.getByRole('button', { name: 'Recolher Moto' })
+  await expect(recolher).toBeInViewport()
+  await recolher.click()
+  await expect(card.getByRole('list', { name: 'Parcelas de Moto' }).locator('> li')).toHaveCount(3)
+  await expect(card.getByRole('heading', { name: 'Moto' })).toBeInViewport()
 })

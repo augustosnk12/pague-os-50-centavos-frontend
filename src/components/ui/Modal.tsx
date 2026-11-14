@@ -122,7 +122,11 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
       // without scroll after both closed.
       document.body.style.overflow = stack.length ? 'hidden' : ''
       const target = returnFocusTo.current
-      if (target && document.contains(target)) target.focus()
+      // A sheet opened from this one (⋯ → "Excluir") may already hold the focus:
+      // pulling it back to the opener at the end of the exit animation would send
+      // what the user is typing elsewhere.
+      const focusInAnotherDialog = stack.some((h) => h.contains(document.activeElement))
+      if (target && document.contains(target) && !focusInAnotherDialog) target.focus()
     }
   }, [mounted, host])
 

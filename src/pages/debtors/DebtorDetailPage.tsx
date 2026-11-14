@@ -6,8 +6,6 @@ import { Avatar } from '../../components/ui/Avatar'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
 import { Money } from '../../components/ui/Money'
-import { Modal } from '../../components/ui/Modal'
-import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { ListGroup } from '../../components/ui/ListGroup'
@@ -39,7 +37,7 @@ import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import type { ReceiptRequest } from '../../lib/receipt'
 import type { DebtType } from '../../types/debt'
 import { DebtSection } from './profile/DebtSection'
-import { DebtActionsSheet, DebtorActionsSheet, DebtorInfoSheet, PayoffSheet, RecurrenceEndSheet } from './profile/ProfileSheets'
+import { DebtActionsSheet, DebtorActionsSheet, DebtorInfoSheet, DeleteDebtorSheet, DeleteDebtSheet, PayoffSheet, RecurrenceEndSheet } from './profile/ProfileSheets'
 
 type Tab = 'open' | 'paid' | 'pays'
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
@@ -85,7 +83,6 @@ function DebtorProfile({ id }: { id: string }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [debtActions, setDebtActions] = useState<DebtWithInstallments | null>(null)
   const [payoff, setPayoff] = useState<DebtWithInstallments | null>(null)
   const [debtForm, setDebtForm] = useState<{ open: boolean; editing: DebtWithInstallments | null }>({ open: false, editing: null })
@@ -192,9 +189,8 @@ function DebtorProfile({ id }: { id: string }) {
       },
     )
 
-  const handleDeleteDebt = () => {
-    if (!confirmDelDebt) return
-    deleteDebt.mutate(confirmDelDebt.id, {
+  const handleDeleteDebt = (d: DebtWithInstallments) => {
+    deleteDebt.mutate(d.id, {
       onSuccess: () => {
         setConfirmDelDebt(null)
         showToast('Dívida excluída')
@@ -477,10 +473,7 @@ function DebtorProfile({ id }: { id: string }) {
         onInfo={() => setInfoOpen(true)}
         onEdit={() => setEditOpen(true)}
         onArchive={(v) => setArchived(v)}
-        onDelete={() => {
-          setDeleteConfirmName('')
-          setConfirmDelete(true)
-        }}
+        onDelete={() => setConfirmDelete(true)}
         onCopied={() => showToast('Telefone copiado', { icon: 'check' })}
         onBlocked={(why) => showToast(why, { icon: 'alert' })}
       />
@@ -512,36 +505,24 @@ function DebtorProfile({ id }: { id: string }) {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         onSave={handleUpdate}
-        onDelete={() => {
-          setEditOpen(false)
-          setDeleteConfirmName('')
-          setConfirmDelete(true)
-        }}
         editing={debtor}
         loading={updateDebtor.isPending}
       />
 
-      <Modal
+      <DeleteDebtorSheet
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title={`Excluir ${first}?`}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
-            <Button full variant="danger" icon="trash" onClick={handleDelete} disabled={deleteDebtor.isPending || deleteConfirmName.trim() !== debtor.name}>
-              {deleteDebtor.isPending ? 'Excluindo…' : 'Excluir tudo'}
-            </Button>
-          </>
-        }
-      >
-        <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p className="lt-remind-info">
-            Isso apaga <b>{debtor.name}</b> e todas as dívidas, parcelas e pagamentos. Não dá para desfazer.
-            {!archived && ' Se só quer tirar das listas, use “Arquivar”.'}
-          </p>
-          <Input label={`Digite "${debtor.name}" para confirmar`} value={deleteConfirmName} onChange={setDeleteConfirmName} placeholder={debtor.name} />
-        </div>
-      </Modal>
+        debtor={debtor}
+        debts={debts}
+        archive={{ archived, blockedBy }}
+        received={numbers.received}
+        busy={deleteDebtor.isPending}
+        onArchive={() => {
+          setConfirmDelete(false)
+          setArchived(true)
+        }}
+        onDelete={handleDelete}
+      />
 
       <DebtForm
         open={debtForm.open}
@@ -555,29 +536,7 @@ function DebtorProfile({ id }: { id: string }) {
         loading={updateDebt.isPending}
       />
 
-      <Modal
-        open={confirmDelDebt != null}
-        onClose={() => setConfirmDelDebt(null)}
-        title={confirmDelDebt?.installments.some((i) => (i.payments?.length ?? 0) > 0) ? 'Não é possível excluir' : 'Excluir dívida?'}
-        footer={
-          confirmDelDebt?.installments.some((i) => (i.payments?.length ?? 0) > 0) ? (
-            <Button full variant="secondary" onClick={() => setConfirmDelDebt(null)}>Fechar</Button>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={() => setConfirmDelDebt(null)}>Cancelar</Button>
-              <Button full variant="danger" icon="trash" onClick={handleDeleteDebt} disabled={deleteDebt.isPending}>
-                {deleteDebt.isPending ? 'Excluindo…' : 'Excluir'}
-              </Button>
-            </>
-          )
-        }
-      >
-        <p className="lt-remind-info" style={{ paddingTop: 4 }}>
-          {confirmDelDebt?.installments.some((i) => (i.payments?.length ?? 0) > 0)
-            ? 'Esta dívida tem pagamentos registrados e não pode ser excluída.'
-            : 'Isso vai apagar esta dívida e todas as suas parcelas. Não dá para desfazer.'}
-        </p>
-      </Modal>
+      <DeleteDebtSheet debt={confirmDelDebt} busy={deleteDebt.isPending} onClose={() => setConfirmDelDebt(null)} onConfirm={handleDeleteDebt} />
 
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
       <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />
