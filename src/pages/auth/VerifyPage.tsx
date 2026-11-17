@@ -44,9 +44,9 @@ export function VerifyPage() {
           <div style={{ width: 64, height: 64, borderRadius: '26%', background: 'var(--overdue-weak)', display: 'grid', placeItems: 'center' }}>
             <Icon name="alert" size={28} color="var(--overdue)" />
           </div>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>Link inválido ou expirado</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{error}</div>
-          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14 }}>
+          <div style={{ fontSize: '1.0625rem', fontWeight: 800 }}>Link inválido ou expirado</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{error}</div>
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.875rem' }}>
             Voltar para o login
           </Link>
         </>
@@ -55,7 +55,7 @@ export function VerifyPage() {
           <div style={{ width: 64, height: 64, borderRadius: '26%', background: 'var(--primary-weak)', display: 'grid', placeItems: 'center' }}>
             <Icon name="wallet" size={28} color="var(--primary)" />
           </div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-muted)' }}>Verificando…</div>
+          <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--text-muted)' }}>Verificando…</div>
         </>
       )}
     </div>

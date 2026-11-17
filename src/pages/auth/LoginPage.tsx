@@ -50,6 +50,7 @@ export function LoginPage() {
 
   const confirmed = params.get('confirmed') === 'true'
   const sessionExpired = params.get('expired') === '1'
+  const accountDeleted = params.get('excluida') === '1'
 
   const send = (to = email) => {
     setErr('')
@@ -123,6 +124,9 @@ export function LoginPage() {
     <AuthShell>
       {confirmed && (
         <div className="lt-auth-banner" data-tone="ok" role="status"><Icon name="check" size={16} strokeWidth={2.6} /> Conta confirmada! Agora é só entrar.</div>
+      )}
+      {accountDeleted && (
+        <div className="lt-auth-banner" data-tone="ok" role="status"><Icon name="check" size={16} /> Conta excluída. Seus dados foram apagados.</div>
       )}
       {sessionExpired && !urlError && (
         <div className="lt-auth-banner" data-tone="warn" role="status"><Icon name="alert" size={16} /> Sua sessão expirou. Entre de novo e você volta para onde estava.</div>

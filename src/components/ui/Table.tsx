@@ -26,7 +26,7 @@ export function Table<T>({ columns, rows, keyFn, className }: TableProps<T>) {
         boxShadow: 'var(--shadow-sm)',
       }}
     >
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
             {columns.map((col) => (
@@ -36,7 +36,7 @@ export function Table<T>({ columns, rows, keyFn, className }: TableProps<T>) {
                   padding: '11px 15px',
                   textAlign: 'left',
                   fontWeight: 700,
-                  fontSize: 12.5,
+                  fontSize: '0.78125rem',
                   color: 'var(--text-muted)',
                   background: 'var(--surface-2)',
                   ...col.style,

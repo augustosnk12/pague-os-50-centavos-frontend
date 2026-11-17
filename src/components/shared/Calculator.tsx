@@ -33,7 +33,7 @@ function CalcKey({ label, icon, kind = 'num', span, ariaLabel, onPress }: CalcKe
         borderRadius: 'calc(var(--radius) * 0.7)',
         background: p.bg,
         color: p.fg,
-        fontSize: 22,
+        fontSize: '1.375rem',
         fontWeight: 700,
         cursor: 'pointer',
         display: 'grid',
@@ -64,7 +64,7 @@ export function Calculator() {
     <div style={{ paddingTop: 2 }}>
       {/* Display */}
       <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px', marginBottom: 14, textAlign: 'right', overflow: 'hidden' }}>
-        <div style={{ minHeight: 20, fontSize: 14, color: 'var(--text-faint)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ minHeight: 20, fontSize: '0.875rem', color: 'var(--text-faint)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {expr || ' '}
         </div>
         <div className="lt-calc-display" style={{ fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isErr ? 'var(--overdue)' : 'var(--text)' }}>

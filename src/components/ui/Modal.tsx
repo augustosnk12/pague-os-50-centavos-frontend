@@ -198,7 +198,7 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
           head(titleId, () => onCloseRef.current())
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 18px 12px' }}>
-            <h2 id={titleId} style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
+            <h2 id={titleId} style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
             <IconButton name="x" onClick={() => onCloseRef.current()} label="Fechar" />
           </div>
         )}

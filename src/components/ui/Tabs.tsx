@@ -39,7 +39,7 @@ export function Tabs<T extends string>({ items, value, onChange, label, panelId,
   return (
     // Arrow keys come from the focused tab inside (tablist keyboard pattern).
     // eslint-disable-next-line jsx-a11y/interactive-supports-focus
-    <div ref={ref} className="lt-tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown} style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+    <div ref={ref} className="lt-tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(max-content, 1fr))` }}>
       {items.map((t) => (
         <button
           key={t.id}

@@ -158,7 +158,7 @@ export function DebtorsPage() {
   if (isError && debtors.length === 0) {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
-        <h1 style={{ margin: '0 0 16px', fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
+        <h1 style={{ margin: '0 0 16px', fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
         <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
@@ -204,10 +204,10 @@ export function DebtorsPage() {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>
+          <span style={{ fontWeight: 800, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>
           {archived && <span className="lt-arch-tag"><Icon name="archive" size={11} /> Arquivado</span>}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'}
         </div>
       </div>
@@ -224,9 +224,9 @@ export function DebtorsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
           <Detail>
-            <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 14.5 }}>
+            <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: '0.90625rem' }}>
               {debtors.length} {debtors.length === 1 ? 'pessoa' : 'pessoas'}
             </p>
           </Detail>
@@ -247,7 +247,7 @@ export function DebtorsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar devedor ou dívida…"
-            style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: 15, fontWeight: 500, width: '100%', fontFamily: 'inherit' }}
+            style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: '0.9375rem', fontWeight: 500, width: '100%', fontFamily: 'inherit' }}
           />
           {q && <IconButton name="x" size={16} onClick={() => setQ('')} label="Limpar" style={{ width: 28, height: 28 }} />}
         </div>
@@ -266,7 +266,7 @@ export function DebtorsPage() {
               style={{
                 flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '8px 14px', borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
-                fontWeight: 700, fontSize: 13.5, transition: 'all .15s', whiteSpace: 'nowrap',
+                fontWeight: 700, fontSize: '0.84375rem', transition: 'all .15s', whiteSpace: 'nowrap',
                 border: `1.5px solid ${active ? f.color : 'var(--border)'}`,
                 background: active ? f.color : 'var(--surface)',
                 color: active ? 'var(--on-primary)' : 'var(--text-muted)',

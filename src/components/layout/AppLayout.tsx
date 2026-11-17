@@ -2,7 +2,6 @@ import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Header } from './Header'
 import { BottomTabs } from './BottomTabs'
-import { AccountSheet } from './AccountSheet'
 import { Modal } from '../ui/Modal'
 import { Calculator } from '../shared/Calculator'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
@@ -19,7 +18,6 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [accountOpen, setAccountOpen] = useState(false)
   const [calcOpen, setCalcOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
@@ -47,7 +45,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { data: overview } = useDashboardOverview()
   const overdueCount = overview?.overdue.count ?? 0
 
-  const openCalc = () => { setAccountOpen(false); setCalcOpen(true) }
+  const openCalc = () => setCalcOpen(true)
 
   return (
     <>
@@ -55,14 +53,13 @@ export function AppLayout({ children }: AppLayoutProps) {
       <a href="#conteudo" className="lt-skip-link">Pular para o conteúdo</a>
       <OfflineBanner />
       <Header onCalc={openCalc} onRegister={openRegister} searchOpen={searchOpen} onSearchOpen={setSearchOpen} />
-      <BottomTabs onAccount={() => setAccountOpen(true)} overdueCount={overdueCount} onRegister={openRegister} />
+      <BottomTabs overdueCount={overdueCount} onRegister={openRegister} />
       {registerLoaded && (
         <Suspense fallback={null}>
           <RegisterPicker open={registerOpen} onClose={() => setRegisterOpen(false)} />
         </Suspense>
       )}
       <SessionSheet />
-      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} onCalc={openCalc} />
       <Modal open={calcOpen} onClose={() => setCalcOpen(false)} title="Calculadora">
         <Calculator />
       </Modal>

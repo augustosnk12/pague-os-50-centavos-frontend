@@ -65,7 +65,7 @@ export function Input({
     outline: 'none',
     background: 'transparent',
     color: 'var(--text)',
-    fontSize: 16,
+    fontSize: '1rem',
     fontWeight: 500,
     fontFamily: 'inherit',
     resize: 'none',
@@ -75,7 +75,7 @@ export function Input({
     // The whole box stays clickable (focuses the field); htmlFor makes the link explicit.
     <label htmlFor={id} style={{ display: 'block', ...style }} className={className}>
       {label && (
-        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+        <span style={{ display: 'block', fontSize: '0.84375rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
           {label} {required && <span style={{ color: 'var(--primary)' }} aria-hidden="true">*</span>}
         </span>
       )}
@@ -92,7 +92,7 @@ export function Input({
           boxShadow: focus ? '0 0 0 4px var(--primary-weak)' : 'none',
         }}
       >
-        {prefix && <span style={{ color: 'var(--text-faint)', fontWeight: 700, fontSize: 15 }}>{prefix}</span>}
+        {prefix && <span style={{ color: 'var(--text-faint)', fontWeight: 700, fontSize: '0.9375rem' }}>{prefix}</span>}
         {textarea ? (
           <textarea
             {...a11y}
@@ -128,7 +128,7 @@ export function Input({
         )}
       </div>
       {(hint ?? error) && (
-        <span id={msgId} role={error ? 'alert' : undefined} style={{ display: 'block', fontSize: 12.5, marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
+        <span id={msgId} role={error ? 'alert' : undefined} style={{ display: 'block', fontSize: '0.78125rem', marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
           {error ?? hint}
         </span>
       )}

@@ -8,6 +8,7 @@ const TABS: Record<string, string> = {
   '/debtors': 'Devedores',
   '/installments': 'Parcelas',
   '/debts/new': 'Nova dívida',
+  '/settings': 'Configurações',
 }
 
 const labels = new Map<number, string>()

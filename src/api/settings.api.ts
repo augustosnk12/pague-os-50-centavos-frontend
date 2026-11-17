@@ -12,4 +12,6 @@ export interface LenderSettings {
 
 export const settingsApi = {
   get: () => api.get<LenderSettings>('/settings'),
+  /** Only the fields sent change (API B3). The Pix key goes with its type. */
+  update: (data: Partial<LenderSettings>) => api.put<LenderSettings>('/settings', data),
 }

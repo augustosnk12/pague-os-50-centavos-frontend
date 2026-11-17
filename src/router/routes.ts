@@ -23,6 +23,7 @@ export const pages = {
   debtorDetail: page(() => import('../pages/debtors/DebtorDetailPage'), (m) => m.DebtorDetailPage),
   debtForm: page(() => import('../pages/debts/DebtFormPage'), (m) => m.DebtFormPage),
   installments: page(() => import('../pages/installments/InstallmentsPage'), (m) => m.InstallmentsPage),
+  settings: page(() => import('../pages/settings/SettingsPage'), (m) => m.SettingsPage),
 }
 
 const byPath: Record<string, Loader> = {
@@ -30,6 +31,7 @@ const byPath: Record<string, Loader> = {
   '/debtors': pages.debtors.preload,
   '/installments': pages.installments.preload,
   '/debts/new': pages.debtForm.preload,
+  '/settings': pages.settings.preload,
 }
 
 /** Start downloading the page behind a link (no-op for unknown paths). */

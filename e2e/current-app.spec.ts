@@ -225,11 +225,16 @@ test('user menu: keyboard (Enter, arrows, Esc returns focus) and accessible', as
   const menu = page.getByRole('menu', { name: 'Conta' })
   await expect(menu).toBeVisible()
   await expect(button).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByRole('menuitem', { name: /Tema/ })).toBeFocused()
-  await page.keyboard.press('ArrowDown')
-  await expect(page.getByRole('menuitem', { name: 'Sair' })).toBeFocused()
-  await page.keyboard.press('ArrowDown') // wraps
-  await expect(page.getByRole('menuitem', { name: /Tema/ })).toBeFocused()
+  // Arrows walk the items in order ("Apoie o projeto" appears only with VITE_SUPPORT_PIX) and wrap.
+  const items = menu.getByRole('menuitem')
+  const n = await items.count()
+  await expect(items.first()).toHaveAccessibleName('Configurações')
+  await expect(items.last()).toHaveAccessibleName('Sair')
+  for (let k = 0; k < n; k++) {
+    await expect(items.nth(k)).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+  }
+  await expect(items.first()).toBeFocused()
   await a11y('user-menu')
   await page.keyboard.press('Escape')
   await expect(menu).toHaveCount(0)
@@ -827,7 +832,7 @@ test.describe('Pendências das etapas anteriores (grupo A)', () => {
     await expect(page.getByRole('button', { name: 'Voltar para Parcelas' })).toContainText('Parcelas')
   })
 
-  test('32: "Enxuta" moves Pagamentos to the ⋯ and shows a dot on Conta (real API)', async ({ page, session }) => {
+  test('32: "Enxuta" moves Pagamentos to the ⋯, with no dot on Conta (real API)', async ({ page, session }) => {
     const d = await session.api('POST', '/debtors', { name: 'Lia Enxuta' })
     const debt = await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Fone', totalAmount: 50, numberOfInstallments: 1, firstDueDate: day(-2) })
     await session.api('POST', `/installments/${debt.installments[0].id}/payments`, { amount: 20, paidAt: day(-1).slice(0, 10) })
@@ -838,12 +843,8 @@ test.describe('Pendências das etapas anteriores (grupo A)', () => {
     await page.getByRole('button', { name: 'Mais ações' }).click()
     await page.getByRole('button', { name: /Pagamentos.*1 pagamento/ }).click()
     await expect(page.getByRole('dialog', { name: 'Pagamentos' }).getByRole('list', { name: 'Pagamentos' })).toContainText('Fone')
-    // One discreet dot: the account button on desktop, the Conta tab on phones.
-    const dots = await page.evaluate(() => Array.from(document.querySelectorAll('.lt-tab-dot, .lt-lean-dot')).filter((el) => {
-      const box = (el.classList.contains('lt-lean-dot') ? getComputedStyle(el, '::after').content : 'x') !== 'none' && (el as HTMLElement).offsetParent !== null
-      return box
-    }).length)
-    expect(dots).toBe(1)
+    // No dot on the account (it read as a notification).
+    await expect(page.locator('.lt-tab-dot, .lt-lean-dot')).toHaveCount(0)
   })
 
   test('47: session expired while using the app: a sheet logs in again and the screen stays (real API)', async ({ page, session }) => {
@@ -861,5 +862,46 @@ test.describe('Pendências das etapas anteriores (grupo A)', () => {
     await expect(sheet).toHaveCount(0)
     await expect(page).toHaveURL(/\/installments\?period=week$/)
     await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
+  })
+})
+
+test.describe('Configurações (S11)', () => {
+  test('"Conta" → Configurações: due day and Pix key save to the API; Nova dívida uses the day (real API)', async ({ page, session, a11y }) => {
+    void session
+    await page.goto('/dashboard')
+    if ((page.viewportSize()?.width ?? 0) < 880) await page.getByRole('link', { name: 'Conta' }).click()
+    else {
+      await page.getByRole('button', { name: 'Conta' }).click()
+      await page.getByRole('menuitem', { name: 'Configurações' }).click()
+    }
+    await expect(page.getByRole('heading', { level: 1, name: 'Configurações' })).toBeVisible()
+    await a11y('settings')
+
+    await page.getByRole('combobox', { name: 'Dia padrão para Cartão de crédito' }).selectOption('10')
+    await expect(page.locator('.lt-toast').getByText('Salvo')).toBeVisible()
+    const pix = page.getByRole('textbox', { name: 'Chave CPF' })
+    await pix.pressSequentially('52998224725')
+    await expect(page.getByText('✓ Chave válida')).toBeVisible()
+    await pix.blur()
+    await expect(page.locator('.lt-toast').getByText('Chave Pix salva')).toBeVisible()
+    await expect.poll(async () => (await session.api('GET', '/settings')).pixKey).toBe('52998224725')
+    expect((await session.api('GET', '/settings')).defaultCardDueDay).toBe(10)
+
+    await page.goto('/debts/new')
+    await page.getByRole('button', { name: /Cartão de crédito/ }).click()
+    await expect(page.getByText('Padrão do cartão: dia 10')).toBeVisible()
+  })
+
+  test('50: "Gigante" text size, no screen scrolls sideways (real API)', async ({ page, session }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Maria Gigante da Silva Souza' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Empréstimo de agosto para consertar o carro', totalAmount: 1200, numberOfInstallments: 6, firstDueDate: new Date().toISOString() })
+    await page.addInitScript(() => localStorage.setItem('pague50_prefs', JSON.stringify({ detail: 'full', textSize: 'xl' })))
+    for (const url of ['/dashboard', '/installments', '/debtors', `/debtors/${d.id}`, '/debts/new', '/settings']) {
+      await page.goto(url)
+      await expect(page.locator('h1').first()).toBeVisible()
+      await expect(page.locator('html')).toHaveAttribute('data-fz', 'xl')
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+      expect(over, `${url} scrolls sideways by ${over}px`).toBeLessThanOrEqual(1)
+    }
   })
 })

@@ -11,10 +11,12 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { Avatar } from '../ui/Avatar'
 import { NAV } from '../../constants/nav'
-import { usePreferences } from '../../contexts/PreferencesContext'
+import { SupportSheet } from '../shared/SupportSheet'
+import { supportPix } from '../../lib/support'
 
 function UserMenu({ onCalc }: { onCalc: () => void }) {
-  const lean = usePreferences().detail === 'lean'
+  const navigate = useNavigate()
+  const [supportOpen, setSupportOpen] = useState(false)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -72,11 +74,11 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
+      <SupportSheet open={supportOpen} onClose={() => setSupportOpen(false)} />
       <IconButton
         ref={trigger}
         name="user"
-        label={lean ? 'Conta (modo enxuto)' : 'Conta'}
-        className={lean ? 'lt-lean-dot' : undefined}
+        label="Conta"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? 'user-menu' : undefined}
@@ -111,8 +113,8 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
               <div role="presentation" style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface-2)', borderRadius: 'calc(var(--radius)*0.6)', padding: '10px 12px', marginBottom: 4 }}>
                 <Avatar name={lender.name ?? lender.email} size={38} />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.name ?? '—'}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.email}</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.name ?? '—'}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.email}</div>
                 </div>
               </div>
               <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
@@ -127,9 +129,20 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
             <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
           </div>
 
+          {item('settings', 'gear', 'Configurações', () => {
+            close(false)
+            navigate('/settings')
+          })}
+
           {item('theme', theme === 'dark' ? 'sun' : 'moon', theme === 'dark' ? 'Tema claro' : 'Tema escuro', () => {
             toggleTheme()
             close(true)
+          })}
+
+          {/* As in the mock: right before "Sair", with a warm highlight (improvement 51). */}
+          {supportPix() && item('support', 'coffee', 'Apoie o projeto', () => {
+            close(false)
+            setSupportOpen(true)
           })}
 
           <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
@@ -139,7 +152,7 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
             logout()
           }, 'var(--overdue)')}
 
-          <div role="none" style={{ padding: '6px 4px 2px', textAlign: 'center', fontSize: 11, color: 'var(--text-faint)', letterSpacing: '0.02em' }}>
+          <div role="none" style={{ padding: '6px 4px 2px', textAlign: 'center', fontSize: '0.6875rem', color: 'var(--text-faint)', letterSpacing: '0.02em' }}>
             v{__APP_VERSION__}
           </div>
         </div>
@@ -217,7 +230,7 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
                 background: activeRoute === n.path ? 'var(--primary-weak)' : 'transparent',
                 color: activeRoute === n.path ? 'var(--primary)' : 'var(--text-muted)',
                 fontWeight: 700,
-                fontSize: 14.5,
+                fontSize: '0.90625rem',
                 fontFamily: 'inherit',
                 transition: 'background .15s, color .15s',
               }}
