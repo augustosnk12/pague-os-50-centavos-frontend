@@ -82,7 +82,14 @@ function fromDebtor(d: Debtor | null | undefined, initialName: string): Values {
   }
 }
 
-const focusIn = (id: string) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`#${id} input, #${id} textarea`)?.focus())
+const focusIn = (id: string) => {
+  const from = document.activeElement
+  requestAnimationFrame(() => {
+    // Already typing somewhere else: leave the cursor there.
+    if (document.activeElement !== from && document.activeElement?.matches('input, textarea, select')) return
+    document.querySelector<HTMLElement>(`#${id} input, #${id} textarea`)?.focus()
+  })
+}
 
 /**
  * Novo devedor / Editar cadastro (improvement 45): Nome (the only required

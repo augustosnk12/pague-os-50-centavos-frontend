@@ -672,7 +672,7 @@ test.describe('Receber várias de uma vez (S7)', () => {
     await sheet.getByRole('textbox', { name: 'Valor recebido' }).fill('210,00')
     await expect(sheet.getByRole('status')).toContainText('Mercado fica parcial (restam R$ 20,00)')
     await sheet.getByRole('button', { name: /^Registrar R\$\s210,00 em 3 parcelas$/ }).click()
-    await expect(page.getByText(/R\$\s210,00 registrados em 3 parcelas/)).toBeVisible()
+    await expect(page.locator('.lt-toast').getByText(/R\$\s210,00 registrados em 3 parcelas/)).toBeVisible()
     await expect.poll(paid).toBe(210)
     await page.getByRole('button', { name: 'Desfazer' }).click()
     await expect.poll(paid).toBe(0)

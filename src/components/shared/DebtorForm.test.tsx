@@ -73,6 +73,18 @@ describe('Cadastro de devedor (S9)', () => {
     expect(await within(dialog()).findByText(/CEP não encontrado/)).toBeInTheDocument()
   })
 
+  it('the delayed focus never pulls the cursor back from a field already in use (CI: "12" went into Rua)', async () => {
+    const user = userEvent.setup()
+    render(<DebtorForm open onClose={() => {}} onSave={() => {}} />)
+    await user.click(within(dialog()).getByRole('button', { name: 'Mais dados' }))
+    await user.click(within(dialog()).getByRole('button', { name: /Adicionar endereço/ }))
+    await user.click(within(dialog()).getByRole('button', { name: 'Não sei o CEP' }))
+    // Before the next frame (when the sheet would move the cursor to Rua), the person is already in Número.
+    field('Número').focus()
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    expect(field('Número')).toHaveFocus()
+  })
+
   it('editing opens with "Mais dados" when there is more than name and phone', () => {
     const debtor = {
       id: 'd1', name: 'João', phone: '11999990000', email: 'j@x.com', notes: null, reliability: null, avatarHue: null, avatarEmoji: null,

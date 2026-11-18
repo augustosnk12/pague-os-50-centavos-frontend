@@ -27,6 +27,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return el
   })
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const remaining = useRef(0)
   const startedAt = useRef(0)
   const seq = useRef(0)
@@ -66,7 +67,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setAnnouncement('')
     const labels = [opts?.action?.label, opts?.secondary?.label].filter(Boolean)
     const spoken = labels.length > 1 ? `${msg}. ${labels.join(' e ')} disponíveis.` : labels.length ? `${msg}. ${labels[0]} disponível.` : msg
-    setTimeout(() => setAnnouncement(spoken), 50)
+    if (announceTimer.current) clearTimeout(announceTimer.current)
+    announceTimer.current = setTimeout(() => setAnnouncement(spoken), 50)
     run(labels.length ? TOAST_WITH_ACTION_MS : TOAST_MS)
   }, [run])
 
@@ -81,7 +83,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  useEffect(() => clear, [])
+  useEffect(
+    () => () => {
+      clear()
+      if (announceTimer.current) clearTimeout(announceTimer.current)
+    },
+    [],
+  )
 
   return (
     <ToastContext.Provider value={{ showToast }}>
