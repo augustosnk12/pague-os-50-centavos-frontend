@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
+import { rememberScreen } from '../lib/navOrigin'
 
 export const APP_NAME = 'Pague os 50 centavos'
 
@@ -75,6 +76,7 @@ export function useRouteAnnouncer() {
 
     return whenHeading((h1) => {
       document.title = `${h1.textContent!.trim()} · ${APP_NAME}`
+      rememberScreen(location.pathname, h1.textContent ?? '')
       if (isFirst) return
       // The page already put focus somewhere on purpose (e.g. the search of
       // Devedores opened by "/"): keep it there.

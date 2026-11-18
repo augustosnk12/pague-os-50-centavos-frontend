@@ -46,14 +46,13 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
       style={{
         position: 'fixed',
         left: '50%',
-        bottom: 26,
         zIndex: 400,
         background: 'var(--text)',
         color: 'var(--bg)',
         padding: actions.length ? '9px 9px 9px 18px' : '13px 20px',
         borderRadius: 99,
         fontWeight: 700,
-        fontSize: 14.5,
+        fontSize: '0.90625rem',
         boxShadow: 'var(--shadow-lg)',
         display: 'flex',
         alignItems: 'center',
@@ -77,7 +76,7 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
             background: 'color-mix(in oklch, var(--bg) 18%, transparent)',
             color: 'var(--bg)',
             fontWeight: 800,
-            fontSize: 13.5,
+            fontSize: '0.84375rem',
             cursor: 'pointer',
           }}
         >

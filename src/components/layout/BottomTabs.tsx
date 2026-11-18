@@ -7,7 +7,6 @@ import { Icon } from '../ui/Icon'
 import { NAV } from '../../constants/nav'
 
 interface BottomTabsProps {
-  onAccount: () => void
   overdueCount: number
   /** Second action of the "+" (held): register a payment (improvement 29). */
   onRegister: () => void
@@ -16,7 +15,7 @@ interface BottomTabsProps {
 /** How long "+" must be held to open the menu. */
 const HOLD_MS = 450
 
-export function BottomTabs({ onAccount, overdueCount, onRegister }: BottomTabsProps) {
+export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const held = useRef(false)
@@ -110,8 +109,8 @@ export function BottomTabs({ onAccount, overdueCount, onRegister }: BottomTabsPr
 
       <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
-      {/* Conta (opens a sheet today; becomes a screen in S11) */}
-      <Tab label="Conta" icon="user" active={false} onClick={onAccount} />
+      {/* Conta → Configurações (improvement 26) */}
+      <Tab to="/settings" label="Conta" icon="user" active={isActive('/settings')} />
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
         <div className="lt-fab-menu">
@@ -146,6 +145,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
   const name = badge > 0 && badgeLabel ? `${label}, ${badge} ${badgeLabel}${badge > 1 ? 's' : ''}` : label
   const style: CSSProperties = {
         flex: 1,
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -176,7 +176,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
               borderRadius: 99,
               background: 'var(--overdue)',
               color: '#fff',
-              fontSize: 10,
+              fontSize: '0.625rem',
               fontWeight: 800,
               display: 'grid',
               placeItems: 'center',
@@ -187,7 +187,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
           </span>
         )}
       </span>
-      <span style={{ fontSize: 11, fontWeight: active ? 800 : 600, letterSpacing: '-0.01em' }}>{label}</span>
+      <span style={{ fontSize: '0.6875rem', fontWeight: active ? 800 : 600, letterSpacing: '-0.01em', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </>
   )
   return to ? (

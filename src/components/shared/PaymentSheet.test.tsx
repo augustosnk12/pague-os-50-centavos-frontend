@@ -70,7 +70,9 @@ describe('PaymentSheet (S2)', () => {
   it('header gives the context: who, what and how late (improvement 6)', async () => {
     renderSheet(target())
     const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
-    expect(dialog).toHaveTextContent('Notebook · 2/12 · atrasada há 3 dias')
+    // The description gets its own line (it wraps); the position and the status are never cut off.
+    expect(dialog.querySelector('.lt-pay-desc')).toHaveTextContent('Notebook')
+    expect(dialog.querySelector('.lt-pay-sub')).toHaveTextContent('Parcela 2/12 · atrasada há 3 dias')
     // The 3 numbers Parcela / Já pago / Restante are gone: the amount already holds what is left.
     expect(within(dialog).queryByText('Restante')).toBeNull()
     expect(within(dialog).getByRole('textbox', { name: 'Valor recebido' })).toHaveValue('250,00')
@@ -89,7 +91,8 @@ describe('PaymentSheet (S2)', () => {
     renderSheet(target(installment({ dueDate: '2026-11-20T00:00:00.000Z' })))
     await screen.findByRole('dialog')
     expect(screen.queryByRole('link', { name: /WhatsApp/ })).toBeNull()
-    expect(mocked.get).not.toHaveBeenCalled()
+    // The phone (GET /debtors/:id) is only fetched for an overdue one; the debts are (for "Pagou mais de uma?").
+    expect(mocked.get.mock.calls.map(([url]) => url).filter((u) => /^\/debtors\/[^/]+$/.test(String(u)))).toEqual([])
   })
 
   it('Total / Metade and the partial note; the button says what will happen', async () => {
@@ -197,10 +200,13 @@ describe('PaymentSheet (S2)', () => {
 
   it('a failure keeps the sheet open and says nothing was saved', async () => {
     const user = userEvent.setup()
-    mocked.post.mockRejectedValue({ response: { data: { error: 'boom' } } })
+    mocked.post.mockRejectedValue({ response: { status: 500, data: { error: 'boom' } } })
     renderSheet(target())
     await user.click(await screen.findByRole('button', { name: /^Quitar parcela/ }))
-    expect(await screen.findByText(/Erro ao registrar pagamento|boom/)).toBeInTheDocument()
+    // Says what was not saved and offers to try again (improvement 47).
+    expect((await screen.findAllByText(/Não foi possível registrar R\$\s250,00 · nada foi salvo/)).length).toBeGreaterThan(0)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(mocked.post).toHaveBeenCalledTimes(2)
   })
 })

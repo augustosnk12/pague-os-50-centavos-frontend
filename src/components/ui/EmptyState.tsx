@@ -35,8 +35,8 @@ export function EmptyState({ icon = 'wallet', title, sub, action, className }: E
       >
         <Icon name={icon} size={28} color="var(--primary)" />
       </div>
-      <div style={{ fontWeight: 800, fontSize: 17 }}>{title}</div>
-      {sub && <div style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 280 }}>{sub}</div>}
+      <div style={{ fontWeight: 800, fontSize: '1.0625rem' }}>{title}</div>
+      {sub && <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', maxWidth: 280 }}>{sub}</div>}
       {action && <div style={{ marginTop: 12 }}>{action}</div>}
     </div>
   )

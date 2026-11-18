@@ -29,6 +29,7 @@ const {
   debtorDetail: { Component: DebtorDetailPage },
   debtForm: { Component: DebtFormPage },
   installments: { Component: InstallmentsPage },
+  settings: { Component: SettingsPage },
 } = pages
 
 export function AppRouter() {
@@ -49,6 +50,7 @@ export function AppRouter() {
             <Route path="/debtors/:id" element={<DebtorDetailPage />} />
             <Route path="/debts/new" element={<DebtFormPage />} />
             <Route path="/installments" element={<InstallmentsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

@@ -22,7 +22,7 @@ export function Select({ label, value, onChange, options, required, error, hint,
   return (
     <label style={{ display: 'block', ...style }} className={className}>
       {label && (
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
+        <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7 }}>
           {label} {required && <span style={{ color: 'var(--primary)' }}>*</span>}
         </div>
       )}
@@ -37,7 +37,7 @@ export function Select({ label, value, onChange, options, required, error, hint,
             border: `1.5px solid ${error ? 'var(--overdue)' : 'var(--border-input)'}`,
             borderRadius: 'calc(var(--radius) * 0.6)',
             padding: '14px 40px 14px 15px',
-            fontSize: 16,
+            fontSize: '1rem',
             fontWeight: 600,
             color: 'var(--text)',
             fontFamily: 'inherit',
@@ -58,7 +58,7 @@ export function Select({ label, value, onChange, options, required, error, hint,
         />
       </div>
       {(hint ?? error) && (
-        <div style={{ fontSize: 12.5, marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
+        <div style={{ fontSize: '0.78125rem', marginTop: 6, color: error ? 'var(--overdue)' : 'var(--text-faint)' }}>
           {error ?? hint}
         </div>
       )}

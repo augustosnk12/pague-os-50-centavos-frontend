@@ -32,8 +32,8 @@ export function ErrorState({ onRetry, title = 'Não foi possível carregar', ret
       <span style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--overdue-weak)', display: 'grid', placeItems: 'center' }}>
         <Icon name="alert" size={22} color="var(--overdue)" />
       </span>
-      <div style={{ fontWeight: 800, fontSize: 16 }}>{title}</div>
-      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5, maxWidth: 340 }}>
+      <div style={{ fontWeight: 800, fontSize: '1rem' }}>{title}</div>
+      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.5, maxWidth: 340 }}>
         Verifique a conexão e tente de novo. Seus dados continuam salvos.
       </p>
       <Button variant="secondary" icon="refresh" onClick={onRetry} disabled={retrying}>

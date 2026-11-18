@@ -20,7 +20,7 @@ export function IconButton({ name, onClick, size = 20, label, active, style, cla
       aria-label={label}
       title={rest.title ?? label}
       onClick={onClick}
-      className={className}
+      className={className ? `lt-icon-btn ${className}` : 'lt-icon-btn'}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       {...rest}

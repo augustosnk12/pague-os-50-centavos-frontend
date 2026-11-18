@@ -65,7 +65,7 @@ describe('ReceiptSheet (S6)', () => {
     expect(card).toHaveTextContent('não é documento fiscal')
   })
 
-  it('"Enviar no WhatsApp" opens wa.me with the receipt text; "Imagem" shares or downloads the PNG', async () => {
+  it('"Enviar no WhatsApp" opens WhatsApp with the receipt text; "Imagem" shares or downloads the PNG', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null)
     const user = userEvent.setup()
     renderSheet({ debtorId: 'd1', paymentId: 'pay_bbb22' })
@@ -75,7 +75,7 @@ describe('ReceiptSheet (S6)', () => {
     expect(shareOrDownload).toHaveBeenCalledWith(expect.objectContaining({ code: 'P50-BBB22-261103', kind: 'payment' }), expect.stringContaining('✅ Comprovante de pagamento'))
     expect(await screen.findByText('Imagem do comprovante baixada')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Enviar no WhatsApp' }))
-    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/wa\.me\/5511912345678\?text=%E2%9C%85%20Comprovante/), '_blank', 'noopener,noreferrer')
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/api\.whatsapp\.com\/send\?phone=5511912345678&text=%E2%9C%85%20Comprovante/), '_blank', 'noopener,noreferrer')
   })
 
   it('without a phone only "Imagem" is offered', async () => {

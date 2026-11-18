@@ -59,6 +59,7 @@ export function fakeGet(url: string): unknown {
   if (url === '/search') return fixtures.search
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors
+  if (url === '/debtors?archived=true') return []
   const debtor = url.match(/^\/debtors\/([^/]+)$/)
   if (debtor) return fixtures.debtors.find((d) => d.id === debtor[1])
   if (/^\/debtors\/[^/]+\/debts$/.test(url)) return []

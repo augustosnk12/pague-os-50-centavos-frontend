@@ -24,7 +24,7 @@ export function OfflineBanner() {
         padding: '8px 14px',
         background: 'var(--text)',
         color: 'var(--bg)',
-        fontSize: 13.5,
+        fontSize: '0.84375rem',
         fontWeight: 700,
       }}
     >

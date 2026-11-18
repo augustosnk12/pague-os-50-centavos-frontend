@@ -11,7 +11,7 @@ import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
 import { useAuth } from '../../contexts/AuthContext'
-import { usePreferences } from '../../contexts/PreferencesContext'
+import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 import { localToday } from '../../lib/date'
 import { fmtMoney, fmtSentence } from '../../lib/format'
 import { GettingStarted } from './GettingStarted'
@@ -58,7 +58,9 @@ export function DashboardPage() {
     <main className="lt-page lt-anim-fade">
       <div style={{ marginBottom: 16 }}>
         <h1 className="lt-h1">Olá, {firstName} 👋</h1>
-        <p className="lt-sub">{subtitle}</p>
+        <Detail>
+          <p className="lt-sub">{subtitle}</p>
+        </Detail>
       </div>
 
       {overview.isError && !o ? (
@@ -83,6 +85,7 @@ export function DashboardPage() {
 
 /** "A receber em novembro", the month bar and, only when there is any, the overdue pill (improvements 1–3). */
 function Hero({ o }: { o: DashboardOverview }) {
+  const { detail } = usePreferences()
   const month = MONTHS[Number(o.month.key.slice(5, 7)) - 1]
   const pct = Math.max(0, Math.min(100, o.month.receivedPct))
   const prev = o.overdue.fromPreviousMonths.count
@@ -102,7 +105,7 @@ function Hero({ o }: { o: DashboardOverview }) {
         <span className="lt-hm-bar" aria-hidden="true">
           <span style={{ width: `${pct}%` }} />
         </span>
-        <span className="lt-hm-row" aria-hidden="true">
+        <span className="lt-hm-row" aria-hidden="true" data-lean={detail === 'lean' || undefined}>
           <span>
             <b>{fmtMoney(o.month.received)}</b> recebido de {fmtMoney(o.month.expected)}
           </span>

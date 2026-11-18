@@ -10,26 +10,23 @@ import { useToast } from '../../contexts/ToastContext'
 import { useRegisterPayment } from '../../hooks/installments/useRegisterPayment'
 import { useDeletePayment } from '../../hooks/installments/useDeletePayment'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
-import { formatCents, parseCurrencyDigits } from '../../lib/currency'
+import { amountWidth, formatCents, parseCurrencyDigits } from '../../lib/currency'
 import { localToday } from '../../lib/date'
 import { fmtList, fmtMoney, fmtTitle } from '../../lib/format'
 import { daysUntil, installmentPosition, remainingCents } from '../../lib/installmentTag'
 import { whatsappLink } from '../../lib/whatsapp'
 import { RemindSheet } from './RemindSheet'
 import { ReceiptSheet } from './ReceiptSheet'
+import { BatchSheet } from './BatchSheet'
+import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
+import { leftOf } from '../../lib/debtorProfile'
 import type { ReceiptRequest } from '../../lib/receipt'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
+import { failedSave } from '../../lib/saveError'
 import type { PaymentTarget } from '../../lib/paymentTarget'
 import type { Installment } from '../../types/installment'
 import type { Payment } from '../../types/payment'
-
-/** Width of the amount field: digits are 1ch (tabular), "," and "." about 0.35ch. */
-const amountWidth = (text: string) => {
-  const shown = text || '0,00'
-  const digits = shown.replace(/\D/g, '').length
-  return `${digits + (shown.length - digits) * 0.35 + 0.15}ch`
-}
 
 type DateMode = 'today' | 'yesterday' | 'other'
 
@@ -80,6 +77,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
+  const [batchFrom, setBatchFrom] = useState<{ debtorId: string; installmentId: string } | null>(null)
 
   // Fresh state each time the sheet opens (or opens for another installment).
   useEffect(() => {
@@ -95,6 +93,9 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const overdue = !!inst && remainingCents(inst) > 0 && daysUntil(inst.dueDate, today) < 0
   // The phone only matters for the WhatsApp reminder of an overdue installment.
   const { data: debtorFull } = useDebtor(target && overdue ? target.debtor.id : '')
+  // "Pagou mais de uma?" only when the debtor has another open installment (S7).
+  const { data: debtorDebts } = useDebtsByDebtor(target ? target.debtor.id : '')
+  const openCount = (debtorDebts ?? []).reduce((n, d) => n + d.installments.filter((i) => leftOf(i) > 0).length, 0)
 
   if (!t || !inst) return null
 
@@ -149,7 +150,8 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
           secondary: { label: 'Comprovante', onClick: () => setReceipt({ debtorId, paymentId: payment.id }) },
         })
       },
-      onError: fail('Erro ao registrar pagamento.'),
+      // Not saved: say what, and offer "Tentar de novo" (improvement 47). The sheet stays filled.
+      onError: failedSave(showToast, `registrar ${fmtMoney(amount / 100)}`, confirm),
     })
   }
 
@@ -217,6 +219,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
     <>
     <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
     <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
+    <BatchSheet debtorId={batchFrom?.debtorId ?? null} preselect={batchFrom?.installmentId} onClose={() => setBatchFrom(null)} />
     <Modal
       open={!!target}
       onClose={onClose}
@@ -229,8 +232,10 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
               {name}
             </h2>
+            {t.debtDescription && <div className="lt-pay-desc">{t.debtDescription}</div>}
             <div className="lt-pay-sub">
-              {[t.debtDescription, position].filter(Boolean).join(' · ')} · <span style={{ color: due.color }}>{due.text}</span>
+              {position && <>{/^\d/.test(position) ? `Parcela ${position}` : position.charAt(0).toUpperCase() + position.slice(1)} · </>}
+              <span style={{ color: due.color }}>{due.text}</span>
             </div>
           </div>
           {canRemind && (
@@ -323,6 +328,19 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                 )}
               </div>
             </div>
+            {openCount > 1 && (
+              <button
+                type="button"
+                className="lt-more-link lt-pay-more"
+                onClick={() => {
+                  const from = { debtorId: t.debtor.id, installmentId: inst.id }
+                  onClose()
+                  setBatchFrom(from)
+                }}
+              >
+                <Icon name="layers" size={13} /> Pagou mais de uma parcela? Receber em lote
+              </button>
+            )}
             {history}
           </>
         )}

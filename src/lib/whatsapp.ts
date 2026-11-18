@@ -1,5 +1,5 @@
 /**
- * wa.me link for a Brazilian phone as typed by the user ("(11) 91234-5678",
+ * WhatsApp link for a Brazilian phone as typed by the user ("(11) 91234-5678",
  * "+55 11 91234-5678", "11912345678"…). Returns null when the number cannot
  * be a valid one, so the WhatsApp button is simply not shown.
  */
@@ -16,5 +16,7 @@ export function whatsappLink(phone: string | null | undefined, text?: string): s
     return null
   }
   if (digits.length < 12 || digits.length > 15) return null
-  return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ''}`
+  // api.whatsapp.com/send directly: the wa.me redirect re-encodes the text and
+  // emoji (😊) arrive as "�" or vanish.
+  return `https://api.whatsapp.com/send?phone=${digits}${text ? `&text=${encodeURIComponent(text)}` : ''}`
 }

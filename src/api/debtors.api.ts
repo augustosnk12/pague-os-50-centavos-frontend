@@ -34,8 +34,11 @@ export interface UpdateDebtorPayload {
 }
 
 export const debtorsApi = {
-  list: (reliability?: DebtorReliability) =>
-    api.get<Debtor[]>('/debtors', { params: reliability ? { reliability } : undefined }),
+  list: (reliability?: DebtorReliability, archived?: 'true' | 'all') =>
+    api.get<Debtor[]>('/debtors', { params: reliability || archived ? { reliability, archived } : undefined }),
+
+  /** Only the archived ones (the URL carries the query, so tests can fake it by URL). */
+  listArchived: () => api.get<Debtor[]>('/debtors?archived=true'),
 
   get: (id: string) =>
     api.get<Debtor>(`/debtors/${id}`),
@@ -48,4 +51,8 @@ export const debtorsApi = {
 
   delete: (id: string) =>
     api.delete<{ message: string }>(`/debtors/${id}`),
+
+  /** Improvement 41 (API B10): out of every list and total; the search still finds them. */
+  archive: (id: string) => api.patch<Debtor>(`/debtors/${id}/archive`),
+  unarchive: (id: string) => api.patch<Debtor>(`/debtors/${id}/unarchive`),
 }

@@ -29,7 +29,7 @@ describe('S10 · busca e atalhos', () => {
     expect(box).toHaveFocus()
     await user.type(box, 'note')
     const list = await screen.findByRole('listbox', { name: 'Resultados da busca' })
-    await waitFor(() => expect(get).toHaveBeenCalledWith('/search', { params: { q: 'note', limit: 8 } }))
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/search', expect.objectContaining({ params: { q: 'note', limit: 8 }, signal: expect.any(AbortSignal) })))
     expect(within(list).getByRole('group', { name: 'Devedores' })).toHaveTextContent(/João Araújodeve R\$\s250,00/)
     expect(within(list).getByRole('group', { name: 'Dívidas' })).toHaveTextContent(/NotebookJoão Araújo · restam R\$\s250,00/)
     await user.keyboard('{ArrowDown}')

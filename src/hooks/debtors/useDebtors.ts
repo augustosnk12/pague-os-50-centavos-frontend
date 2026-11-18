@@ -11,3 +11,11 @@ export function useDebtors(reliability?: DebtorReliability) {
     placeholderData: keepPreviousData,
   })
 }
+
+/** Archived debtors (improvement 41): the "Arquivados (n)" group and the search. */
+export function useArchivedDebtors() {
+  return useQuery({
+    queryKey: ['debtors', 'archived'],
+    queryFn: () => debtorsApi.listArchived().then((r) => r.data),
+  })
+}

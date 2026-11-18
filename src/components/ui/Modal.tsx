@@ -90,7 +90,6 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
     stack.push(host)
     syncInert()
     returnFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
 
     // Esc closes the TOP dialog wherever the focus is (it moves inside one frame
     // after opening; an early Esc used to be lost on slow devices).
@@ -118,9 +117,16 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
       stack.splice(stack.indexOf(host), 1)
       syncInert()
       host.remove()
-      document.body.style.overflow = stack.length ? 'hidden' : previousOverflow
+      // Never restore a value captured at open: when one sheet closes and another
+      // opens in the same tick, the second one captured "hidden" and left the page
+      // without scroll after both closed.
+      document.body.style.overflow = stack.length ? 'hidden' : ''
       const target = returnFocusTo.current
-      if (target && document.contains(target)) target.focus()
+      // A sheet opened from this one (⋯ → "Excluir") may already hold the focus:
+      // pulling it back to the opener at the end of the exit animation would send
+      // what the user is typing elsewhere.
+      const focusInAnotherDialog = stack.some((h) => h.contains(document.activeElement))
+      if (target && document.contains(target) && !focusInAnotherDialog) target.focus()
     }
   }, [mounted, host])
 
@@ -192,7 +198,7 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
           head(titleId, () => onCloseRef.current())
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 18px 12px' }}>
-            <h2 id={titleId} style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
+            <h2 id={titleId} style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h2>
             <IconButton name="x" onClick={() => onCloseRef.current()} label="Fechar" />
           </div>
         )}

@@ -36,6 +36,15 @@ describe('genInstallments (mirrors the API rule)', () => {
     expect(out.map((i) => i.dueDate.slice(0, 10))).toEqual(['2026-12-10', '2027-01-10', '2027-02-10'])
   })
 
+  it('rounds each one half-up, like the API (#1 can be a cent less)', () => {
+    expect(genInstallments(200, 3, '2026-12-10T00:00:00.000Z').map((i) => i.amount)).toEqual(['66.66', '66.67', '66.67'])
+  })
+
+  it('days 29–31 fall on the last day of shorter months', () => {
+    const out = genInstallments(400, 4, '2027-01-31T00:00:00.000Z')
+    expect(out.map((i) => i.dueDate.slice(0, 10))).toEqual(['2027-01-31', '2027-02-28', '2027-03-31', '2027-04-30'])
+  })
+
   it('returns nothing for an invalid date', () => {
     expect(genInstallments(100, 2, 'not a date')).toEqual([])
   })

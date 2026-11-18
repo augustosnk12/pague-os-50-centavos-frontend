@@ -9,8 +9,8 @@ import { localToday } from '../../lib/date'
 import { remainingCents, daysUntil } from '../../lib/installmentTag'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import type { InstallmentEnriched } from '../../types/installment'
+import { matchesTerm } from '../../lib/searchMatch'
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 interface RegisterPickerProps {
   open: boolean
@@ -30,8 +30,7 @@ export function RegisterPicker({ open, onClose }: RegisterPickerProps) {
 
   const list = useMemo(() => {
     const open = (query.data ?? []).filter((i) => remainingCents(i) > 0)
-    const term = norm(q.trim())
-    const match = (i: InstallmentEnriched) => !term || norm(`${i.debt?.debtor?.name ?? ''} ${i.debt?.description ?? ''}`).includes(term)
+    const match = (i: InstallmentEnriched) => matchesTerm(`${i.debt?.debtor?.name ?? ''} ${i.debt?.description ?? ''}`, q)
     const late = (i: InstallmentEnriched) => daysUntil(i.dueDate, today) < 0
     return open
       .filter(match)
