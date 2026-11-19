@@ -1318,6 +1318,29 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-data-fmt[aria-checked="true"] .lt-data-radio { border: 5px solid var(--primary); }
 .lt-auth-banner[data-tone="ok"] { background: var(--paid-weak); color: var(--paid); }
 
+/* ===== Recebimentos (S12, item 38) ===== */
+.lt-rep { max-width: 640px; }
+.lt-rep-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 2px; }
+.lt-rep .lt-sub { margin-bottom: 12px; }
+.lt-rep .lt-seg { margin-bottom: 10px; }
+/* minmax(0, 1fr): two date fields side by side must shrink on a phone (no sideways scroll). */
+.lt-rep-range { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-bottom: 10px; }
+.lt-rep-range .lt-date-field { padding-left: 12px; }
+.lt-rep-range .lt-date-field input { width: 100%; }
+.lt-rep-bad { margin: -4px 2px 10px; font-size: 0.75rem; font-weight: 800; color: var(--overdue); }
+.lt-rep-card { padding: 16px; }
+.lt-rep-k { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); }
+.lt-rep-n { font-size: 0.75rem; font-weight: 700; color: var(--text-faint); margin-top: 2px; }
+.lt-rep-bars { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.lt-rep-row { display: grid; grid-template-columns: 3.4em 1fr auto; align-items: center; gap: 10px; }
+.lt-rep-m { font-size: 0.78125rem; font-weight: 800; color: var(--text-muted); white-space: nowrap; }
+.lt-rep-bar { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.lt-rep-bar > span { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+.lt-rep-v { font-size: 0.8125rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; min-width: 5.4em; }
+.lt-rep-more { margin: 8px 0 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
+.lt-rep-sum { text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); }
+.lt-rep-sum[data-bad] { color: var(--overdue); }
+
 /* Apoie o projeto (51). */
 .lt-coffee-hero { display: flex; align-items: center; gap: 14px; }
 .lt-coffee-ic, .lt-set-ic.lt-coffee-row-ic { color: var(--pending); background: var(--pending-weak); }

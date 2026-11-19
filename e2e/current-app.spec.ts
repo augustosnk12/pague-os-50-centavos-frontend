@@ -228,7 +228,8 @@ test('user menu: keyboard (Enter, arrows, Esc returns focus) and accessible', as
   // Arrows walk the items in order ("Apoie o projeto" appears only with VITE_SUPPORT_PIX) and wrap.
   const items = menu.getByRole('menuitem')
   const n = await items.count()
-  await expect(items.first()).toHaveAccessibleName('Configurações')
+  await expect(items.first()).toHaveAccessibleName('Recebimentos')
+  await expect(items.nth(1)).toHaveAccessibleName('Configurações')
   await expect(items.last()).toHaveAccessibleName('Sair')
   for (let k = 0; k < n; k++) {
     await expect(items.nth(k)).toBeFocused()
@@ -865,6 +866,65 @@ test.describe('Pendências das etapas anteriores (grupo A)', () => {
   })
 })
 
+test.describe('Recebimentos (S12)', () => {
+  test('Configurações → Recebimentos: total, bars, "Período", receipt and the CSV of the period (real API)', async ({ page, session, a11y }) => {
+    const n = new Date()
+    const iso = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10)
+    const lastMonth = iso(n.getFullYear(), n.getMonth() - 1, 10)
+    const thisMonth = iso(n.getFullYear(), n.getMonth(), 1)
+    const d = await session.api('POST', '/debtors', { name: 'Rita Recebe' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Geladeira', totalAmount: 300, numberOfInstallments: 3, firstDueDate: `${lastMonth}T00:00:00.000Z` })
+    const [debt] = await session.api('GET', `/debtors/${d.id}/debts`)
+    const [i1, i2] = debt.installments
+    await session.api('POST', '/payments/batch', { debtorId: d.id, kind: 'BATCH', paidAt: lastMonth, allocations: [{ installmentId: i1.id, amount: 100 }] })
+    await session.api('POST', '/payments/batch', { debtorId: d.id, kind: 'BATCH', paidAt: thisMonth, allocations: [{ installmentId: i2.id, amount: 50 }] })
+
+    await page.goto('/settings')
+    await page.getByRole('button', { name: 'Recebimentos: relatório e exportação' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Recebimentos' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Voltar para Configurações' })).toBeVisible()
+    const summary = page.getByRole('region', { name: 'Resumo do período' })
+    await expect(summary).toContainText(/R\$\s*150,00/)
+    await expect(summary).toContainText('2 pagamentos · média de')
+    await expect(page.getByRole('list', { name: 'Recebido por mês' }).getByRole('listitem')).toHaveCount(6)
+    await expect(page.getByRole('list', { name: 'Pagamentos do período' }).getByRole('listitem')).toHaveCount(2)
+    await a11y('receivables')
+
+    // "Período" from the 1st of this month: only the second payment.
+    await page.getByRole('radio', { name: 'Período' }).click()
+    await expect(page.getByText(/^\d{2}\/\d{2}\/\d{4} a \d{2}\/\d{2}\/\d{4}$/)).toBeVisible()
+    await expect(summary).toContainText(/R\$\s*50,00/)
+    await expect(summary).toContainText('1 pagamento')
+    // The two date fields side by side fit a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    await page.getByRole('button', { name: /^Comprovante: Rita Recebe, Geladeira/ }).click()
+    await expect(page.getByRole('dialog', { name: 'Comprovante' }).getByRole('article')).toContainText('Rita Recebe')
+    await page.keyboard.press('Escape')
+
+    // The export sheet starts with the screen's period; "6 meses" takes both.
+    await page.getByRole('button', { name: 'Exportar planilha (CSV) do período' }).click()
+    const sheet = page.getByRole('dialog', { name: 'Exportar planilha' })
+    await expect(sheet.getByRole('radio', { name: 'Período' })).toHaveAttribute('aria-checked', 'true')
+    await expect(sheet.getByText(/^1 pagamento · R\$\s*50,00$/)).toBeVisible()
+    await sheet.getByRole('radio', { name: '6 meses' }).click()
+    await expect(sheet.getByText(/^2 pagamentos · R\$\s*150,00$/)).toBeVisible()
+    await a11y('receivables-export')
+    const download = page.waitForEvent('download')
+    await sheet.getByRole('button', { name: 'Exportar CSV' }).click()
+    const file = await download
+    expect(file.suggestedFilename()).toBe(`recebimentos-${lastMonth.slice(0, 7)}-a-${thisMonth.slice(0, 7)}.csv`)
+    const { readFileSync } = await import('node:fs')
+    const lines = readFileSync(await file.path(), 'utf8').replace(/^﻿/, '').split('\r\n')
+    const br = (s: string) => s.split('-').reverse().join('/')
+    expect(lines).toEqual([
+      '"Data";"Devedor";"Dívida";"Parcela";"Valor (R$)"',
+      `"${br(lastMonth)}";"Rita Recebe";"Geladeira";"1/3";"100,00"`,
+      `"${br(thisMonth)}";"Rita Recebe";"Geladeira";"2/3";"50,00"`,
+    ])
+    await expect(page.locator('.lt-toast').getByText(/2 pagamentos$/)).toBeVisible()
+  })
+})
+
 test.describe('Configurações (S11)', () => {
   test('"Conta" → Configurações: due day and Pix key save to the API; Nova dívida uses the day (real API)', async ({ page, session, a11y }) => {
     void session
@@ -896,7 +956,7 @@ test.describe('Configurações (S11)', () => {
     const d = await session.api('POST', '/debtors', { name: 'Maria Gigante da Silva Souza' })
     await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Empréstimo de agosto para consertar o carro', totalAmount: 1200, numberOfInstallments: 6, firstDueDate: new Date().toISOString() })
     await page.addInitScript(() => localStorage.setItem('pague50_prefs', JSON.stringify({ detail: 'full', textSize: 'xl' })))
-    for (const url of ['/dashboard', '/installments', '/debtors', `/debtors/${d.id}`, '/debts/new', '/settings']) {
+    for (const url of ['/dashboard', '/installments', '/debtors', `/debtors/${d.id}`, '/debts/new', '/settings', '/payments']) {
       await page.goto(url)
       await expect(page.locator('h1').first()).toBeVisible()
       await expect(page.locator('html')).toHaveAttribute('data-fz', 'xl')

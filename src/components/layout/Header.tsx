@@ -129,6 +129,11 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
             <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
           </div>
 
+          {item('payments', 'trend', 'Recebimentos', () => {
+            close(false)
+            navigate('/payments')
+          })}
+
           {item('settings', 'gear', 'Configurações', () => {
             close(false)
             navigate('/settings')

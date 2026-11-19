@@ -56,6 +56,14 @@ describe('routes (smoke)', () => {
     expect((await screen.findAllByText('João Araújo')).length).toBeGreaterThan(0)
   })
 
+  it('recebimentos shows the total, the bars and the payments', async () => {
+    renderApp('/payments')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Recebimentos' })).toBeInTheDocument()
+    expect(await screen.findByRole('list', { name: 'Recebido por mês' })).toBeInTheDocument()
+    expect(screen.getByText('média de R$ 41,67 por mês', { exact: false })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /comprovante: joão araújo, notebook/i })).toBeInTheDocument()
+  })
+
   it('new debt form renders', async () => {
     renderApp('/debts/new')
     expect((await screen.findAllByText(/nova (dívida|cobrança)/i)).length).toBeGreaterThan(0)

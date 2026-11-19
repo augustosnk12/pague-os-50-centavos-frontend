@@ -20,6 +20,7 @@ import { failedSave } from '../../lib/saveError'
 import { DataSheet, DeleteAccountSheet } from './DataSheets'
 import { SupportSheet } from '../../components/shared/SupportSheet'
 import { supportPix } from '../../lib/support'
+import { preloadRoute } from '../../router/routes'
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 const SIZES: { id: TextSize; label: string; px: number }[] = [
@@ -167,6 +168,21 @@ export function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Recebimentos (S12, improvement 38): right under the account, as in the mock. */}
+      <ul className="lt-lgroup" style={{ marginTop: 10 }}>
+        <li className="lt-lrow">
+          <div className="lt-lrow-in">
+            <button type="button" className="lt-lrow-hit" onClick={() => navigate('/payments')} onPointerEnter={() => preloadRoute('/payments')} aria-label="Recebimentos: relatório e exportação" />
+            <span className="lt-set-ic" aria-hidden="true"><Icon name="trend" size={16} /></span>
+            <div className="lt-lrow-main" aria-hidden="true">
+              <div className="lt-lrow-name">Recebimentos</div>
+              <div className="lt-lrow-sub">Quanto entrou nos últimos meses</div>
+            </div>
+            <Icon name="chevronRight" size={16} />
+          </div>
+        </li>
+      </ul>
 
       <h2 className="lt-set-h">Vencimento padrão</h2>
       {settings.isError && !s ? (

@@ -110,7 +110,7 @@ export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
       <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
       {/* Conta → Configurações (improvement 26) */}
-      <Tab to="/settings" label="Conta" icon="user" active={isActive('/settings')} />
+      <Tab to="/settings" label="Conta" icon="user" active={isActive('/settings') || isActive('/payments')} />
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
         <div className="lt-fab-menu">
