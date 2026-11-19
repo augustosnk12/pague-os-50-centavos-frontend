@@ -100,12 +100,14 @@ export interface ArchiveState {
   blockedBy: string | null
 }
 
-export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
+export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onStatement, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
   open: boolean
   onClose: () => void
   debtor: Debtor
   archive: ArchiveState
   onInfo: () => void
+  /** "Enviar extrato" (S14). */
+  onStatement: () => void
   /** "Enxuta": the Pagamentos tab moves here. */
   onPayments?: () => void
   paymentsCount?: number
@@ -127,6 +129,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onP
         {phone && <Item icon={phone.icon} title={phone.title} sub={phone.sub} onClick={then(phone.run)} />}
         <Item icon="user" title="Ver contato e anotações" onClick={then(onInfo)} />
         {onPayments && <Item icon="history" title="Pagamentos" sub={paymentsCount === 1 ? '1 pagamento' : `${paymentsCount} pagamentos`} onClick={then(onPayments)} />}
+        <Item icon="receipt" title="Enviar extrato" sub="O que deve, numa imagem ou mensagem" onClick={then(onStatement)} />
         <Item icon="edit" title="Editar cadastro" onClick={then(onEdit)} />
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />

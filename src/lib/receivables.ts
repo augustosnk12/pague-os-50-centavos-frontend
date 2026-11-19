@@ -89,7 +89,7 @@ export function receivablesCsv(rows: ReportPayment[]): string {
       Number(r.amount).toFixed(2).replace('.', ','),
     ]),
   ]
-  return '﻿' + lines.map((l) => l.map(cell).join(';')).join('\r\n')
+  return '\ufeff' + lines.map((l) => l.map(cell).join(';')).join('\r\n')
 }
 
 /** "recebimentos-2026-06-a-2026-11.csv" (months of the payments) or the chosen days for "Período". */

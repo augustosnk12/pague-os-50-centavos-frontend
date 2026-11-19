@@ -866,6 +866,61 @@ test.describe('Pendências das etapas anteriores (grupo A)', () => {
   })
 })
 
+test.describe('Extrato do devedor (S14)', () => {
+  test('⋯ → Enviar extrato: preview with late part, options, Pix, WhatsApp and the image (real API)', async ({ page, session, a11y }) => {
+    await session.api('PUT', '/settings', { pixKey: '11987654321', pixKeyType: 'PHONE' })
+    const d = await session.api('POST', '/debtors', { name: 'Sofia Extrato', phone: '11912345678' })
+    const n = new Date()
+    const due = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() - 3)).toISOString()
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Geladeira', totalAmount: 300, numberOfInstallments: 3, firstDueDate: due })
+    const [debt] = await session.api('GET', `/debtors/${d.id}/debts`)
+    const today = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())).toISOString().slice(0, 10)
+    await session.api('POST', '/payments/batch', { debtorId: d.id, kind: 'BATCH', paidAt: today, allocations: [{ installmentId: debt.installments[0].id, amount: 40 }] })
+
+    await page.goto(`/debtors/${d.id}`)
+    await page.getByRole('button', { name: 'Mais ações' }).click()
+    await page.getByRole('button', { name: /^Enviar extrato/ }).click()
+    const sheet = page.getByRole('dialog', { name: 'Extrato de Sofia' })
+    const preview = sheet.getByRole('article', { name: 'Prévia do extrato' })
+    await expect(preview).toContainText(/R\$\s*260,00/)
+    await expect(preview).toContainText(/R\$\s*60,00 em atraso/)
+    await expect(preview.getByRole('region', { name: /^Geladeira/ })).toContainText('Parcela 1/3 · venceu')
+    await expect(preview).toContainText(/Pix copia e cola · R\$\s*60,00 \(o que está em atraso\)/)
+    await expect(preview).not.toContainText('Já pago')
+
+    await sheet.getByRole('radio', { name: 'Mostrar o total pago' }).click()
+    await expect(preview).toContainText(/Já pago: R\$\s*40,00 em 1 pagamento/)
+    await sheet.getByRole('radio', { name: 'Até o fim do mês' }).click()
+    await expect(preview).toContainText('em aberto até o fim do mês')
+    await a11y('statement')
+
+    if ((page.viewportSize()?.width ?? 0) >= 880) {
+      const download = page.waitForEvent('download')
+      await sheet.getByRole('button', { name: 'Compartilhar ou baixar a imagem do extrato' }).click()
+      const file = await download
+      expect(file.suggestedFilename()).toBe('extrato-sofia.png')
+      const { readFileSync } = await import('node:fs')
+      expect(readFileSync(await file.path()).subarray(1, 4).toString()).toBe('PNG')
+    }
+
+    // Catch the WhatsApp link instead of opening it (no network in the test).
+    await page.evaluate(() => {
+      window.open = ((url: string) => {
+        ;(window as unknown as { __wa: string }).__wa = url
+        return null
+      }) as typeof window.open
+    })
+    await sheet.getByRole('button', { name: 'Enviar no WhatsApp' }).click()
+    await expect(sheet).toHaveCount(0)
+    const link = new URL(await page.evaluate(() => (window as unknown as { __wa: string }).__wa))
+    const msg = link.searchParams.get('text') ?? ''
+    expect(link.href).toMatch(/wa\.me\/5511912345678|api\.whatsapp\.com\/send/)
+    expect(msg).toContain('📄 Extrato de Sofia Extrato')
+    expect(msg).toMatch(/Em atraso: R\$\s60,00/)
+    expect(msg).toMatch(/Pix copia e cola \(R\$\s60,00, o que está em atraso\):\n00020126.*\+5511987654321/)
+  })
+})
+
 test.describe('Recebimentos (S12)', () => {
   test('Configurações → Recebimentos: total, bars, "Período", receipt and the CSV of the period (real API)', async ({ page, session, a11y }) => {
     const n = new Date()
@@ -914,7 +969,7 @@ test.describe('Recebimentos (S12)', () => {
     const file = await download
     expect(file.suggestedFilename()).toBe(`recebimentos-${lastMonth.slice(0, 7)}-a-${thisMonth.slice(0, 7)}.csv`)
     const { readFileSync } = await import('node:fs')
-    const lines = readFileSync(await file.path(), 'utf8').replace(/^﻿/, '').split('\r\n')
+    const lines = readFileSync(await file.path(), 'utf8').replace(/^\ufeff/, '').split('\r\n')
     const br = (s: string) => s.split('-').reverse().join('/')
     expect(lines).toEqual([
       '"Data";"Devedor";"Dívida";"Parcela";"Valor (R$)"',

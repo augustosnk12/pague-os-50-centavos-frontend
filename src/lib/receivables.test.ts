@@ -43,7 +43,7 @@ describe('Recebimentos: CSV', () => {
       pay({ paidAt: '2026-11-03T12:00:00.000Z', amount: '1250.50', debtorName: 'Ana "Nina"' }),
       pay({ paidAt: '2026-10-10T12:00:00.000Z', debtDescription: null, debtRecurrence: 'MONTHLY' }),
     ])
-    expect(csv.startsWith('﻿')).toBe(true)
+    expect(csv.startsWith('\ufeff')).toBe(true)
     expect(csv.slice(1).split('\r\n')).toEqual([
       '"Data";"Devedor";"Dívida";"Parcela";"Valor (R$)"',
       '"10/10/2026";"Mariana";"Dívida";"mensal";"10,00"',

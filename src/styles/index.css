@@ -755,6 +755,28 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 .lt-rcpt-st { color: var(--text-muted); font-weight: 700; }
 .lt-rcpt-foot { margin-top: 14px; text-align: center; font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); }
 
+/* ===== Extrato do devedor (S14, item 60) ===== */
+.lt-stmt { display: flex; flex-direction: column; gap: 12px; }
+.lt-stmt-opts { display: flex; flex-direction: column; gap: 10px; }
+.lt-stmt .lt-rcpt { margin: 12px 10px 4px; }
+.lt-stmt-late {
+  display: flex; align-items: center; justify-content: center; gap: 4px; width: fit-content; margin: 8px auto 0; padding: 3px 10px; border-radius: 99px;
+  background: var(--overdue-weak); color: var(--overdue); font-weight: 800; font-size: 0.75rem;
+}
+.lt-stmt-debt + .lt-stmt-debt { margin-top: 12px; }
+.lt-stmt-debt-h { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 0.84375rem; margin-bottom: 4px; }
+.lt-stmt-debt-h > span:last-child { white-space: nowrap; }
+.lt-stmt-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-size: 0.78125rem; font-weight: 700; }
+.lt-stmt-row > span:last-child { white-space: nowrap; }
+.lt-stmt-d { flex: 1; min-width: 0; color: var(--text-muted); }
+.lt-stmt-row[data-late] .lt-stmt-d, .lt-stmt-row[data-late] > span:last-child { color: var(--overdue); }
+.lt-stmt-more { padding-top: 2px; font-size: 0.71875rem; font-weight: 700; color: var(--text-muted); }
+.lt-stmt-none { color: var(--paid); font-weight: 800; font-size: 1.25rem; }
+.lt-stmt-hist { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--paid-weak); font-size: 0.78125rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.lt-stmt-hist svg { color: var(--paid); flex-shrink: 0; }
+.lt-stmt-pix { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 0.75rem; font-weight: 700; }
+.lt-stmt-pix code { display: block; margin-top: 4px; font-size: 0.65625rem; word-break: break-all; color: var(--text-muted); }
+
 /* Receipt icon on paid rows and in the payment history. */
 .lt-rcpt-btn {
   position: relative; z-index: 2; pointer-events: auto !important; opacity: 1 !important; flex-shrink: 0;

@@ -16,6 +16,7 @@ import { DebtForm } from '../../components/shared/DebtForm'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
 import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import { StatementSheet } from '../../components/shared/StatementSheet'
 import { BatchSheet } from '../../components/shared/BatchSheet'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
@@ -96,6 +97,7 @@ function DebtorProfile({ id }: { id: string }) {
   const [batchOpen, setBatchOpen] = useState(false)
   const [endFor, setEndFor] = useState<DebtWithInstallments | null>(null)
   const [paysOpen, setPaysOpen] = useState(false)
+  const [statementOpen, setStatementOpen] = useState(false)
 
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
@@ -502,6 +504,7 @@ function DebtorProfile({ id }: { id: string }) {
         debtor={debtor}
         archive={{ archived, blockedBy }}
         onInfo={() => setInfoOpen(true)}
+        onStatement={() => setStatementOpen(true)}
         onPayments={detail === 'lean' ? () => setPaysOpen(true) : undefined}
         paymentsCount={timeline.length}
         onEdit={() => setEditOpen(true)}
@@ -579,6 +582,7 @@ function DebtorProfile({ id }: { id: string }) {
       <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
       <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
+      <StatementSheet debtorId={statementOpen ? debtor.id : null} onClose={() => setStatementOpen(false)} />
     </main>
   )
 }
