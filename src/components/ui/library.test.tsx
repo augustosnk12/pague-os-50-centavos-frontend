@@ -129,6 +129,24 @@ describe('axe on the library (improvement 43)', () => {
   })
 })
 
+describe('Icon sprite (improvement 43)', () => {
+  it('each icon is one <use> of a symbol drawn once; unknown names fall back to ✕', async () => {
+    const { Icon, IconSprite } = await import('./Icon')
+    const { container } = render(
+      <>
+        <IconSprite />
+        <Icon name="check" size={16} />
+        <Icon name="check" size={20} />
+        <Icon name="nope" />
+      </>,
+    )
+    expect(container.querySelectorAll('symbol#lt-i-check')).toHaveLength(1)
+    const uses = [...container.querySelectorAll('use')].map((u) => u.getAttribute('href'))
+    expect(uses).toEqual(['#lt-i-check', '#lt-i-check', '#lt-i-x'])
+    for (const href of uses) expect(container.querySelector(href!)).not.toBeNull()
+  })
+})
+
 describe('StatusBadge', () => {
   it('says the status in words (colour is only a hint)', () => {
     render(<StatusBadge tone="overdue" icon="alert">R$ 60,00 em atraso</StatusBadge>)

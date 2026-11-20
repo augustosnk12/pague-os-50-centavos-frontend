@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { PreferencesProvider } from './contexts/PreferencesContext'
 import { AppRouter } from './router'
+import { IconSprite } from './components/ui/Icon'
 import './styles/index.css'
 import { startVitals } from './lib/vitals'
 
@@ -16,6 +17,7 @@ if (import.meta.env.PROD) startVitals(import.meta.env.VITE_API_URL, __APP_VERSIO
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <IconSprite />
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>

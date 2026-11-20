@@ -6,6 +6,7 @@ import { AuthProvider } from '../contexts/AuthContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { PreferencesProvider } from '../contexts/PreferencesContext'
 import { AppRouter } from '../router'
+import { IconSprite } from '../components/ui/Icon'
 import { setLenderInStorage, setToken } from '../lib/cookies'
 
 export const testLender = { id: 'lender-1', email: 'augusto@email.com', name: 'Augusto Silva' }
@@ -20,6 +21,8 @@ export function renderApp(route: string, { loggedIn = true } = {}) {
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
   })
   return render(
+    <>
+    <IconSprite />
     <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
@@ -32,6 +35,7 @@ export function renderApp(route: string, { loggedIn = true } = {}) {
           </PreferencesProvider>
         </ThemeProvider>
       </QueryClientProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </>,
   )
 }

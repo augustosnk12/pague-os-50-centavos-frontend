@@ -5,7 +5,8 @@
  * real use by web-vitals (POST /vitals).
  *
  * Targets from the plan: LCP < 2 s (simulated 4G, mobile), CLS < 0.05,
- * accessibility 100. Reports stay local / as a CI artifact (no public upload).
+ * accessibility 100, performance score ≥ 0.9. Reports stay local / as a CI
+ * artifact (no public upload).
  */
 module.exports = {
   ci: {
@@ -24,7 +25,8 @@ module.exports = {
         'largest-contentful-paint': ['error', { maxNumericValue: 2000, aggregationMethod: 'median' }],
         'cumulative-layout-shift': ['error', { maxNumericValue: 0.05, aggregationMethod: 'median' }],
         'categories:accessibility': ['error', { minScore: 1 }],
-        'categories:performance': ['warn', { minScore: 0.9 }],
+        // Stable at 0.99 since the font is served by the app (was 0.69–0.96 with Google Fonts).
+        'categories:performance': ['error', { minScore: 0.9, aggregationMethod: 'median' }],
       },
     },
     upload: { target: 'filesystem', outputDir: '.lighthouseci' },

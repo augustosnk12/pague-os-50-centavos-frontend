@@ -69,8 +69,14 @@ interface IconProps {
  */
 export type IconSize = 12 | 16 | 20 | 24 | 28
 
+const symbolId = (name: string) => `lt-i-${name in ICONS ? name : 'x'}`
+
+/**
+ * Icons as an SVG sprite (improvement 43): every drawing is a <symbol> written
+ * once in the page (<IconSprite> at the root) and each icon is a single <use>.
+ * Stroke, fill and width set on the icon's <svg> are inherited by the symbol.
+ */
 export function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2, fill = 'none', style }: IconProps) {
-  const dpath = ICONS[name] ?? ICONS['x']
   return (
     <svg
       width={size}
@@ -84,8 +90,19 @@ export function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2,
       style={style}
       aria-hidden="true"
     >
-      {dpath.split('M').filter(Boolean).map((seg, i) => (
-        <path key={i} d={'M' + seg} />
+      <use href={`#${symbolId(name)}`} />
+    </svg>
+  )
+}
+
+/** The sprite itself: render once, at the root of the app. */
+export function IconSprite() {
+  return (
+    <svg aria-hidden="true" focusable="false" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+      {Object.entries(ICONS).map(([name, d]) => (
+        <symbol key={name} id={symbolId(name)} viewBox="0 0 24 24">
+          <path d={d} />
+        </symbol>
       ))}
     </svg>
   )
