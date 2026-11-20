@@ -180,7 +180,7 @@ export function DebtFormPage() {
           <div className="lt-nd-types" role="group" aria-labelledby="nd-type-l">
             {TYPES.map((t) => (
               <button key={t.type} type="button" className="lt-nd-type" aria-pressed={type === t.type} onClick={() => setType(t.type)}>
-                <Icon name={t.icon} size={19} />
+                <Icon name={t.icon} size={20} />
                 <span>
                   <span className="lt-nd-type-t">{t.label}</span>
                   <span className="lt-nd-type-s">{t.sub}</span>
@@ -191,7 +191,7 @@ export function DebtFormPage() {
           {!inst && !isRec && (
             <Detail>
               <p className="lt-nd-tip">
-                <Icon name="bulb" size={15} /> {type === 'CASH' ? 'Dinheiro' : 'Pix'} é cobrança à vista (1 parcela). Para parcelar, use Cartão ou Pix parcelado.
+                <Icon name="bulb" size={16} /> {type === 'CASH' ? 'Dinheiro' : 'Pix'} é cobrança à vista (1 parcela). Para parcelar, use Cartão ou Pix parcelado.
               </p>
             </Detail>
           )}
@@ -218,7 +218,7 @@ export function DebtFormPage() {
         {!inst && (
           <div className="lt-field">
             <button type="button" role="switch" aria-checked={isRec} className="lt-switch-row" onClick={() => setRec((v) => !v)}>
-              <Icon name="history" size={18} />
+              <Icon name="history" size={20} />
               <span style={{ flex: 1, textAlign: 'left' }}>
                 <span className="lt-switch-t">Repetir todo mês</span>
                 <span className="lt-switch-s">Mensalidade, aluguel, assinatura dividida</span>
@@ -272,7 +272,7 @@ export function DebtFormPage() {
         <div className="lt-field">
           {detail === 'lean' && !descOpen && !desc ? (
             <button type="button" className="lt-more-link" style={{ padding: 0 }} onClick={() => setDescOpen(true)}>
-              <Icon name="plus" size={14} /> Descrição
+              <Icon name="plus" size={16} /> Descrição
             </button>
           ) : (
             <Input label="Descrição" value={desc} onChange={setDesc} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} autoFocus={descOpen && !desc} />
@@ -325,14 +325,14 @@ export function DebtFormPage() {
           <div className="lt-nd-need" role="status">
             {missing && (
               <>
-                <Icon name="info" size={14} /> {missing.text}
+                <Icon name="info" size={16} /> {missing.text}
               </>
             )}
           </div>
           <div className="lt-nd-btns">
             <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back.go}>Cancelar</button>
             <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || undefined} onClick={submit}>
-              <Icon name="check" size={17} />
+              <Icon name="check" size={16} />
               {createDebt.isPending ? 'Criando…' : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}
             </button>
           </div>

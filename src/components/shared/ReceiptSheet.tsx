@@ -86,7 +86,7 @@ export function ReceiptSheet({ request, onClose }: ReceiptSheetProps) {
               disabled={busy}
               aria-label="Compartilhar ou baixar a imagem do comprovante"
             >
-              <Icon name="send" size={15} /> Imagem
+              <Icon name="send" size={16} /> Imagem
             </button>
           </>
         ) : undefined
@@ -95,7 +95,7 @@ export function ReceiptSheet({ request, onClose }: ReceiptSheetProps) {
       {loading ? (
         <div aria-busy="true">
           <span className="lt-sr-only">Montando o comprovante…</span>
-          <div className="lt-skel" style={{ height: 320, borderRadius: 18 }} />
+          <div className="lt-skel" style={{ height: 320, borderRadius: 'var(--r-lg)' }} />
         </div>
       ) : !r ? (
         <p className="lt-remind-info">Não encontramos esse pagamento. Ele pode ter sido desfeito.</p>

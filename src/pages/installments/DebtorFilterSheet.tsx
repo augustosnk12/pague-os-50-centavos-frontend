@@ -41,7 +41,7 @@ export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }
       }
     >
       <div className="lt-search-field">
-        <Icon name="search" size={17} />
+        <Icon name="search" size={16} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar devedor…" aria-label="Buscar devedor" />
       </div>
       <ul className="lt-pick-list" aria-label="Devedores">
@@ -50,8 +50,8 @@ export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }
           return (
             <li key={d.id}>
               <button type="button" className="lt-pick" aria-pressed={on} onClick={() => toggle(d.id)}>
-                <span className="lt-check" aria-hidden="true">{on && <Icon name="check" size={13} strokeWidth={3} />}</span>
-                <Avatar name={d.name} size={32} hue={d.avatarHue} emoji={d.avatarEmoji} />
+                <span className="lt-check" aria-hidden="true">{on && <Icon name="check" size={16} strokeWidth={3} />}</span>
+                <Avatar name={d.name} size={36} hue={d.avatarHue} emoji={d.avatarEmoji} />
                 <span className="lt-pick-name">{d.name}</span>
               </button>
             </li>

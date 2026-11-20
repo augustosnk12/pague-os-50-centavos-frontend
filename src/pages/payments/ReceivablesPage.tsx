@@ -162,8 +162,8 @@ export function ReceivablesPage() {
         />
       ) : !s || !rows ? (
         <>
-          <div className="lt-skel" style={{ height: 180, borderRadius: 16 }} aria-busy="true" />
-          <div className="lt-skel" style={{ height: 200, borderRadius: 16, marginTop: 18 }} aria-hidden="true" />
+          <div className="lt-skel" style={{ height: 180, borderRadius: 'var(--r-lg)' }} aria-busy="true" />
+          <div className="lt-skel" style={{ height: 200, borderRadius: 'var(--r-lg)', marginTop: 18 }} aria-hidden="true" />
         </>
       ) : (
         <>

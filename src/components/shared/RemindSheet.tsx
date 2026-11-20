@@ -73,7 +73,7 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
         <div className="lt-remind-head">
           <span style={{ color: 'var(--wa)', display: 'inline-flex' }} aria-hidden="true"><Icon name="whatsapp" size={20} /></span>
           <h2 id={titleId} className="lt-remind-title">{name ? `Lembrar ${firstName(name)}` : 'Lembrar no WhatsApp'}</h2>
-          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={18} /></button>
+          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={20} /></button>
         </div>
       )}
       footer={
@@ -97,19 +97,19 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
         <div aria-busy="true" style={{ paddingTop: 4 }}>
           <span className="lt-sr-only">Montando a mensagem…</span>
           <div className="lt-skel" style={{ height: 14, width: '80%' }} />
-          <div className="lt-skel" style={{ height: 150, marginTop: 12, borderRadius: 14 }} />
+          <div className="lt-skel" style={{ height: 150, marginTop: 12, borderRadius: 'var(--r-md)' }} />
         </div>
       ) : (
         <div className="lt-remind-body">
           {blocked ? (
-            <p id={noteId} className="lt-remind-blocked" role="status"><Icon name="alert" size={15} /> {blocked}</p>
+            <p id={noteId} className="lt-remind-blocked" role="status"><Icon name="alert" size={16} /> {blocked}</p>
           ) : (
             <p className="lt-remind-info">
               Mensagem gerada com os valores atuais. Edite à vontade antes de enviar para <b>{fmtPhone(debtor.phone ?? '')}</b>.
             </p>
           )}
           {debtor.notes && (
-            <p className="lt-remind-note"><Icon name="bulb" size={15} /><span>“{debtor.notes}”</span></p>
+            <p className="lt-remind-note"><Icon name="bulb" size={16} /><span>“{debtor.notes}”</span></p>
           )}
           {items.length > 0 && (
             <textarea className="lt-remind-text" value={text} onChange={(e) => setText(e.target.value)} aria-label="Mensagem" rows={9} />

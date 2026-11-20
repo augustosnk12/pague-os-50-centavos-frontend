@@ -163,7 +163,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
             aria-label={`Comprovante: ${name}, ${spokenPosition}`}
             onClick={() => onReceipt(lastPayment.id)}
           >
-            <Icon name="receipt" size={17} />
+            <Icon name="receipt" size={16} />
           </button>
         )}
       </div>

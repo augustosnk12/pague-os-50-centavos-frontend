@@ -93,11 +93,11 @@ export function Calendar({ value, onSelect, today, min, max, autoFocus, label = 
   return (
     <div className="lt-cal" role="group" aria-label={label}>
       <div className="lt-cal-head">
-        <IconButton name="chevronLeft" size={18} label="Mês anterior" onClick={() => go(addMonths(focusDay, -1))} disabled={!!min && prevMonthEnd < min} />
+        <IconButton name="chevronLeft" size={20} label="Mês anterior" onClick={() => go(addMonths(focusDay, -1))} disabled={!!min && prevMonthEnd < min} />
         <div id={titleId} className="lt-cal-title" aria-live="polite">
           {MONTHS[m]} {y}
         </div>
-        <IconButton name="chevronRight" size={18} label="Próximo mês" onClick={() => go(addMonths(focusDay, 1))} disabled={!!max && nextMonthStart > max} />
+        <IconButton name="chevronRight" size={20} label="Próximo mês" onClick={() => go(addMonths(focusDay, 1))} disabled={!!max && nextMonthStart > max} />
       </div>
       {/* Arrow keys come from the focused day button inside (keyboard delegation, no click handler here). */}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}

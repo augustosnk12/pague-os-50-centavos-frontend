@@ -21,7 +21,7 @@ const canCall = () => typeof window !== 'undefined' && window.matchMedia?.('(poi
 function Item({ icon, title, sub, onClick, disabled, danger }: { icon: string; title: string; sub?: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
     <button type="button" className="lt-act" data-danger={danger || undefined} aria-disabled={disabled || undefined} onClick={onClick}>
-      <Icon name={icon} size={19} />
+      <Icon name={icon} size={20} />
       <span className="lt-act-txt">
         <span className="lt-act-t">{title}</span>
         {sub && <span className="lt-act-s">{sub}</span>}
@@ -62,7 +62,7 @@ export function DebtorInfoSheet({ open, onClose, debtor, numbers, onEdit, onCopi
       title="Contato e anotações"
       footer={
         <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={onEdit}>
-          <Icon name="edit" size={15} /> Editar cadastro
+          <Icon name="edit" size={16} /> Editar cadastro
         </button>
       }
     >
@@ -210,7 +210,7 @@ export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoff
             <h2 id={id} className="lt-remind-title">{title}</h2>
             <div className="lt-act-s">{debtorName} · {left > 0 ? `restam ${fmtMoney(left / 100)}` : 'quitada'}</div>
           </div>
-          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={18} /></button>
+          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={20} /></button>
         </div>
       )}
     >
@@ -247,7 +247,7 @@ export function PayoffSheet({ debt, debtorName, today, busy, onClose, onConfirm 
       title={monthly ? 'Pagar em aberto' : `Quitar ${d.description || 'dívida'}`}
       footer={
         <button type="button" className="lt-btn-lg" data-variant="primary" disabled={busy || !date} onClick={() => onConfirm(d, date)}>
-          <Icon name="check" size={17} /> {busy ? 'Registrando…' : `${monthly ? 'Registrar' : 'Quitar dívida'} · ${fmtMoney(left / 100)}`}
+          <Icon name="check" size={16} /> {busy ? 'Registrando…' : `${monthly ? 'Registrar' : 'Quitar dívida'} · ${fmtMoney(left / 100)}`}
         </button>
       }
     >
@@ -331,7 +331,7 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
           disabled={busy || !!problem || unchanged}
           onClick={() => onSave(d, { occurrences: mode === 'count' ? n : null, endsAt: mode === 'date' ? `${until}T00:00:00.000Z` : null })}
         >
-          <Icon name="check" size={17} /> {busy ? 'Salvando…' : 'Salvar término'}
+          <Icon name="check" size={16} /> {busy ? 'Salvando…' : 'Salvar término'}
         </button>
       }
     >
@@ -455,7 +455,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
         <div className="lt-del">
           {!archive.archived && (
             <div className="lt-del-arch">
-              <div className="lt-del-arch-t"><Icon name="archive" size={15} /> Prefere arquivar?</div>
+              <div className="lt-del-arch-t"><Icon name="archive" size={16} /> Prefere arquivar?</div>
               <div className="lt-del-arch-s">Some das listas e mantém o histórico de {fmtMoney(received / 100)} recebidos. Dá para reativar.</div>
               {archive.blockedBy ? (
                 <div className="lt-del-arch-why">{archive.blockedBy}</div>

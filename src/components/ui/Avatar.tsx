@@ -1,14 +1,17 @@
 import { avatarHue } from '../../lib/utils'
 
+/** The avatar scale (improvement 31): stacks/filters, list rows, profile/cards. */
+export type AvatarSize = 24 | 36 | 48
+
 interface AvatarProps {
   name: string
-  size?: number
+  size?: AvatarSize
   hue?: number | null
   emoji?: string | null
   className?: string
 }
 
-export function Avatar({ name, size = 44, hue, emoji, className }: AvatarProps) {
+export function Avatar({ name, size = 48, hue, emoji, className }: AvatarProps) {
   const initials = (name || '?')
     .split(' ')
     .filter(Boolean)

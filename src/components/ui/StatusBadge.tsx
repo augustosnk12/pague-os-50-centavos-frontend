@@ -9,7 +9,7 @@ export type BadgeTone = 'paid' | 'overdue' | 'pending' | 'muted'
 export function StatusBadge({ tone, icon, children, small }: { tone: BadgeTone; icon?: string; children: React.ReactNode; small?: boolean }) {
   return (
     <span className="lt-badge" data-tone={tone} data-small={small || undefined}>
-      {icon && <Icon name={icon} size={11} strokeWidth={tone === 'muted' ? 2 : 3} />}
+      {icon && <Icon name={icon} size={12} strokeWidth={tone === 'muted' ? 2 : 3} />}
       {children}
     </span>
   )

@@ -38,7 +38,7 @@ function DueDayRow({ icon, label, value, today, onChange }: { icon: string; labe
   const next = value ? nextDayOf(value, today) : null
   return (
     <div className="lt-set-row">
-      <span className="lt-set-ic" aria-hidden="true"><Icon name={icon} size={18} /></span>
+      <span className="lt-set-ic" aria-hidden="true"><Icon name={icon} size={20} /></span>
       <div className="lt-set-main">
         <div className="lt-set-t">{label}</div>
         <div className="lt-set-s">{next ? `Próximo: ${fmtTitle(next)}` : 'Sem padrão · usa o dia 1 do mês seguinte'}</div>
@@ -49,7 +49,7 @@ function DueDayRow({ icon, label, value, today, onChange }: { icon: string; labe
           <option value="">Sem padrão</option>
           {DAYS.map((d) => <option key={d} value={d}>Dia {d}</option>)}
         </select>
-        <Icon name="chevronDown" size={14} />
+        <Icon name="chevronDown" size={16} />
       </label>
     </div>
   )
@@ -164,7 +164,7 @@ export function SettingsPage() {
 
       {lender && (
         <div className="lt-set-card lt-set-me">
-          <Avatar name={lender.name ?? lender.email} size={44} />
+          <Avatar name={lender.name ?? lender.email} size={48} />
           <div style={{ minWidth: 0 }}>
             <div className="lt-set-t lt-ellipsis">{lender.name ?? '—'}</div>
             <div className="lt-set-s lt-ellipsis">{lender.email}</div>
@@ -176,7 +176,6 @@ export function SettingsPage() {
       <ListGroup style={{ marginTop: 10 }}>
         <NavRow
           icon="trend"
-          iconSize={16}
           title="Recebimentos"
           sub="Quanto entrou nos últimos meses"
           label="Recebimentos: relatório e exportação"
@@ -189,7 +188,7 @@ export function SettingsPage() {
       {settings.isError && !s ? (
         <ErrorState onRetry={() => void settings.refetch()} retrying={settings.isFetching} />
       ) : !s ? (
-        <div className="lt-skel" style={{ height: 130, borderRadius: 16 }} aria-busy="true" />
+        <div className="lt-skel" style={{ height: 130, borderRadius: 'var(--r-lg)' }} aria-busy="true" />
       ) : (
         <>
           <div className="lt-set-card">

@@ -66,7 +66,7 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
   const item = (key: string, icon: string, text: string, onSelect: () => void, color = 'var(--text)') => (
     <button key={key} type="button" role="menuitem" className="lt-menu-item" data-gesture={key} style={{ color }} onClick={onSelect}>
       <span className="lt-menu-ic">
-        <Icon name={icon} size={17} />
+        <Icon name={icon} size={16} />
       </span>
       {text}
     </button>
@@ -100,7 +100,7 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
             right: 0,
             background: 'var(--surface)',
             border: '1px solid var(--border)',
-            borderRadius: 'calc(var(--radius) * 0.7)',
+            borderRadius: 'var(--r-md)',
             boxShadow: 'var(--shadow-lg)',
             padding: 6,
             minWidth: 190,
@@ -110,8 +110,8 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
         >
           {lender && (
             <>
-              <div role="presentation" style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface-2)', borderRadius: 'calc(var(--radius)*0.6)', padding: '10px 12px', marginBottom: 4 }}>
-                <Avatar name={lender.name ?? lender.email} size={38} />
+              <div role="presentation" style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface-2)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 4 }}>
+                <Avatar name={lender.name ?? lender.email} size={36} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.name ?? '—'}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lender.email}</div>
@@ -229,7 +229,7 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
                 alignItems: 'center',
                 gap: 8,
                 padding: '9px 14px',
-                borderRadius: 11,
+                borderRadius: 'var(--r-sm)',
                 border: 'none',
                 cursor: 'pointer',
                 background: activeRoute === n.path ? 'var(--primary-weak)' : 'transparent',

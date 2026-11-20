@@ -21,7 +21,7 @@ export function AvatarPicker({ name, hue, emoji, onChange }: AvatarPickerProps) 
     <div>
       <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 9 }}>Avatar</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-        <Avatar name={name} size={58} hue={effectiveHue} emoji={emoji} />
+        <Avatar name={name} size={48} hue={effectiveHue} emoji={emoji} />
         <div style={{ fontSize: '0.78125rem', color: 'var(--text-faint)', fontWeight: 600, lineHeight: 1.4 }}>
           {emoji ? 'Toque no emoji de novo para voltar às iniciais.' : 'Escolha uma cor e, se quiser, um emoji.'}
         </div>
@@ -32,12 +32,12 @@ export function AvatarPicker({ name, hue, emoji, onChange }: AvatarPickerProps) 
         onClick={() => setExpanded((v) => !v)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px',
-          borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer',
+          borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer',
           fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84375rem', color: 'var(--text-muted)',
         }}
       >
         Personalizar cor e emoji
-        <Icon name="chevronDown" size={15} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }} />
+        <Icon name="chevronDown" size={16} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }} />
       </button>
 
       {expanded && (
@@ -74,7 +74,7 @@ export function AvatarPicker({ name, hue, emoji, onChange }: AvatarPickerProps) 
                   onClick={() => onChange({ hue: effectiveHue, emoji: active ? null : e })}
                   style={{
                     aspectRatio: '1', display: 'grid', placeItems: 'center', fontSize: '1.1875rem', cursor: 'pointer',
-                    borderRadius: 10, minWidth: 0,
+                    borderRadius: 'var(--r-sm)', minWidth: 0,
                     background: active ? 'var(--primary-weak)' : 'var(--surface-2)',
                     border: active ? '1.5px solid var(--primary)' : '1.5px solid transparent',
                     transition: 'background .12s, border-color .12s', lineHeight: 1,

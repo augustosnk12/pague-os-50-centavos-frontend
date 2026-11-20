@@ -51,7 +51,7 @@ export function PaidOnField({ today, onChange }: PaidOnFieldProps) {
           />
         ) : (
           <button type="button" className="lt-chip" onClick={() => pick('other', other)}>
-            <Icon name="calendar" size={14} /> Outra
+            <Icon name="calendar" size={16} /> Outra
           </button>
         )}
       </div>

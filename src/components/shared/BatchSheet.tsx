@@ -172,7 +172,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
           onClick={() => toggle(c.inst.id)}
           aria-label={`${title}, ${due}, ${fmtMoney(c.left / 100)}${c.late ? ', atrasada' : ''}`}
         >
-          <span className="lt-check" aria-hidden="true">{on && <Icon name="check" size={13} strokeWidth={3} />}</span>
+          <span className="lt-check" aria-hidden="true">{on && <Icon name="check" size={16} strokeWidth={3} />}</span>
           <span className="lt-bt-main">
             <span className="lt-bt-t">{title}</span>
             <span className="lt-bt-s" data-late={c.late || undefined}>{due}</span>
@@ -195,7 +195,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
         title={`Receber várias parcelas de ${name}`}
         head={(titleId, close) => (
           <div className="lt-pay-head">
-            {debtor && <Avatar name={name} size={40} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />}
+            {debtor && <Avatar name={name} size={36} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 id={titleId} className="lt-pay-name">
                 <span className="lt-sr-only">Receber várias parcelas de </span>
@@ -208,13 +208,13 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
         )}
         footer={
           <button type="button" className="lt-btn-lg" data-variant="primary" onClick={confirm} disabled={!ok || batch.isPending}>
-            <Icon name="check" size={17} />
+            <Icon name="check" size={16} />
             {batch.isPending ? 'Registrando…' : count > 0 && amount > 0 ? `Registrar ${fmtMoney(amount / 100)} em ${plural(count, 'parcela', 'parcelas')}` : 'Registrar'}
           </button>
         }
       >
         {!ready ? (
-          <div className="lt-skel" style={{ height: 180, borderRadius: 16 }} aria-busy="true" />
+          <div className="lt-skel" style={{ height: 180, borderRadius: 'var(--r-lg)' }} aria-busy="true" />
         ) : (
           <div className="lt-pay-body">
             <div>
@@ -233,7 +233,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
                     <button type="button" className="lt-more-link" aria-expanded={showLater} onClick={() => setShowLater((v) => !v)}>
                       Mais adiante · {later.length}
                       {laterOn > 0 && <span className="lt-bt-on">({laterOn} {laterOn === 1 ? 'marcada' : 'marcadas'})</span>}
-                      <Icon name="chevronDown" size={13} style={showLater ? { transform: 'rotate(180deg)' } : undefined} />
+                      <Icon name="chevronDown" size={16} style={showLater ? { transform: 'rotate(180deg)' } : undefined} />
                     </button>
                     {showLater && later.length > 1 && groupToggle(later, 'mais adiante')}
                   </div>

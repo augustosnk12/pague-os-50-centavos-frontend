@@ -122,7 +122,7 @@ export function StatementSheet({ debtorId, onClose }: StatementSheetProps) {
               disabled={busy}
               aria-label="Compartilhar ou baixar a imagem do extrato"
             >
-              <Icon name="send" size={15} /> Imagem
+              <Icon name="send" size={16} /> Imagem
             </button>
           </>
         ) : undefined
@@ -131,7 +131,7 @@ export function StatementSheet({ debtorId, onClose }: StatementSheetProps) {
       {!s || !debtor ? (
         <div aria-busy="true">
           <span className="lt-sr-only">Montando o extrato…</span>
-          <div className="lt-skel" style={{ height: 360, borderRadius: 18 }} />
+          <div className="lt-skel" style={{ height: 360, borderRadius: 'var(--r-lg)' }} />
         </div>
       ) : (
         <div className="lt-stmt">

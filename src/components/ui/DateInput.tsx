@@ -156,7 +156,7 @@ export function DateInput({ label, ariaLabel, value, onChange, required, min, ma
           aria-controls={open ? `${id}-cal` : undefined}
           onClick={() => setOpen((o) => !o)}
         >
-          <Icon name="calendar" size={compact ? 15 : 18} />
+          <Icon name="calendar" size={compact ? 16 : 20} />
         </button>
       </div>
       {error && (

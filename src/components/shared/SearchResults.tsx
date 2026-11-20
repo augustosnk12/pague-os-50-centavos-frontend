@@ -39,7 +39,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
         <span className="lt-sr-main lt-sr-all">Ver todos os resultados para “{h.term}”</span>
       ) : h.kind === 'debtor' ? (
         <>
-          <Avatar name={h.hit.name} size={32} hue={h.hit.avatarHue} emoji={h.hit.avatarEmoji} />
+          <Avatar name={h.hit.name} size={36} hue={h.hit.avatarHue} emoji={h.hit.avatarEmoji} />
           <span className="lt-sr-main">
             <span className="lt-sr-t">
               {h.hit.name}
@@ -59,7 +59,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
           </span>
         </>
       )}
-      <Icon name="chevronRight" size={15} />
+      <Icon name="chevronRight" size={16} />
     </div>
   )
   return (

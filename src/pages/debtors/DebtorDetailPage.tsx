@@ -118,20 +118,20 @@ function DebtorProfile({ id }: { id: string }) {
     return (
       <main className="lt-page" aria-busy="true">
         <span className="lt-sr-only">Carregando…</span>
-        <div className="lt-skel" style={{ height: 18, width: 70, borderRadius: 8 }} />
+        <div className="lt-skel" style={{ height: 18, width: 70, borderRadius: 'var(--r-sm)' }} />
         <div className="lt-skel-item" style={{ padding: '16px 0 12px' }}>
-          <div className="lt-skel" style={{ width: 58, height: 58, borderRadius: 18 }} />
+          <div className="lt-skel" style={{ width: 58, height: 58, borderRadius: 'var(--r-lg)' }} />
           <div style={{ flex: 1 }}>
             <div className="lt-skel" style={{ height: 20, width: '50%' }} />
             <div className="lt-skel" style={{ height: 12, width: '65%', marginTop: 8 }} />
           </div>
         </div>
         <div className="lt-skel-row">
-          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
-          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 'var(--r-md)' }} />
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 'var(--r-md)' }} />
         </div>
-        <div className="lt-skel" style={{ height: 40, borderRadius: 10, marginTop: 14 }} />
-        <div className="lt-skel" style={{ height: 210, borderRadius: 18, marginTop: 14 }} />
+        <div className="lt-skel" style={{ height: 40, borderRadius: 'var(--r-sm)', marginTop: 14 }} />
+        <div className="lt-skel" style={{ height: 210, borderRadius: 'var(--r-lg)', marginTop: 14 }} />
       </main>
     )
   }
@@ -316,7 +316,7 @@ function DebtorProfile({ id }: { id: string }) {
   const summary =
     numbers.owed === 0 ? (
       <span style={{ color: 'var(--paid)' }}>
-        <Icon name="check" size={13} strokeWidth={3} /> {debts.length ? `Tudo quitado · ${fmtMoney(numbers.received / 100)} recebidos` : 'Sem dívidas'}
+        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? `Tudo quitado · ${fmtMoney(numbers.received / 100)} recebidos` : 'Sem dívidas'}
       </span>
     ) : (
       <>
@@ -339,16 +339,16 @@ function DebtorProfile({ id }: { id: string }) {
       <div className="lt-prof">
         <button type="button" className="lt-prof-hit" onClick={() => setInfoOpen(true)} aria-label={`Ver contato e anotações de ${debtor.name}`} />
         <span className="lt-prof-av">
-          <Avatar name={debtor.name} size={52} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />
+          <Avatar name={debtor.name} size={48} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />
           {rel && (
             <span className="lt-prof-rel" style={{ background: rel.color }} title={rel.label}>
-              <Icon name={rel.icon} size={10} strokeWidth={3.2} color="var(--surface)" />
+              <Icon name={rel.icon} size={12} strokeWidth={3.2} color="var(--surface)" />
             </span>
           )}
         </span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1 className="lt-h1 lt-prof-name">
-            <span>{debtor.name}</span> <Icon name="chevronRight" size={18} />
+            <span>{debtor.name}</span> <Icon name="chevronRight" size={20} />
           </h1>
           <div className="lt-prof-sum">{debtsQuery.isLoading ? <span className="lt-skel" style={{ display: 'inline-block', height: 12, width: 170, verticalAlign: 'middle' }} /> : summary}</div>
         </div>
@@ -402,7 +402,7 @@ function DebtorProfile({ id }: { id: string }) {
         {debtsQuery.isError && !debtsQuery.data ? (
           <ErrorState title="Não foi possível carregar as dívidas" onRetry={() => void debtsQuery.refetch()} retrying={debtsQuery.isFetching} />
         ) : debtsQuery.isLoading ? (
-          <div className="lt-skel" style={{ height: 200, borderRadius: 16, marginTop: 12 }} />
+          <div className="lt-skel" style={{ height: 200, borderRadius: 'var(--r-lg)', marginTop: 12 }} />
         ) : shownTab === 'open' ? (
           open.length ? (
             <div className="lt-dsecs">
@@ -411,7 +411,7 @@ function DebtorProfile({ id }: { id: string }) {
                   <Icon name="layers" size={16} />
                   <span style={{ flex: 1 }}>Receber várias de uma vez</span>
                   <span className="lt-batch-link-n">{openTotal} em aberto</span>
-                  <Icon name="chevronRight" size={15} />
+                  <Icon name="chevronRight" size={16} />
                 </button>
               )}
               {open.map((d) => (

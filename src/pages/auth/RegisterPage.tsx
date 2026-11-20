@@ -78,7 +78,7 @@ export function RegisterPage() {
           autoFocus
         />
         <div id={nameErr} className="lt-auth-err" role="alert">
-          {err?.field === 'name' && <><Icon name="alert" size={14} /> {err.msg}</>}
+          {err?.field === 'name' && <><Icon name="alert" size={16} /> {err.msg}</>}
         </div>
         <label className="lt-field-label" htmlFor="auth-email">E-mail</label>
         <input
@@ -98,7 +98,7 @@ export function RegisterPage() {
           aria-describedby={err?.field === 'email' ? emailErr : undefined}
         />
         <div id={emailErr} className="lt-auth-err" role="alert">
-          {err?.field === 'email' && <><Icon name="alert" size={14} /> {err.msg}</>}
+          {err?.field === 'email' && <><Icon name="alert" size={16} /> {err.msg}</>}
         </div>
         <button type="submit" className="lt-btn-lg" data-variant="primary" style={{ width: '100%' }} disabled={register.isPending}>
           <Icon name="mail" size={16} /> {register.isPending ? 'Criando…' : 'Criar conta'}

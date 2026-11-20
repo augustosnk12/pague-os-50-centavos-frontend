@@ -12,7 +12,7 @@ import { maskEmail } from '../../lib/mailApp'
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 function Counts({ s }: { s: AccountSummary | undefined }) {
-  if (!s) return <div className="lt-skel" style={{ height: 74, borderRadius: 12 }} aria-busy="true" />
+  if (!s) return <div className="lt-skel" style={{ height: 74, borderRadius: 'var(--r-md)' }} aria-busy="true" />
   return (
     <ul className="lt-data-counts">
       <li><b>{s.debtors}</b> {s.debtors === 1 ? 'devedor' : 'devedores'}</li>
@@ -178,7 +178,7 @@ export function DeleteAccountSheet({ open, onClose, onDownloadFirst, onDeleted }
             <Counts s={s} />
             {s && s.debts + s.debtors > 0 && (
               <button type="button" className="lt-more-link" style={{ padding: 0, alignSelf: 'flex-start' }} onClick={onDownloadFirst}>
-                <Icon name="download" size={14} /> Baixar meus dados antes
+                <Icon name="download" size={16} /> Baixar meus dados antes
               </button>
             )}
             <p className="lt-set-note" style={{ margin: 0 }}>Para confirmar, vamos mandar um código para {lender ? <b>{maskEmail(lender.email)}</b> : 'o seu e-mail'}.</p>
@@ -211,7 +211,7 @@ export function DeleteAccountSheet({ open, onClose, onDownloadFirst, onDeleted }
         <div id={errId} className="lt-auth-err" role="alert">
           {err && (
             <>
-              <Icon name="alert" size={14} /> {err}
+              <Icon name="alert" size={16} /> {err}
             </>
           )}
         </div>

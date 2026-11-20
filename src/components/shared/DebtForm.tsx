@@ -61,7 +61,7 @@ export function DebtForm({ open, onClose, editing, onSave, onDelete, loading }: 
           disabled={loading || unchanged}
           onClick={() => onSave({ id: d.id, description: description.trim() || null, type })}
         >
-          <Icon name="check" size={17} /> {loading ? 'Salvando…' : 'Salvar'}
+          <Icon name="check" size={16} /> {loading ? 'Salvando…' : 'Salvar'}
         </button>
       }
     >
@@ -74,14 +74,14 @@ export function DebtForm({ open, onClose, editing, onSave, onDelete, loading }: 
           </div>
           {paid > 0 ? (
             <div className="lt-nd-type lt-de-type-fixed" aria-labelledby="de-type-l">
-              <Icon name={choices[0]?.icon ?? 'layers'} size={19} />
+              <Icon name={choices[0]?.icon ?? 'layers'} size={20} />
               <span className="lt-nd-type-t">{choices[0]?.label ?? d.type}</span>
             </div>
           ) : (
             <div className="lt-nd-types" role="group" aria-labelledby="de-type-l">
               {choices.map((t) => (
                 <button key={t.type} type="button" className="lt-nd-type" aria-pressed={type === t.type} onClick={() => setType(t.type)}>
-                  <Icon name={t.icon} size={19} />
+                  <Icon name={t.icon} size={20} />
                   <span className="lt-nd-type-t">{t.label}</span>
                 </button>
               ))}
@@ -99,7 +99,7 @@ export function DebtForm({ open, onClose, editing, onSave, onDelete, loading }: 
           ) : (
             onDelete && (
               <button type="button" className="lt-de-del" onClick={() => onDelete(d)}>
-                <Icon name="trash" size={15} /> Excluir dívida
+                <Icon name="trash" size={16} /> Excluir dívida
               </button>
             )
           )}

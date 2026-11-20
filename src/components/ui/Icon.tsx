@@ -56,12 +56,18 @@ const ICONS: Record<string, string> = {
 
 interface IconProps {
   name: string
-  size?: number
+  size?: IconSize
   color?: string
   strokeWidth?: number
   fill?: string
   style?: CSSProperties
 }
+
+/**
+ * The icon scale (improvement 31): 16 / 20 / 24, plus the named exceptions
+ * 12 (inside pills and badges) and 28 (empty states). Nothing else compiles.
+ */
+export type IconSize = 12 | 16 | 20 | 24 | 28
 
 export function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2, fill = 'none', style }: IconProps) {
   const dpath = ICONS[name] ?? ICONS['x']

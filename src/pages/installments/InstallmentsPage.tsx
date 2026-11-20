@@ -149,11 +149,11 @@ export function InstallmentsPage() {
       {compact && (
         <div className="lt-ip-bar" role="region" aria-label="Período e filtros">
           <div className="lt-ip-bar-in">
-            <IconButton name="chevronLeft" size={17} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
+            <IconButton name="chevronLeft" size={16} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
             <button type="button" className="lt-ipb-lbl" onClick={scrollToTop} aria-label={`${periodLabel(period, anchor)}. Voltar ao topo`}>
               {periodLabel(period, anchor)}
             </button>
-            <IconButton name="chevronRight" size={17} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
+            <IconButton name="chevronRight" size={16} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
             <span className="lt-ipb-sep" aria-hidden="true" />
             <button type="button" className="lt-ipb-f" onClick={scrollToTop} aria-label={`${tabName}, ${view.counts[tab]}. Voltar ao topo`}>
               {tabName}
@@ -177,20 +177,20 @@ export function InstallmentsPage() {
         >
           {selectedDebtors.length ? (
             <span className="lt-av-stack" aria-hidden="true">
-              {selectedDebtors.slice(0, 2).map((d) => <Avatar key={d.id} name={d.name} size={22} hue={d.avatarHue} emoji={d.avatarEmoji} />)}
+              {selectedDebtors.slice(0, 2).map((d) => <Avatar key={d.id} name={d.name} size={24} hue={d.avatarHue} emoji={d.avatarEmoji} />)}
             </span>
           ) : (
-            <Icon name="user" size={15} />
+            <Icon name="user" size={16} />
           )}
           <span className="lt-dfilter-lbl">{filterLabel}</span>
-          <Icon name="chevronDown" size={13} />
+          <Icon name="chevronDown" size={16} />
         </button>
       </div>
 
       <div className="lt-pcard">
         <Segmented label="Agrupar por" value={period} options={PERIODS.map(([p, l]) => ({ value: p, label: l }))} onChange={(p) => update({ period: p })} />
         <div className="lt-pnav">
-          <IconButton name="chevronLeft" size={19} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
+          <IconButton name="chevronLeft" size={20} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
           <div className="lt-pnav-lbl">
             <div className="lt-pnav-t" aria-live="polite">{periodLabel(period, anchor)}</div>
             <div className="lt-pnav-s">
@@ -203,7 +203,7 @@ export function InstallmentsPage() {
               )}
             </div>
           </div>
-          <IconButton name="chevronRight" size={19} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
+          <IconButton name="chevronRight" size={20} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
         </div>
       </div>
 
@@ -357,7 +357,7 @@ function Totals({ view, period, tab, open, onToggle, onFilter }: {
           <span style={{ width: w(pending), background: 'var(--pending)' }} />
         </span>
         <span className="lt-tot-pct">{pct}%</span>
-        <span className="lt-tot-chev" aria-hidden="true"><Icon name="chevronDown" size={15} /></span>
+        <span className="lt-tot-chev" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
       </button>
       {open && (
         <div id={id} className="lt-tot-det">
@@ -474,7 +474,7 @@ function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid,
             >
               <span style={{ color: 'var(--paid)', display: 'inline-flex' }} aria-hidden="true"><Icon name="check" size={16} strokeWidth={2.6} /></span>
               <span className="lt-paid-sum-t" aria-hidden="true">{paidOpen[g.day] ? 'Recolher pagas' : `${plural(g.paid.length, 'paga', 'pagas')} · ${fmtMoney(g.paidCents / 100)}`}</span>
-              <Icon name="chevronDown" size={15} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
+              <Icon name="chevronDown" size={16} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
             </ListRow>
           )}
         </ListGroup>
@@ -532,14 +532,14 @@ function FloatingNav({ hasToday, onTop }: { hasToday: boolean; onTop: () => void
           el?.querySelector<HTMLButtonElement>('.lt-lrow-hit')?.focus({ preventScroll: true })
         }}
       >
-        Hoje <Icon name="chevronDown" size={15} style={state.today === 'up' ? { transform: 'rotate(180deg)' } : undefined} />
+        Hoje <Icon name="chevronDown" size={16} style={state.today === 'up' ? { transform: 'rotate(180deg)' } : undefined} />
       </button>
     )
   }
   if (state.top) {
     return (
       <button type="button" className="lt-float" onClick={onTop} aria-label="Voltar ao topo">
-        <Icon name="chevronDown" size={15} style={{ transform: 'rotate(180deg)' }} /> Topo
+        <Icon name="chevronDown" size={16} style={{ transform: 'rotate(180deg)' }} /> Topo
       </button>
     )
   }
@@ -553,7 +553,7 @@ function ListSkeleton() {
       {[0, 1].map((k) => (
         <div key={k}>
           <div className="lt-skel" style={{ height: 12, width: 120, margin: '18px 3px 10px' }} />
-          <div className="lt-skel" style={{ height: 120, borderRadius: 16 }} />
+          <div className="lt-skel" style={{ height: 120, borderRadius: 'var(--r-lg)' }} />
         </div>
       ))}
     </div>

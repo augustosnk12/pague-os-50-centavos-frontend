@@ -80,10 +80,10 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
         </div>
         {sticky ? (
           <button type="button" className="lt-dsec-collapse" aria-expanded onClick={toggle} aria-label={`Recolher ${title}`}>
-            Recolher <Icon name="chevronDown" size={13} style={{ transform: 'rotate(180deg)' }} />
+            Recolher <Icon name="chevronDown" size={16} style={{ transform: 'rotate(180deg)' }} />
           </button>
         ) : (
-          <IconButton name="dots" size={17} label={`Ações da dívida ${title}`} onClick={onActions} />
+          <IconButton name="dots" size={16} label={`Ações da dívida ${title}`} onClick={onActions} />
         )}
       </div>
       <Detail>
@@ -99,14 +99,14 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           {canToggle ? (
             <button type="button" className="lt-more-link" aria-expanded={expanded} onClick={toggle}>
               {expanded ? 'Mostrar só as em aberto' : `Ver todas as ${total} parcelas`}
-              <Icon name="chevronDown" size={13} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
+              <Icon name="chevronDown" size={16} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
             </button>
           ) : (
             <span />
           )}
           {open.length > 1 && (
             <button type="button" className="lt-payoff-btn" onClick={onPayoff} aria-label={`${monthly ? 'Pagar o que está em aberto em' : 'Quitar'} ${title}, ${fmtMoney(left / 100)}`}>
-              <Icon name="check" size={14} strokeWidth={2.8} /> {monthly ? 'Pagar em aberto' : 'Quitar'} · {fmtMoney(left / 100)}
+              <Icon name="check" size={16} strokeWidth={2.8} /> {monthly ? 'Pagar em aberto' : 'Quitar'} · {fmtMoney(left / 100)}
             </button>
           )}
         </div>

@@ -49,7 +49,7 @@ export function SupportSheet({ open, onClose }: { open: boolean; onClose: () => 
     >
       <div className="lt-df">
         <div className="lt-coffee-hero">
-          <span className="lt-coffee-ic" aria-hidden="true"><Icon name="coffee" size={26} /></span>
+          <span className="lt-coffee-ic" aria-hidden="true"><Icon name="coffee" size={24} /></span>
           <p className="lt-del-p" style={{ padding: 0 }}>
             O Pague os 50 centavos é gratuito e sem anúncios. Se ele te ajuda a receber, que tal pagar um café para quem desenvolve?
           </p>

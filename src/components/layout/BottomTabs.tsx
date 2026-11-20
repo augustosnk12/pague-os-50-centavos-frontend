@@ -102,7 +102,7 @@ export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
           onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          <Icon name="plus" size={26} strokeWidth={2.6} />
+          <Icon name="plus" size={24} strokeWidth={2.6} />
         </button>
         <span id="fab-hint" className="lt-sr-only">Segure para registrar um pagamento</span>
       </div>
@@ -162,7 +162,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
   const content = (
     <>
       <span style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
-        <Icon name={icon} size={23} strokeWidth={active ? 2.4 : 2} />
+        <Icon name={icon} size={24} strokeWidth={active ? 2.4 : 2} />
         {badge > 0 && (
           <span
             aria-hidden="true"
@@ -173,7 +173,7 @@ function Tab({ label, icon, active, to, onClick, badge = 0, badgeLabel }: TabPro
               minWidth: 16,
               height: 16,
               padding: '0 4px',
-              borderRadius: 99,
+              borderRadius: 'var(--r-pill)',
               background: 'var(--overdue)',
               color: '#fff',
               fontSize: '0.625rem',

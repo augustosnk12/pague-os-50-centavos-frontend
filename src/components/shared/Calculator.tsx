@@ -30,7 +30,7 @@ function CalcKey({ label, icon, kind = 'num', span, ariaLabel, onPress }: CalcKe
       style={{
         gridColumn: span ? `span ${span}` : 'auto',
         border: `1px solid ${p.bd}`,
-        borderRadius: 'calc(var(--radius) * 0.7)',
+        borderRadius: 'var(--r-md)',
         background: p.bg,
         color: p.fg,
         fontSize: '1.375rem',
@@ -49,7 +49,7 @@ function CalcKey({ label, icon, kind = 'num', span, ariaLabel, onPress }: CalcKe
       onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.93)' }}
       onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
     >
-      {icon ? <Icon name={icon} size={22} strokeWidth={2.2} /> : label}
+      {icon ? <Icon name={icon} size={24} strokeWidth={2.2} /> : label}
     </button>
   )
 }
@@ -63,7 +63,7 @@ export function Calculator() {
   return (
     <div style={{ paddingTop: 2 }}>
       {/* Display */}
-      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px', marginBottom: 14, textAlign: 'right', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 14, textAlign: 'right', overflow: 'hidden' }}>
         <div style={{ minHeight: 20, fontSize: '0.875rem', color: 'var(--text-faint)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {expr || ' '}
         </div>

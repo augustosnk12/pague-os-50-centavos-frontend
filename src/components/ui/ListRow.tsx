@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { Icon } from './Icon'
+import { Link } from 'react-router-dom'
+import { Icon, type IconSize } from './Icon'
 
 interface ListRowProps {
   /** What a screen reader says for the whole row (the visible parts are hidden from it). */
@@ -34,6 +35,20 @@ export function ListRow({ label, onClick, children, expanded, after, id, classNa
   )
 }
 
+/**
+ * A row that is a real link (Devedores, search hits): middle-click, "open in
+ * new tab" and screen readers treat it as one. `label` is its accessible name.
+ */
+export function LinkRow({ to, label, children }: { to: string; label: string; children: ReactNode }) {
+  return (
+    <li className="lt-lrow">
+      <Link to={to} className="lt-lrow-in lt-link-row" aria-label={label}>
+        {children}
+      </Link>
+    </li>
+  )
+}
+
 /** Title and subtitle of a row (hidden from screen readers: the row's label says it). */
 export function RowText({ title, sub, titleStyle }: { title: ReactNode; sub?: ReactNode; titleStyle?: CSSProperties }) {
   return (
@@ -45,9 +60,9 @@ export function RowText({ title, sub, titleStyle }: { title: ReactNode; sub?: Re
 }
 
 /** A row that goes somewhere (Configurações): icon tile, title, subtitle and ›. */
-export function NavRow({ icon, iconSize = 17, title, sub, label, onClick, onPointerEnter, danger, iconClassName }: {
+export function NavRow({ icon, iconSize = 16, title, sub, label, onClick, onPointerEnter, danger, iconClassName }: {
   icon: string
-  iconSize?: number
+  iconSize?: IconSize
   title: string
   sub?: string
   /** Defaults to the title. */

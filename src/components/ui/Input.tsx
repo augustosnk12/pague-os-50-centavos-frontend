@@ -86,7 +86,7 @@ export function Input({
           gap: 8,
           background: 'var(--surface)',
           border: `1.5px solid ${ring}`,
-          borderRadius: 'calc(var(--radius) * 0.6)',
+          borderRadius: 'var(--r-sm)',
           padding: '13px 15px',
           transition: 'border-color .15s, box-shadow .15s',
           boxShadow: focus ? '0 0 0 4px var(--primary-weak)' : 'none',

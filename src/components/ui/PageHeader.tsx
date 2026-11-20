@@ -5,7 +5,7 @@ import { Detail } from '../../contexts/PreferencesContext'
 export function BackButton({ label, onClick }: { label: string | null; onClick: () => void }) {
   return (
     <button type="button" className="lt-back" onClick={onClick} aria-label={`Voltar para ${label ?? 'a tela anterior'}`}>
-      <Icon name="chevronLeft" size={17} /> {label ?? 'Voltar'}
+      <Icon name="chevronLeft" size={16} /> {label ?? 'Voltar'}
     </button>
   )
 }

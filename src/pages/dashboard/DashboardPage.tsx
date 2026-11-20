@@ -106,19 +106,19 @@ function Hero({ o }: { o: DashboardOverview }) {
             <b>{fmtMoney(o.month.received)}</b> recebido de {fmtMoney(o.month.expected)}
           </span>
           <span className="lt-hm-pct">
-            {pct}% <Icon name="chevronRight" size={13} />
+            {pct}% <Icon name="chevronRight" size={16} />
           </span>
         </span>
       </Link>
       {hasOverdue && (
         <div className="lt-hero-pills">
           <Link to="/installments?aba=atrasadas" className="lt-late-pill">
-            <Icon name="alert" size={14} />
+            <Icon name="alert" size={16} />
             <span>
               {fmtMoney(o.overdue.amount)} em atraso
               {prev > 0 && ` · ${prev} de meses anteriores`}
             </span>
-            <Icon name="chevronRight" size={13} />
+            <Icon name="chevronRight" size={16} />
           </Link>
         </div>
       )}
@@ -174,7 +174,7 @@ function Agenda({ o, today, lean, showWeek, onShowWeek, onOpen }: AgendaProps) {
       {next7.length > 0 &&
         (lean && !showWeek ? (
           <button type="button" className="lt-more-link" aria-expanded="false" onClick={onShowWeek}>
-            Próximos 7 dias · {o.counts.next7} <Icon name="chevronDown" size={13} />
+            Próximos 7 dias · {o.counts.next7} <Icon name="chevronDown" size={16} />
           </button>
         ) : (
           <>
@@ -190,9 +190,9 @@ function DashboardSkeleton() {
   return (
     <div aria-busy="true">
       <span className="lt-sr-only">Carregando o painel…</span>
-      <div className="lt-skel" style={{ height: 150, borderRadius: 'calc(var(--radius) * 1.15)' }} />
+      <div className="lt-skel" style={{ height: 150, borderRadius: 'var(--r-lg)' }} />
       <div className="lt-skel" style={{ height: 14, width: 140, margin: '22px 3px 10px' }} />
-      <div className="lt-skel" style={{ height: 180, borderRadius: 16 }} />
+      <div className="lt-skel" style={{ height: 180, borderRadius: 'var(--r-lg)' }} />
     </div>
   )
 }

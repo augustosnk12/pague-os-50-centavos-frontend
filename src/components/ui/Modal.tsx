@@ -186,7 +186,7 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
           background: 'var(--surface)',
           width: '100%',
           maxWidth: 460,
-          borderRadius: 'calc(var(--radius) * 1.2) calc(var(--radius) * 1.2) 0 0',
+          borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
           boxShadow: 'var(--shadow-lg)',
           maxHeight: '92vh',
           display: 'flex',

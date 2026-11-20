@@ -84,7 +84,7 @@ export function CheckEmail({ email, type, onResend, onOtherEmail }: CheckEmailPr
 
   return (
     <>
-      <div className="lt-auth-ic" aria-hidden="true"><Icon name="mail" size={26} /></div>
+      <div className="lt-auth-ic" aria-hidden="true"><Icon name="mail" size={24} /></div>
       <h1 className="lt-auth-h">Confira seu e-mail</h1>
       <p className="lt-auth-p">
         Enviamos {type === 'LOGIN' ? 'um link' : 'um link de confirmação'} para <b>{email}</b>. Toque nele neste aparelho ou digite o código:
@@ -113,7 +113,7 @@ export function CheckEmail({ email, type, onResend, onOtherEmail }: CheckEmailPr
       <div id={errId} className="lt-auth-err" role="alert">
         {err && (
           <>
-            <Icon name="alert" size={14} /> {err}
+            <Icon name="alert" size={16} /> {err}
           </>
         )}
       </div>
@@ -123,7 +123,7 @@ export function CheckEmail({ email, type, onResend, onOtherEmail }: CheckEmailPr
       <div className="lt-auth-links">
         {inbox && (
           <a className="lt-auth-link lt-mobile-only" href={inbox} target="_blank" rel="noopener noreferrer">
-            <Icon name="mail" size={14} /> Abrir app de e-mail
+            <Icon name="mail" size={16} /> Abrir app de e-mail
           </a>
         )}
         <LinkButton onClick={() => void resend()} disabled={cooldown > 0} aria-live="polite">
