@@ -126,6 +126,12 @@
 html {
   /* Text size option (improvement 50) multiplies the user's own browser setting. */
   font-size: calc(100% * var(--fz));
+  /*
+   * Keep the scroll bar's space even when a sheet locks the page (Modal sets
+   * body overflow: hidden): the content no longer jumps sideways when a sheet
+   * opens or closes on desktop. Overlay scroll bars (phones) are unaffected.
+   */
+  scrollbar-gutter: stable;
 }
 html[data-fz="l"] { --fz: 1.15; }
 html[data-fz="xl"] { --fz: 1.3; }
