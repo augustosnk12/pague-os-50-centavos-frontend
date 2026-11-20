@@ -63,7 +63,7 @@ test.describe('with data', () => {
 
     await page.goto('/installments')
     await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
-    await page.getByRole('button', { name: /mês/i }).first().click().catch(() => {})
+    await page.getByRole('radio', { name: 'Mês' }).click()
     await expect(page.getByText('Curso de inglês').first()).toBeVisible()
     await a11y('installments')
 
@@ -391,7 +391,7 @@ test.describe('Parcelas (S3)', () => {
     const d = await session.api('POST', '/debtors', { name: 'Dora Dia' })
     await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Hoje mesmo', totalAmount: 30, numberOfInstallments: 1, firstDueDate: day(0) })
     await page.goto('/installments')
-    await page.getByRole('button', { name: 'Dia', exact: true }).click()
+    await page.getByRole('radio', { name: 'Dia', exact: true }).click()
     await expect(page).toHaveURL(/periodo=dia/)
     const strip = page.getByRole('group', { name: 'Dias da semana' })
     await expect(strip.locator('[aria-current="date"]')).toHaveAttribute('aria-pressed', 'true')
@@ -695,7 +695,7 @@ test.describe('Nova dívida (S8)', () => {
 
     await page.getByRole('switch', { name: /Repetir todo mês/ }).click()
     await page.getByRole('textbox', { name: /Valor por mês/ }).fill('15000')
-    await page.getByRole('button', { name: 'Após' }).click()
+    await page.getByRole('radio', { name: 'Após' }).click()
     await page.locator('#nd-recn input').fill('3')
     await page.getByPlaceholder('Empréstimo de junho').fill('Vaga de garagem')
     await expect(page.getByRole('region', { name: 'Prévia das cobranças' })).toContainText('3 cobranças no total')
@@ -729,7 +729,7 @@ test.describe('Término da recorrência', () => {
     await card.getByRole('button', { name: 'Ações da dívida Vaga de garagem' }).click()
     await page.getByRole('button', { name: /Alterar término/ }).click()
     const sheet = page.getByRole('dialog', { name: 'Alterar término' })
-    await expect(sheet.getByRole('button', { name: 'Após' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByRole('radio', { name: 'Após' })).toHaveAttribute('aria-checked', 'true')
     await a11y('recurrence-end')
 
     const count = sheet.getByRole('textbox', { name: 'Número de cobranças no total' })
@@ -744,7 +744,7 @@ test.describe('Término da recorrência', () => {
 
     await card.getByRole('button', { name: 'Ações da dívida Vaga de garagem' }).click()
     await page.getByRole('button', { name: /Alterar término/ }).click()
-    await page.getByRole('dialog', { name: 'Alterar término' }).getByRole('button', { name: 'Sem fim' }).click()
+    await page.getByRole('dialog', { name: 'Alterar término' }).getByRole('radio', { name: 'Sem fim' }).click()
     await page.getByRole('dialog', { name: 'Alterar término' }).getByRole('button', { name: /Salvar término/ }).click()
     await expect(card).toContainText('sem fim')
     const debts = await session.api('GET', `/debtors/${d.id}/debts`)

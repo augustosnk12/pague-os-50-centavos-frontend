@@ -283,6 +283,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-page { max-width: 680px; margin: 0 auto; padding: 20px 16px 116px; }
 .lt-h1 { margin: 0; font-size: 1.5625rem; font-weight: 800; letter-spacing: -0.03em; }
 .lt-sub { margin: 3px 0 0; color: var(--text-muted); font-size: 0.875rem; }
+
+/* Page header (improvement 31): "‹ Voltar", the <h1>, subtitle, one action. */
+.lt-ph { margin-bottom: 16px; }
+.lt-ph-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.lt-ph[data-back] .lt-ph-row { margin-top: 6px; }
+.lt-ph-main { flex: 1; min-width: 0; }
+.lt-ph-row > :not(.lt-ph-main) { flex-shrink: 0; }
+
+/* Status pill (improvement 31). */
+.lt-badge {
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; width: fit-content; padding: 3px 9px; border-radius: 99px;
+  font-weight: 800; font-size: 0.75rem; white-space: nowrap;
+}
+.lt-badge[data-small] { padding: 2px 8px; font-size: 0.6875rem; }
+.lt-badge[data-tone="paid"] { background: var(--paid-weak); color: var(--paid); }
+.lt-badge[data-tone="overdue"] { background: var(--overdue-weak); color: var(--overdue); }
+.lt-badge[data-tone="pending"] { background: var(--pending-weak); color: var(--pending); }
+.lt-badge[data-tone="muted"] { background: var(--surface-2); color: var(--text-muted); }
 .lt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow-sm); }
 .lt-dot { width: 7px; height: 7px; border-radius: 99px; display: inline-block; flex-shrink: 0; }
 .lt-more-link {
@@ -733,10 +751,6 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 }
 .lt-rcpt-title { font-weight: 800; font-size: 0.875rem; }
 .lt-rcpt-code { font-weight: 700; font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.lt-rcpt-pill {
-  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 3px 9px; border-radius: 99px;
-  background: var(--paid-weak); color: var(--paid); font-weight: 800; font-size: 0.75rem;
-}
 .lt-rcpt-amt { text-align: center; margin-top: 16px; line-height: 1.1; }
 .lt-rcpt-date { text-align: center; margin-top: 4px; font-weight: 700; font-size: 0.78125rem; color: var(--text-muted); }
 .lt-rcpt-cut { margin: 14px -16px; border-top: 2px dashed var(--border); position: relative; }
@@ -759,10 +773,7 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 .lt-stmt { display: flex; flex-direction: column; gap: 12px; }
 .lt-stmt-opts { display: flex; flex-direction: column; gap: 10px; }
 .lt-stmt .lt-rcpt { margin: 12px 10px 4px; }
-.lt-stmt-late {
-  display: flex; align-items: center; justify-content: center; gap: 4px; width: fit-content; margin: 8px auto 0; padding: 3px 10px; border-radius: 99px;
-  background: var(--overdue-weak); color: var(--overdue); font-weight: 800; font-size: 0.75rem;
-}
+.lt-stmt-late { display: flex; justify-content: center; margin-top: 8px; }
 .lt-stmt-debt + .lt-stmt-debt { margin-top: 12px; }
 .lt-stmt-debt-h { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 0.84375rem; margin-bottom: 4px; }
 .lt-stmt-debt-h > span:last-child { white-space: nowrap; }
@@ -819,7 +830,6 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 .lt-sr-s { font-weight: 600; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lt-sr-debt { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; background: var(--surface-2); color: var(--primary); }
 .lt-sr-empty { padding: 10px 8px; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
-.lt-arch-tag { font-size: 0.6875rem; font-weight: 800; color: var(--text-muted); background: var(--surface-2); border-radius: 99px; padding: 1px 7px; margin-left: 4px; }
 
 /* Debt results in Devedores. */
 .lt-debt-hit { color: inherit; pointer-events: auto; }
@@ -1097,9 +1107,6 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 
 /* ===== Nova dívida (S8) ===== */
 .lt-nd { max-width: 640px; }
-.lt-nd .lt-back { margin-bottom: 4px; }
-.lt-nd-h { margin: 4px 0 0; font-size: 1.5625rem; font-weight: 800; letter-spacing: -0.03em; }
-.lt-nd-sub { margin: 3px 0 18px; color: var(--text-muted); font-size: 0.90625rem; }
 .lt-nd-form { display: flex; flex-direction: column; gap: 18px; }
 .lt-flabel { display: block; font-size: 0.84375rem; font-weight: 700; color: var(--text-muted); margin-bottom: 7px; }
 .lt-req { color: var(--primary); }
@@ -1268,7 +1275,6 @@ html { scroll-padding-top: calc(var(--app-head-h, 60px) + 12px); }
 .lt-skel-list .lt-skel-item + .lt-skel-item { border-top: 1px solid var(--border); }
 
 /* 41: archived debtors. */
-.lt-arch-tag { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-muted); font-size: 0.6875rem; font-weight: 800; }
 .lt-arch-group { margin-top: 18px; }
 .lt-arch-link { padding: 4px 2px; color: var(--text-muted); }
 .lt-arch-link:hover { color: var(--primary); }
@@ -1290,7 +1296,6 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 
 /* ===== Configurações (S11) ===== */
 .lt-set { max-width: 640px; }
-.lt-set .lt-sub { margin-bottom: 16px; }
 .lt-set-h { margin: 22px 2px 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
 .lt-set-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); }
 .lt-set-pad { padding: 14px; }
@@ -1342,8 +1347,6 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 
 /* ===== Recebimentos (S12, item 38) ===== */
 .lt-rep { max-width: 640px; }
-.lt-rep-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 2px; }
-.lt-rep .lt-sub { margin-bottom: 12px; }
 .lt-rep .lt-seg { margin-bottom: 10px; }
 /* minmax(0, 1fr): two date fields side by side must shrink on a phone (no sideways scroll). */
 .lt-rep-range { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-bottom: 10px; }

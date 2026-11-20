@@ -9,6 +9,7 @@ import { debtLeft, debtRecurrenceEnd, openInstallments, recurrenceEndLabel, type
 import { recurrenceEnd } from '../../../lib/newDebt'
 import { fmtBR } from '../../../lib/format'
 import { DateInput } from '../../../components/ui/DateInput'
+import { Segmented } from '../../../components/ui/Segmented'
 import { localToday } from '../../../lib/date'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
@@ -340,23 +341,17 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
         </p>
         <div>
           <div className="lt-flabel" id="end-mode-l">Termina</div>
-          <div className="lt-seg" role="group" aria-labelledby="end-mode-l">
-            {END_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={mode === m.id}
-                onClick={() => {
-                  setMode(m.id)
-                  // Start from the current end (or what already exists), not from an empty field.
-                  if (m.id === 'date' && !until) setUntil(now.last ?? lastDue)
-                  if (m.id === 'count' && !months) setMonths(String(Math.max(created, now.last ? created + (now.remaining ?? 0) : created)))
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            labelledBy="end-mode-l"
+            value={mode}
+            options={END_MODES.map((m) => ({ value: m.id, label: m.label }))}
+            onChange={(id) => {
+              setMode(id)
+              // Start from the current end (or what already exists), not from an empty field.
+              if (id === 'date' && !until) setUntil(now.last ?? lastDue)
+              if (id === 'count' && !months) setMonths(String(Math.max(created, now.last ? created + (now.remaining ?? 0) : created)))
+            }}
+          />
           {mode === 'count' && (
             <label className="lt-end-months">
               <input

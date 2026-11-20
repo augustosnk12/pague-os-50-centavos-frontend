@@ -68,8 +68,8 @@ describe('Configurações (S11)', () => {
   it('detail level and text size apply right away', async () => {
     const user = userEvent.setup()
     renderApp('/settings')
-    await user.click(await screen.findByRole('button', { name: 'Enxuta' }))
-    expect(screen.getByRole('button', { name: 'Enxuta' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(await screen.findByRole('radio', { name: 'Enxuta' }))
+    expect(screen.getByRole('radio', { name: 'Enxuta' })).toHaveAttribute('aria-checked', 'true')
     expect(JSON.parse(localStorage.getItem('pague50_prefs') ?? '{}').detail).toBe('lean')
     await user.click(screen.getByRole('radio', { name: 'Gigante' }))
     await waitFor(() => expect(document.documentElement.dataset.fz).toBe('xl'))

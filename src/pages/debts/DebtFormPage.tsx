@@ -8,6 +8,9 @@ import { useToast } from '../../contexts/ToastContext'
 import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 import { Input } from '../../components/ui/Input'
 import { DateInput } from '../../components/ui/DateInput'
+import { Segmented } from '../../components/ui/Segmented'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { useBack } from '../../hooks/useBack'
 import { Icon } from '../../components/ui/Icon'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { DebtorPicker } from '../../components/shared/DebtorPicker'
@@ -16,7 +19,6 @@ import { genInstallments, translateApiError } from '../../lib/utils'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
 import { getApiError } from '../../lib/api'
 import { localToday } from '../../lib/date'
-import { backLabel } from '../../lib/navOrigin'
 import { scrollBehavior } from '../../lib/scroll'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { defaultDue, isInstallmentType, recurringPreview, type RecurrenceEnd } from '../../lib/newDebt'
@@ -46,6 +48,8 @@ type Missing = { field: string; text: string } | null
  */
 export function DebtFormPage() {
   const navigate = useNavigate()
+  // "‹ Parcelas", "‹ Maria Rocha"…; opened directly: the Painel (improvement 24).
+  const back = useBack({ path: '/dashboard', label: 'Painel' })
   const [searchParams] = useSearchParams()
   const { showToast } = useToast()
   const { detail } = usePreferences()
@@ -103,13 +107,6 @@ export function DebtFormPage() {
     box?.scrollIntoView({ block: 'center', behavior: scrollBehavior() })
   }
 
-  // "‹ Parcelas", "‹ Maria Rocha"…: where Voltar goes (improvement 24).
-  const origin = (window.history.state as { idx?: number } | null)?.idx ? backLabel() : 'Painel'
-  const back = () => {
-    // Opened directly (no history in the app): go to the Painel.
-    if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1)
-    else navigate('/dashboard')
-  }
 
   const submit = () => {
     setErr('')
@@ -167,13 +164,7 @@ export function DebtFormPage() {
   const showMissing = tried && missing
   return (
     <main className="lt-page lt-nd">
-      <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
-        <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
-      </button>
-      <h1 className="lt-nd-h">Nova dívida</h1>
-      <Detail>
-        <p className="lt-nd-sub">Registre quanto a pessoa deve e gere as parcelas.</p>
-      </Detail>
+      <PageHeader back={{ label: back.label, onClick: back.go }} title="Nova dívida" sub="Registre quanto a pessoa deve e gere as parcelas." />
 
       <div className="lt-nd-form">
         <DebtorPicker
@@ -237,11 +228,7 @@ export function DebtFormPage() {
             {isRec && (
               <div className="lt-nd-ends">
                 <div className="lt-flabel" id="nd-end-l">Termina</div>
-                <div className="lt-seg" role="group" aria-labelledby="nd-end-l">
-                  {ENDS.map((e) => (
-                    <button key={e.id} type="button" aria-pressed={recEnd === e.id} onClick={() => setRecEnd(e.id)}>{e.label}</button>
-                  ))}
-                </div>
+                <Segmented labelledBy="nd-end-l" value={recEnd} options={ENDS.map((e) => ({ value: e.id, label: e.label }))} onChange={setRecEnd} />
                 {recEnd === 'count' && (
                   <div id="nd-recn" className="lt-nd-months">
                     <Input
@@ -343,7 +330,7 @@ export function DebtFormPage() {
             )}
           </div>
           <div className="lt-nd-btns">
-            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back}>Cancelar</button>
+            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back.go}>Cancelar</button>
             <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || undefined} onClick={submit}>
               <Icon name="check" size={17} />
               {createDebt.isPending ? 'Criando…' : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}

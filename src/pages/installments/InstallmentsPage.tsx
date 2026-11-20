@@ -5,6 +5,8 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
+import { Segmented } from '../../components/ui/Segmented'
+import { ListRow } from '../../components/ui/ListRow'
 import { Avatar } from '../../components/ui/Avatar'
 import { Money } from '../../components/ui/Money'
 import { ListGroup } from '../../components/ui/ListGroup'
@@ -186,11 +188,7 @@ export function InstallmentsPage() {
       </div>
 
       <div className="lt-pcard">
-        <div className="lt-seg" role="group" aria-label="Agrupar por">
-          {PERIODS.map(([p, l]) => (
-            <button key={p} type="button" aria-pressed={period === p} onClick={() => update({ period: p })}>{l}</button>
-          ))}
-        </div>
+        <Segmented label="Agrupar por" value={period} options={PERIODS.map(([p, l]) => ({ value: p, label: l }))} onChange={(p) => update({ period: p })} />
         <div className="lt-pnav">
           <IconButton name="chevronLeft" size={19} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
           <div className="lt-pnav-lbl">
@@ -468,20 +466,16 @@ function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid,
         <ListGroup>
           {shown.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={dayOf(i) !== g.day} swipe onRemind={remindFor(i)} onReceipt={receiptFor(i)} />)}
           {collapsePaid && g.paid.length > 0 && complete && (
-            <li className="lt-lrow">
-              <div className="lt-lrow-in lt-paid-sum">
-                <button
-                  type="button"
-                  className="lt-lrow-hit"
-                  aria-expanded={!!paidOpen[g.day]}
-                  aria-label={`${plural(g.paid.length, 'paga', 'pagas')}, ${fmtMoney(g.paidCents / 100)}. ${paidOpen[g.day] ? 'Recolher' : 'Mostrar'}`}
-                  onClick={() => onTogglePaid(g.day)}
-                />
-                <span style={{ color: 'var(--paid)', display: 'inline-flex' }}><Icon name="check" size={16} strokeWidth={2.6} /></span>
-                <span className="lt-paid-sum-t">{paidOpen[g.day] ? 'Recolher pagas' : `${plural(g.paid.length, 'paga', 'pagas')} · ${fmtMoney(g.paidCents / 100)}`}</span>
-                <Icon name="chevronDown" size={15} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
-              </div>
-            </li>
+            <ListRow
+              innerClassName="lt-paid-sum"
+              expanded={!!paidOpen[g.day]}
+              label={`${plural(g.paid.length, 'paga', 'pagas')}, ${fmtMoney(g.paidCents / 100)}. ${paidOpen[g.day] ? 'Recolher' : 'Mostrar'}`}
+              onClick={() => onTogglePaid(g.day)}
+            >
+              <span style={{ color: 'var(--paid)', display: 'inline-flex' }} aria-hidden="true"><Icon name="check" size={16} strokeWidth={2.6} /></span>
+              <span className="lt-paid-sum-t" aria-hidden="true">{paidOpen[g.day] ? 'Recolher pagas' : `${plural(g.paid.length, 'paga', 'pagas')} · ${fmtMoney(g.paidCents / 100)}`}</span>
+              <Icon name="chevronDown" size={15} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
+            </ListRow>
           )}
         </ListGroup>
       </section>,

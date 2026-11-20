@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Icon } from '../ui/Icon'
+import { Segmented } from '../ui/Segmented'
 import { useToast } from '../../contexts/ToastContext'
 import { brCode } from '../../lib/pix'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
@@ -55,11 +56,12 @@ export function SupportSheet({ open, onClose }: { open: boolean; onClose: () => 
         </div>
         <div>
           <div className="lt-flabel" id="coffee-v-l">Valor</div>
-          <div className="lt-seg" role="radiogroup" aria-labelledby="coffee-v-l">
-            {[...AMOUNTS.map((a) => ({ id: a.id, label: a.label })), { id: 'other', label: 'Outro' }].map((a) => (
-              <button key={a.id} type="button" role="radio" aria-checked={pick === a.id} onClick={() => setPick(a.id)}>{a.label}</button>
-            ))}
-          </div>
+          <Segmented
+            labelledBy="coffee-v-l"
+            value={pick}
+            options={[...AMOUNTS.map((a) => ({ value: a.id, label: a.label })), { value: 'other', label: 'Outro' }]}
+            onChange={setPick}
+          />
           {pick === 'other' && (
             <label className="lt-coffee-other">
               <span className="lt-sr-only">Outro valor</span>

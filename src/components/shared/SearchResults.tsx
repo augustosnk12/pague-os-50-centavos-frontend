@@ -1,5 +1,6 @@
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
+import { StatusBadge } from '../ui/StatusBadge'
 import { fmtMoney } from '../../lib/format'
 import type { SearchHit } from '../../lib/searchHits'
 
@@ -42,7 +43,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
           <span className="lt-sr-main">
             <span className="lt-sr-t">
               {h.hit.name}
-              {h.hit.archived && <span className="lt-arch-tag"> Arquivado</span>}
+              {h.hit.archived && <> <StatusBadge tone="muted" small>Arquivado</StatusBadge></>}
             </span>
             <span className="lt-sr-s">{owes(h.hit.outstanding)}</span>
           </span>

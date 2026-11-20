@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
+import { Segmented } from '../ui/Segmented'
+import { StatusBadge } from '../ui/StatusBadge'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { useSettings } from '../../hooks/settings/useSettings'
@@ -28,11 +30,7 @@ function Seg<T extends string>({ label, value, options, onChange }: { label: str
   return (
     <div>
       <div className="lt-flabel" aria-hidden="true">{label}</div>
-      <div className="lt-seg" role="radiogroup" aria-label={label}>
-        {options.map(([v, l]) => (
-          <button key={v} type="button" role="radio" aria-checked={value === v} onClick={() => value !== v && onChange(v)}>{l}</button>
-        ))}
-      </div>
+      <Segmented label={label} value={value} options={options.map(([v, l]) => ({ value: v, label: l }))} onChange={onChange} />
     </div>
   )
 }
@@ -154,7 +152,7 @@ export function StatementSheet({ debtorId, onClose }: StatementSheetProps) {
                 <div className="lt-rcpt-amt"><Money value={s.totalCents / 100} size={30} /></div>
                 <div className="lt-rcpt-date">em aberto{untilSuffix(s)}</div>
                 {s.lateCents > 0 && (
-                  <div className="lt-stmt-late"><Icon name="alert" size={11} strokeWidth={3} /> {money(s.lateCents)} em atraso</div>
+                  <div className="lt-stmt-late"><StatusBadge tone="overdue" icon="alert">{money(s.lateCents)} em atraso</StatusBadge></div>
                 )}
                 <div className="lt-rcpt-cut" aria-hidden="true" />
                 {s.debts.map((d) => (

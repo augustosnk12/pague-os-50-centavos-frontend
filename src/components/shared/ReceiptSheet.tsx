@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
+import { StatusBadge } from '../ui/StatusBadge'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { useAuth } from '../../contexts/AuthContext'
@@ -106,7 +107,7 @@ export function ReceiptSheet({ request, onClose }: ReceiptSheetProps) {
               <div className="lt-rcpt-title">{r.title}</div>
               <div className="lt-rcpt-code">{r.code}</div>
             </div>
-            <span className="lt-rcpt-pill"><Icon name="check" size={11} strokeWidth={3} /> {r.kind === 'payoff' ? 'Quitada' : 'Recebido'}</span>
+            <StatusBadge tone="paid" icon="check">{r.kind === 'payoff' ? 'Quitada' : 'Recebido'}</StatusBadge>
           </div>
           <div className="lt-rcpt-amt"><Money value={r.totalCents / 100} size={34} /></div>
           <div className="lt-rcpt-date">{r.date}</div>

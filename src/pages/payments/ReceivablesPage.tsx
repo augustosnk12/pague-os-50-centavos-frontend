@@ -1,6 +1,10 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/ui/Icon'
+import { Segmented } from '../../components/ui/Segmented'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { useBack } from '../../hooks/useBack'
+import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
+import { PaymentRow } from '../../components/shared/PaymentRow'
 import { Money } from '../../components/ui/Money'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
@@ -13,7 +17,6 @@ import { fetchAllPayments, usePaymentsSummary, useRecentPayments } from '../../h
 import type { ReceiptRequest } from '../../lib/receipt'
 import { localToday } from '../../lib/date'
 import { fmtList, fmtMoney } from '../../lib/format'
-import { backLabel } from '../../lib/navOrigin'
 import {
   initialPeriod,
   monthLabel,
@@ -34,13 +37,7 @@ function PeriodPicker({ value, onChange, today, idPrefix }: { value: PeriodChoic
   const bad = periodInvalid(value)
   return (
     <>
-      <div className="lt-seg" role="radiogroup" aria-label="Período">
-        {PERIODS.map((p) => (
-          <button key={p.id} type="button" role="radio" aria-checked={value.kind === p.id} onClick={() => value.kind !== p.id && onChange({ ...value, kind: p.id })}>
-            {p.label}
-          </button>
-        ))}
-      </div>
+      <Segmented label="Período" value={value.kind} options={PERIODS.map((p) => ({ value: p.id, label: p.label }))} onChange={(kind) => onChange({ ...value, kind })} />
       {value.kind === 'range' && (
         <>
           <div className="lt-rep-range" id={`${idPrefix}-range`}>
@@ -122,8 +119,7 @@ function ExportSheet({ open, start, onClose }: { open: boolean; start: PeriodCho
  */
 export function ReceivablesPage() {
   const today = localToday()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const back = useBack({ path: '/settings', label: 'Configurações' })
   const [period, setPeriod] = useState(() => initialPeriod(today))
   const [exportOpen, setExportOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
@@ -134,11 +130,6 @@ export function ReceivablesPage() {
   const s = bounds ? summary.data : undefined
   const rows = bounds ? recent.data : undefined
 
-  // "‹ Configurações", "‹ Painel"…: where Voltar goes (improvement 24).
-  const hasHistory = location.key !== 'default' && !!(window.history.state as { idx?: number } | null)?.idx
-  const origin = hasHistory ? backLabel() : 'Configurações'
-  const back = () => (hasHistory ? navigate(-1) : navigate('/settings'))
-
   const year = Number(today.slice(0, 4))
   const months = s?.months ?? []
   const max = Math.max(1, ...months.map((m) => Number(m.total)))
@@ -146,17 +137,18 @@ export function ReceivablesPage() {
 
   return (
     <main className="lt-page lt-rep">
-      <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
-        <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
-      </button>
-      <div className="lt-rep-head">
-        <h1 className="lt-h1">Recebimentos</h1>
-        <Button variant="secondary" size="sm" icon="export" onClick={() => setExportOpen(true)}>
-          <span aria-hidden="true">Exportar</span>
-          <span className="lt-sr-only">Exportar planilha (CSV) do período</span>
-        </Button>
-      </div>
-      <p className="lt-sub">{periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}</p>
+      <PageHeader
+        back={{ label: back.label, onClick: back.go }}
+        title="Recebimentos"
+        sub={periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}
+        keepSub
+        action={
+          <Button variant="secondary" size="sm" icon="export" onClick={() => setExportOpen(true)}>
+            <span aria-hidden="true">Exportar</span>
+            <span className="lt-sr-only">Exportar planilha (CSV) do período</span>
+          </Button>
+        }
+      />
 
       <PeriodPicker value={period} onChange={setPeriod} today={today} idPrefix="rep" />
 
@@ -195,33 +187,24 @@ export function ReceivablesPage() {
             )}
           </section>
 
-          <h2 className="lt-set-h">{s.count > SHOWN ? 'Últimos pagamentos do período' : 'Pagamentos do período'}</h2>
+          <SectionHeader variant="plain">{s.count > SHOWN ? 'Últimos pagamentos do período' : 'Pagamentos do período'}</SectionHeader>
           {rows.length ? (
             <>
-              <ul className="lt-lgroup" aria-label="Pagamentos do período">
+              <ListGroup label="Pagamentos do período">
                 {rows.map((p) => {
                   const debt = p.debtDescription || 'Dívida'
                   return (
-                    <li key={p.id} className="lt-lrow">
-                      <div className="lt-lrow-in">
-                        <button
-                          type="button"
-                          className="lt-lrow-hit"
-                          onClick={() => setReceipt({ debtorId: p.debtorId, paymentId: p.id })}
-                          aria-label={`Comprovante: ${p.debtorName}, ${debt}, ${fmtMoney(p.amount)} em ${fmtList(p.paidAt)}`}
-                        />
-                        <span className="lt-hist-ok" style={{ width: 30, height: 30 }} aria-hidden="true"><Icon name="check" size={13} strokeWidth={2.8} /></span>
-                        <div className="lt-lrow-main" aria-hidden="true">
-                          <div className="lt-lrow-name lt-ellipsis">{p.debtorName}</div>
-                          <div className="lt-lrow-sub lt-ellipsis">{debt} · {fmtList(p.paidAt)}</div>
-                        </div>
-                        <span aria-hidden="true"><Money value={p.amount} size={14.5} color="var(--paid)" /></span>
-                        <span className="lt-rcpt-ic" aria-hidden="true"><Icon name="receipt" size={17} /></span>
-                      </div>
-                    </li>
+                    <PaymentRow
+                      key={p.id}
+                      label={`Comprovante: ${p.debtorName}, ${debt}, ${fmtMoney(p.amount)} em ${fmtList(p.paidAt)}`}
+                      title={p.debtorName}
+                      sub={`${debt} · ${fmtList(p.paidAt)}`}
+                      amount={p.amount}
+                      onClick={() => setReceipt({ debtorId: p.debtorId, paymentId: p.id })}
+                    />
                   )
                 })}
-              </ul>
+              </ListGroup>
               {s.count > SHOWN && <p className="lt-rep-more">e mais {s.count - SHOWN} no período · todos vão na exportação</p>}
             </>
           ) : (

@@ -10,6 +10,10 @@ import { Money } from '../../components/ui/Money'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { ListGroup } from '../../components/ui/ListGroup'
+import { ListRow, RowText } from '../../components/ui/ListRow'
+import { BackButton } from '../../components/ui/PageHeader'
+import { useBack } from '../../hooks/useBack'
+import { PaymentRow } from '../../components/shared/PaymentRow'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { DebtForm } from '../../components/shared/DebtForm'
@@ -31,7 +35,6 @@ import { getReliabilityOption } from '../../constants/reliability'
 import { translateApiError, DEBT_TYPE_META } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
 import { localToday } from '../../lib/date'
-import { backLabel } from '../../lib/navOrigin'
 import { failedSave } from '../../lib/saveError'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { installmentPosition } from '../../lib/installmentTag'
@@ -63,6 +66,7 @@ export function DebtorDetailPage() {
 function DebtorProfile({ id }: { id: string }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const back = useBack({ path: '/debtors', label: 'Devedores' })
   const [searchParams] = useSearchParams()
   const { showToast } = useToast()
   const { detail } = usePreferences()
@@ -167,9 +171,6 @@ function DebtorProfile({ id }: { id: string }) {
   const openTotal = open.reduce((n, d) => n + openInstallments(d).length, 0)
 
   const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
-  const back = () => (location.key !== 'default' ? navigate(-1) : navigate('/debtors'))
-  // "‹ Parcelas", "‹ Painel"…: where Voltar goes (improvement 24).
-  const origin = location.key !== 'default' ? backLabel() : 'Devedores'
   const openPayment = (inst: Parameters<typeof paymentTarget>[0]) => setPayTarget(paymentTarget(inst))
   const toggle = (debtId: string) =>
     setExpanded((s) => {
@@ -292,33 +293,22 @@ function DebtorProfile({ id }: { id: string }) {
   // The payment timeline: a tab in "Detalhada", a sheet from the ⋯ in "Enxuta" (improvement 32).
   const shownTab: Tab = detail === 'lean' && tab === 'pays' ? 'open' : tab
   const paymentsList = timeline.length ? (
-          <ul className="lt-lgroup" aria-label="Pagamentos" style={{ marginTop: 12 }}>
+          <ListGroup label="Pagamentos" style={{ marginTop: 12 }}>
             {timeline.map(({ payment, installment, debt, daysLate }) => {
               const pos = installmentPosition(installment.number, debt.installments.length, debt.recurrence)
               const spoken = pos.startsWith('↻') ? 'mensalidade' : pos.includes('/') ? `parcela ${pos.replace('/', ' de ')}` : pos
               return (
-                <li key={payment.id} className="lt-lrow">
-                  <div className="lt-lrow-in">
-                    <button
-                      type="button"
-                      className="lt-lrow-hit"
-                      onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
-                      aria-label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
-                    />
-                    <span className="lt-hist-ok" style={{ width: 30, height: 30 }} aria-hidden="true"><Icon name="check" size={13} strokeWidth={2.8} /></span>
-                    <div className="lt-lrow-main" aria-hidden="true">
-                      <div className="lt-lrow-name">{debt.description || 'Dívida'} · {pos}</div>
-                      <div className="lt-lrow-sub">
-                        {fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}
-                      </div>
-                    </div>
-                    <span aria-hidden="true"><Money value={payment.amount} size={14.5} color="var(--paid)" /></span>
-                    <span className="lt-rcpt-ic" aria-hidden="true"><Icon name="receipt" size={17} /></span>
-                  </div>
-                </li>
+                <PaymentRow
+                  key={payment.id}
+                  label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
+                  title={`${debt.description || 'Dívida'} · ${pos}`}
+                  sub={<>{fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}</>}
+                  amount={payment.amount}
+                  onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
+                />
               )
             })}
-          </ul>
+          </ListGroup>
         ) : (
           <EmptyState icon="history" title="Nenhum pagamento ainda" sub="Os pagamentos registrados aparecem aqui." />
         )
@@ -342,9 +332,7 @@ function DebtorProfile({ id }: { id: string }) {
   return (
     <main className="lt-page lt-anim-fade">
       <div className="lt-prof-top">
-        <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
-          <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
-        </button>
+        <BackButton label={back.label} onClick={back.go} />
         <IconButton name="dots" label="Mais ações" onClick={() => setActionsOpen(true)} />
       </div>
 
@@ -462,34 +450,37 @@ function DebtorProfile({ id }: { id: string }) {
           )
         ) : shownTab === 'paid' ? (
           paid.length ? (
-            <ul className="lt-lgroup" aria-label="Dívidas quitadas" style={{ marginTop: 12 }}>
+            <ListGroup label="Dívidas quitadas" style={{ marginTop: 12 }}>
               {paid.map((d) => {
                 const isOpen = expanded.has(d.id)
                 const total = d.installments.reduce((s, i) => s + Number(i.amount), 0)
                 const on = paidOffOn(d)
                 return (
-                  <li key={d.id} id={`divida-${d.id}`} className="lt-paid-debt">
-                    <div className="lt-lrow-in">
-                      <button type="button" className="lt-lrow-hit" aria-expanded={isOpen} onClick={() => toggle(d.id)} aria-label={`${d.description || 'Dívida'}, quitada${on ? ` em ${fmtList(on)}` : ''}, ${fmtMoney(total)}. ${isOpen ? 'Recolher' : 'Ver parcelas'}`} />
-                      <span className="lt-sr-debt" data-paid aria-hidden="true"><Icon name={DEBT_TYPE_META[d.type]?.icon ?? 'wallet'} size={16} /></span>
-                      <div className="lt-lrow-main" aria-hidden="true">
-                        <div className="lt-lrow-name">{d.description || 'Dívida'}</div>
-                        <div className="lt-lrow-sub">{DEBT_TYPE_META[d.type]?.label} · {d.installments.length}×{on ? ` · quitada em ${fmtList(on)}` : ''}</div>
-                      </div>
-                      <span aria-hidden="true"><Money value={total} size={14.5} color="var(--paid)" /></span>
-                      <IconButton name="dots" size={16} label={`Ações da dívida ${d.description || 'Dívida'}`} onClick={() => setDebtActions(d)} style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto' }} />
-                    </div>
-                    {isOpen && (
-                      <ListGroup label={`Parcelas de ${d.description || 'Dívida'}`}>
-                        {[...d.installments].sort((a, b) => a.number - b.number).map((i) => (
-                          <InstallmentLine key={i.id} inst={enrich(i, d, debtor)} today={today} onOpen={openPayment} inDebt showDate={false} onReceipt={(paymentId) => setReceipt({ debtorId: debtor.id, paymentId })} />
-                        ))}
-                      </ListGroup>
-                    )}
-                  </li>
+                  <ListRow
+                    key={d.id}
+                    id={`divida-${d.id}`}
+                    className="lt-paid-debt"
+                    expanded={isOpen}
+                    onClick={() => toggle(d.id)}
+                    label={`${d.description || 'Dívida'}, quitada${on ? ` em ${fmtList(on)}` : ''}, ${fmtMoney(total)}. ${isOpen ? 'Recolher' : 'Ver parcelas'}`}
+                    after={
+                      isOpen && (
+                        <ListGroup label={`Parcelas de ${d.description || 'Dívida'}`}>
+                          {[...d.installments].sort((a, b) => a.number - b.number).map((i) => (
+                            <InstallmentLine key={i.id} inst={enrich(i, d, debtor)} today={today} onOpen={openPayment} inDebt showDate={false} onReceipt={(paymentId) => setReceipt({ debtorId: debtor.id, paymentId })} />
+                          ))}
+                        </ListGroup>
+                      )
+                    }
+                  >
+                    <span className="lt-sr-debt" data-paid aria-hidden="true"><Icon name={DEBT_TYPE_META[d.type]?.icon ?? 'wallet'} size={16} /></span>
+                    <RowText title={d.description || 'Dívida'} sub={`${DEBT_TYPE_META[d.type]?.label} · ${d.installments.length}×${on ? ` · quitada em ${fmtList(on)}` : ''}`} />
+                    <span aria-hidden="true"><Money value={total} size={14.5} color="var(--paid)" /></span>
+                    <IconButton name="dots" size={16} label={`Ações da dívida ${d.description || 'Dívida'}`} onClick={() => setDebtActions(d)} style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto' }} />
+                  </ListRow>
                 )
               })}
-            </ul>
+            </ListGroup>
           ) : (
             <EmptyState icon="check" title="Nenhuma dívida quitada ainda" sub="As dívidas totalmente pagas aparecem aqui." />
           )

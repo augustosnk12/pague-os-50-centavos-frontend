@@ -15,10 +15,13 @@ import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { SectionHeader } from '../../components/ui/ListGroup'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { RELIABILITY_OPTIONS, getReliabilityOption } from '../../constants/reliability'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
-import { Detail, usePreferences } from '../../contexts/PreferencesContext'
+import { usePreferences } from '../../contexts/PreferencesContext'
 
 /** Accent- and case-insensitive ("joao" finds "João", "c" finds "ç"). */
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -158,7 +161,7 @@ export function DebtorsPage() {
   if (isError && debtors.length === 0) {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
-        <h1 style={{ margin: '0 0 16px', fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
+        <PageHeader title="Devedores" />
         <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
@@ -205,7 +208,7 @@ export function DebtorsPage() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 800, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>
-          {archived && <span className="lt-arch-tag"><Icon name="archive" size={11} /> Arquivado</span>}
+          {archived && <StatusBadge tone="muted" icon="archive" small>Arquivado</StatusBadge>}
         </div>
         <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'}
@@ -221,20 +224,15 @@ export function DebtorsPage() {
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
-          <Detail>
-            <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: '0.90625rem' }}>
-              {debtors.length} {debtors.length === 1 ? 'pessoa' : 'pessoas'}
-            </p>
-          </Detail>
-        </div>
-        <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
-          Adicionar
-        </Button>
-      </div>
+      <PageHeader
+        title="Devedores"
+        sub={`${debtors.length} ${debtors.length === 1 ? 'pessoa' : 'pessoas'}`}
+        action={
+          <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
+            Adicionar
+          </Button>
+        }
+      />
 
       {/* Search: people by name and debts by description (improvement 21) */}
       <div ref={fieldBox} style={{ marginBottom: 16 }}>
@@ -295,23 +293,20 @@ export function DebtorsPage() {
               <p className="lt-az-hint lt-desktop-only">Dica: digite uma letra para ir ao grupo.</p>
               {groups.map(([letter, list]) => (
                 <section key={letter} id={`letra-${letter}`} className="lt-az" aria-labelledby={`letra-h-${letter}`}>
-                  <h2 id={`letra-h-${letter}`} className="lt-group-label lt-az-h" data-flash={flash === letter || undefined}>
-                    <span>{letter}</span>
-                    <span className="lt-group-line" aria-hidden="true" />
-                  </h2>
+                  <SectionHeader id={`letra-h-${letter}`} className="lt-az-h" flash={flash === letter}>{letter}</SectionHeader>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.map((d, i) => row(d, i))}</div>
                 </section>
               ))}
             </>
           ) : (
             <>
-              {term && filtered.length > 0 && debtHits.length > 0 && <h2 className="lt-group-label"><span>Devedores · {filtered.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>}
+              {term && filtered.length > 0 && debtHits.length > 0 && <SectionHeader count={filtered.length}>Devedores</SectionHeader>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{filtered.map((d, i) => row(d, i))}</div>
             </>
           )}
           {archivedHits.length > 0 && (
             <>
-              <h2 className="lt-group-label"><span>Arquivados · {archivedHits.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>
+              <SectionHeader count={archivedHits.length}>Arquivados</SectionHeader>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{archivedHits.map((d, i) => row(d, i, true))}</div>
             </>
           )}
@@ -328,7 +323,7 @@ export function DebtorsPage() {
           )}
           {debtHits.length > 0 && (
             <>
-              <h2 className="lt-group-label"><span>Dívidas · {debtHits.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>
+              <SectionHeader count={debtHits.length}>Dívidas</SectionHeader>
               <ul className="lt-lgroup" aria-label="Dívidas encontradas">
                 {debtHits.map((d) => (
                   <li key={d.id} className="lt-lrow">

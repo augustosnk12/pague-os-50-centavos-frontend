@@ -54,7 +54,7 @@ describe('Parcelas (S3)', () => {
     renderApp('/installments')
     expect(await screen.findByText('Novembro 2026')).toBeInTheDocument()
     expect(screen.getByText('Este mês')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Mês' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('radio', { name: 'Mês' })).toHaveAttribute('aria-checked', 'true')
     const tabs = screen.getByRole('tablist', { name: 'Situação' })
     await within(tabs).findByRole('tab', { name: /Todas\s*4/ })
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Todas4', 'Em aberto3', 'Atrasadas2', 'Pagas1'])

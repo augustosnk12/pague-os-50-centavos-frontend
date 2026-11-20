@@ -94,7 +94,7 @@ describe('Nova dívida (S8)', () => {
     await user.click(screen.getByRole('switch', { name: /Repetir todo mês/ }))
     await user.type(screen.getByRole('textbox', { name: /Valor por mês/ }), '15000')
     expect(screen.getByText('Depois, todo dia 1')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Após' }))
+    await user.click(screen.getByRole('radio', { name: 'Após' }))
     expect(within(footer()).getByRole('status')).toHaveTextContent('Informe por quantos meses')
     await user.click(createBtn())
     expect(post).not.toHaveBeenCalled()
