@@ -56,6 +56,20 @@ describe('routes (smoke)', () => {
     expect((await screen.findAllByText('João Araújo')).length).toBeGreaterThan(0)
   })
 
+  it('pointing at a person prefetches the profile and its debts (improvement 43)', async () => {
+    const { api } = await import('../lib/axios')
+    const { fireEvent } = await import('@testing-library/react')
+    renderApp('/debtors')
+    const link = await screen.findByRole('link', { name: /^João Araújo/ })
+    vi.mocked(api.get).mockClear()
+    fireEvent.pointerEnter(link)
+    await vi.waitFor(() => {
+      const urls = vi.mocked(api.get).mock.calls.map((c) => c[0])
+      expect(urls).toContain('/debtors/d1')
+      expect(urls).toContain('/debtors/d1/debts')
+    })
+  })
+
   it('recebimentos shows the total, the bars and the payments', async () => {
     renderApp('/payments')
     expect(await screen.findByRole('heading', { level: 1, name: 'Recebimentos' })).toBeInTheDocument()

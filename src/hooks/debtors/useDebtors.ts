@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { debtorsApi } from '../../api/debtors.api'
 import type { DebtorReliability } from '../../types/debtor'
+import { DEBTORS_STALE } from './useDebtor'
 
 export function useDebtors(reliability?: DebtorReliability) {
   return useQuery({
@@ -9,6 +10,7 @@ export function useDebtors(reliability?: DebtorReliability) {
     // Keep the current list visible while switching reliability filters,
     // so the filter chips don't flash the full-page loading state.
     placeholderData: keepPreviousData,
+    staleTime: DEBTORS_STALE,
   })
 }
 
@@ -17,5 +19,6 @@ export function useArchivedDebtors() {
   return useQuery({
     queryKey: ['debtors', 'archived'],
     queryFn: () => debtorsApi.listArchived().then((r) => r.data),
+    staleTime: DEBTORS_STALE,
   })
 }

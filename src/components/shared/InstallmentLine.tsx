@@ -4,6 +4,7 @@ import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
 import { Money } from '../ui/Money'
 import { Detail } from '../../contexts/PreferencesContext'
+import { usePrefetchDebtor } from '../../hooks/debtors/usePrefetchDebtor'
 import { installmentPosition, installmentTag, remainingCents, type TagTone } from '../../lib/installmentTag'
 import { fmtList, fmtMoney } from '../../lib/format'
 import type { InstallmentEnriched } from '../../types/installment'
@@ -44,6 +45,7 @@ interface InstallmentLineProps {
 const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false }: InstallmentLineProps) {
+  const prefetch = usePrefetchDebtor()
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
   const debtorId = debtor?.id ?? inst.debt?.debtorId
@@ -122,7 +124,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
         />
         {!inDebt &&
           (debtorId ? (
-            <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`}>
+            <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`} onPointerEnter={() => prefetch(debtorId)} onFocus={() => prefetch(debtorId)}>
               <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
             </Link>
           ) : (

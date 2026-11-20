@@ -3,6 +3,7 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { useSearchParams } from 'react-router-dom'
 import { useArchivedDebtors, useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
+import { usePrefetchDebtor } from '../../hooks/debtors/usePrefetchDebtor'
 import { useSearch } from '../../hooks/search/useSearch'
 import { scrollBehavior } from '../../lib/scroll'
 import { rankByTerm } from '../../lib/searchMatch'
@@ -31,6 +32,7 @@ const AZ_FROM = 15
 
 export function DebtorsPage() {
   const [params, setParams] = useSearchParams()
+  const prefetch = usePrefetchDebtor()
   const [q, setQ] = useState(() => params.get('q') ?? '')
   const [reliabilityFilter, setReliabilityFilter] = useState<DebtorReliability | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -168,12 +170,13 @@ export function DebtorsPage() {
     )
   }
 
-  // One row of the list (improvement 31, as in the mock): a real link to the profile.
+  // One row of the list (improvement 31, as in the mock): a real link to the profile,
+  // prefetched on intent (improvement 43).
   const row = (dt: Debtor, archived = false) => {
     const rel = getReliabilityOption(dt.reliability)
     const sub = dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'
     return (
-      <LinkRow key={dt.id} to={`/debtors/${dt.id}`} label={`${dt.name}${rel ? `, ${rel.label}` : ''}${archived ? ', Arquivado' : ''}`}>
+      <LinkRow key={dt.id} to={`/debtors/${dt.id}`} onIntent={() => prefetch(dt.id)} label={`${dt.name}${rel ? `, ${rel.label}` : ''}${archived ? ', Arquivado' : ''}`}>
         {detail !== 'lean' && (
           <span className="lt-av-rel" aria-hidden="true">
             <Avatar name={dt.name} size={36} hue={dt.avatarHue} emoji={dt.avatarEmoji} />

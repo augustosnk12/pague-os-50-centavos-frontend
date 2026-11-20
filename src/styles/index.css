@@ -630,6 +630,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .lt-ip[data-compact] .lt-dhead { top: calc(var(--app-head-h, 60px) + 46px); }
 .lt-day { scroll-margin-top: calc(var(--app-head-h, 60px) + 48px); }
+/* Day groups off screen skip layout and paint until they get close (improvement 43);
+   the browser remembers each group's real height, so the scroll bar does not jump. */
+@supports (content-visibility: auto) {
+  .lt-day { content-visibility: auto; contain-intrinsic-size: auto 320px; }
+}
 .lt-dh-sum { text-transform: none; letter-spacing: 0; font-size: 0.75rem; }
 .lt-dh-n {
   display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 5px; border-radius: var(--r-pill);

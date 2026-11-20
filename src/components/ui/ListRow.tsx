@@ -39,10 +39,10 @@ export function ListRow({ label, onClick, children, expanded, after, id, classNa
  * A row that is a real link (Devedores, search hits): middle-click, "open in
  * new tab" and screen readers treat it as one. `label` is its accessible name.
  */
-export function LinkRow({ to, label, children }: { to: string; label: string; children: ReactNode }) {
+export function LinkRow({ to, label, children, onIntent }: { to: string; label: string; children: ReactNode; onIntent?: () => void }) {
   return (
     <li className="lt-lrow">
-      <Link to={to} className="lt-lrow-in lt-link-row" aria-label={label}>
+      <Link to={to} className="lt-lrow-in lt-link-row" aria-label={label} onPointerEnter={onIntent} onFocus={onIntent}>
         {children}
       </Link>
     </li>
