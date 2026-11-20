@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Lighthouse CI reports (npm run lhci)
+.lighthouseci/
+
 # Environment
 .env
 .env.local

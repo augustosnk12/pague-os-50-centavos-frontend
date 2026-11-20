@@ -8,6 +8,7 @@ import { ListRow, NavRow, RowText } from './ListRow'
 import { PageHeader } from './PageHeader'
 import { StatusBadge } from './StatusBadge'
 import { PreferencesProvider } from '../../contexts/PreferencesContext'
+import { axeViolations } from '../../test/axe'
 
 /** Component library (improvement 31): each piece by its role, as a screen reader sees it. */
 
@@ -105,6 +106,26 @@ describe('PageHeader', () => {
     )
     expect(screen.queryByText('3 pessoas')).not.toBeInTheDocument()
     expect(screen.getByText('Últimos 6 meses')).toBeInTheDocument()
+  })
+})
+
+describe('axe on the library (improvement 43)', () => {
+  it('the components together have no violations', async () => {
+    render(
+      <PreferencesProvider>
+        <main>
+          <PageHeader title="Recebimentos" sub="Últimos 6 meses" back={{ label: 'Configurações', onClick: () => {} }} action={<button type="button">Exportar</button>} />
+          <Seg />
+          <SectionHeader count={2}>Pagamentos</SectionHeader>
+          <ListGroup label="Pagamentos">
+            <ListRow label="Comprovante: Maria, R$ 10,00" onClick={() => {}}><RowText title="Maria" sub="Notebook" /></ListRow>
+            <NavRow icon="calc" title="Calculadora" onClick={() => {}} />
+          </ListGroup>
+          <StatusBadge tone="paid" icon="check">Recebido</StatusBadge>
+        </main>
+      </PreferencesProvider>,
+    )
+    expect(await axeViolations()).toEqual([])
   })
 })
 

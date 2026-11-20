@@ -43,7 +43,7 @@ export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
 
   return (
     <nav
-      aria-label="Principal"
+      aria-label="Abas"
       className="lt-bottom-tabs"
       style={{
         position: 'fixed',

@@ -26,6 +26,28 @@ jobs:
       - run: npm run build
       - run: npm run check:bundle
 
+  lighthouse:
+    name: Lighthouse (Entrar · LCP, CLS, acessibilidade)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_URL: http://localhost:3000
+      # Targets in lighthouserc.cjs (improvement 43). Reports as an artifact, never uploaded publicly.
+      - run: npm run lhci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          retention-days: 14
+
   e2e:
     name: End-to-end (real API + PostgreSQL)
     runs-on: ubuntu-latest

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen } from '@testing-library/react'
 import { renderApp } from './renderApp'
 import { fakeGet } from './fakeApi'
+import { axeViolations } from './axe'
 
 // Every page talks to the backend through the shared axios instance.
 vi.mock('../lib/axios', () => ({
@@ -81,6 +82,38 @@ describe('routes (smoke)', () => {
   it('new debt form renders', async () => {
     renderApp('/debts/new')
     expect((await screen.findAllByText(/nova (dívida|cobrança)/i)).length).toBeGreaterThan(0)
+  })
+})
+
+describe('axe on every screen (improvement 43: axe in the unit tests)', () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date('2026-11-05T12:00:00-03:00'))
+  })
+
+  const SCREENS: [string, RegExp | string, boolean?][] = [
+    ['/login', 'Entrar', false],
+    ['/dashboard', /olá, augusto/i],
+    ['/debtors', 'Devedores'],
+    ['/installments', 'Parcelas'],
+    ['/debts/new', 'Nova dívida'],
+    ['/payments', 'Recebimentos'],
+    ['/settings', 'Configurações'],
+  ]
+  for (const [path, h1, loggedIn = true] of SCREENS) {
+    it(`${path} has no axe violations`, async () => {
+      renderApp(path, { loggedIn })
+      await screen.findByRole('heading', { level: 1, name: h1 })
+      // Let the queries settle so the list rows are checked too.
+      await new Promise((r) => setTimeout(r, 50))
+      expect(await axeViolations()).toEqual([])
+    })
+  }
+
+  it('/debtors/:id has no axe violations', async () => {
+    renderApp('/debtors/d1')
+    await screen.findAllByText('João Araújo')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(await axeViolations()).toEqual([])
   })
 })
 

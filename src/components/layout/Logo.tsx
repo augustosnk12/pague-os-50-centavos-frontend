@@ -12,7 +12,8 @@ export function Logo({ size = 28, showText = true }: LogoProps) {
         src={iconUrl}
         width={size}
         height={size}
-        alt="Pague os 50 centavos"
+        // Next to the written name the image is decoration (read once, not twice).
+        alt={showText ? '' : 'Pague os 50 centavos'}
         style={{ flexShrink: 0, borderRadius: '23%', boxShadow: 'var(--shadow-primary)' }}
       />
       {showText && (

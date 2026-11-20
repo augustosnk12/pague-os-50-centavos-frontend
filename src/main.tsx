@@ -9,6 +9,10 @@ import { ToastProvider } from './contexts/ToastContext'
 import { PreferencesProvider } from './contexts/PreferencesContext'
 import { AppRouter } from './router'
 import './styles/index.css'
+import { startVitals } from './lib/vitals'
+
+// Real-use performance (improvement 43): production builds only.
+if (import.meta.env.PROD) startVitals(import.meta.env.VITE_API_URL, __APP_VERSION__)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
