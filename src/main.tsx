@@ -35,3 +35,15 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+// Opening screen of the installed app (index.html): leaves once the app has
+// painted, fading out (never fading in, see CLAUDE.md "Animations").
+const splash = document.getElementById('lt-splash')
+if (splash) {
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      splash.setAttribute('data-leaving', '')
+      setTimeout(() => splash.remove(), 250)
+    }),
+  )
+}

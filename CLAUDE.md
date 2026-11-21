@@ -49,6 +49,8 @@ React 19 + Vite + TypeScript 5 strict, React Router v7, TanStack Query v5, Axios
 - Queries use `networkMode: 'offlineFirst'` so offline reads reach the service worker; changes are blocked offline by `src/lib/axios.ts`.
 - `registerType: 'prompt'`: `UpdatePrompt` (mounted in `main.tsx`) shows "Nova versão disponível · Atualizar"; the app is never swapped mid-use.
 - `<meta name="theme-color">` follows the app theme (`ThemeContext` + `THEME_COLOR` in `src/styles/colors.ts`). The SW only exists in `vite build`/`preview`, not `npm run dev`.
+- Manifest has **no `theme_color`** on purpose: Chrome on Android paints the system navigation bar with it (one value for both themes); without it the bar follows the phone's light/dark mode. Ignore the plugin's "will not be able to be installed" warning. `background_color` = brand purple (Android splash).
+- Opening screen `#lt-splash` in `index.html`: shown only in `display-mode: standalone`, colored by the saved theme (inline script also sets `data-theme` + theme-color before first paint), removed by `main.tsx` after the first paint.
 
 ## Navigation structure
 
