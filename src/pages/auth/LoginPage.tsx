@@ -42,7 +42,9 @@ export function LoginPage() {
   const [params] = useSearchParams()
   const urlError = params.get('error') ? decodeURIComponent(params.get('error')!) : ''
   const [step, setStep] = useState<Step>(EXPIRED.includes(urlError) ? 'expired' : 'form')
-  const [email, setEmail] = useState(readLast)
+  // Always starts empty (a shared computer must not show who used it before);
+  // the last address is only offered, masked, on the expired-link screen.
+  const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
   const [unconfirmed, setUnconfirmed] = useState(false)
   const login = useLogin()

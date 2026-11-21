@@ -71,6 +71,12 @@ describe('Acesso (S13)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Entrar' })).toBeInTheDocument()
   })
 
+  it('the e-mail field starts empty even after someone used this device', async () => {
+    localStorage.setItem('pague50_last_email', 'augusto@email.com')
+    renderApp('/login', { loggedIn: false })
+    expect(await screen.findByRole('textbox', { name: 'E-mail' })).toHaveValue('')
+  })
+
   it('expired link: own screen, sends a new one to the last address used here', async () => {
     const user = userEvent.setup()
     localStorage.setItem('pague50_last_email', 'augusto@email.com')
