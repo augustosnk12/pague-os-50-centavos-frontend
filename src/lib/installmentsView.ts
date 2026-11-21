@@ -9,7 +9,8 @@ import { fmtList } from './format'
 import type { InstallmentEnriched } from '../types/installment'
 
 export type Period = 'day' | 'week' | 'month'
-export type Tab = 'all' | 'open' | 'overdue' | 'paid'
+/** Improvement 61: A receber · Atrasadas · Pagas ("Todas" left the screen). */
+export type Tab = 'open' | 'overdue' | 'paid'
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -112,27 +113,20 @@ export const isPaid = (i: InstallmentEnriched) => remainingCents(i) === 0
 export const isOverdue = (i: InstallmentEnriched, today: string) => !isPaid(i) && dayOf(i) < today
 
 export function matchesTab(i: InstallmentEnriched, tab: Tab, today: string): boolean {
-  if (tab === 'all') return true
   if (tab === 'open') return !isPaid(i)
   if (tab === 'overdue') return isOverdue(i, today)
   return isPaid(i)
 }
 
+/** One day of the list: only the date in the header (improvement 61: no subtotal). */
 export interface DayGroup {
   day: string
-  open: InstallmentEnriched[]
-  paid: InstallmentEnriched[]
-  /** Still to receive in the day, in cents. */
-  dueCents: number
-  /** Total of the day's paid installments, in cents. */
-  paidCents: number
+  items: InstallmentEnriched[]
 }
 
 export interface InstallmentsView {
+  /** Only Atrasadas shows a count (every overdue installment, of any period). */
   counts: Record<Tab, number>
-  /** Overdue from before the period (shown folded in Todas/Em aberto, inside the list in Atrasadas). */
-  previous: InstallmentEnriched[]
-  previousCents: number
   /** Totals of the period (cents): expected, received, overdue, still due on time. */
   totals: { expected: number; received: number; overdue: number; pending: number; due: number }
   groups: DayGroup[]
@@ -158,7 +152,6 @@ export function buildView(
   const previous = base.filter((i) => dayOf(i) < start && isOverdue(i, today)).sort(byDue)
 
   const counts: Record<Tab, number> = {
-    all: inPeriod.length,
     open: inPeriod.filter((i) => !isPaid(i)).length,
     overdue: inPeriod.filter((i) => isOverdue(i, today)).length + previous.length,
     paid: inPeriod.filter(isPaid).length,
@@ -169,28 +162,18 @@ export function buildView(
   const overdue = inPeriod.filter((i) => isOverdue(i, today)).reduce((s, i) => s + remainingCents(i), 0)
   const due = inPeriod.reduce((s, i) => s + remainingCents(i), 0)
 
+  // Atrasadas: every overdue installment, of any period (earlier months first).
   const listed = [...(tab === 'overdue' ? previous : []), ...inPeriod.filter((i) => matchesTab(i, tab, today))]
   const groups: DayGroup[] = []
   for (const i of listed) {
     const day = dayOf(i)
-    let g = groups[groups.length - 1]
-    if (!g || g.day !== day) {
-      g = { day, open: [], paid: [], dueCents: 0, paidCents: 0 }
-      groups.push(g)
-    }
-    if (isPaid(i)) {
-      g.paid.push(i)
-      g.paidCents += cents(i.amount)
-    } else {
-      g.open.push(i)
-      g.dueCents += remainingCents(i)
-    }
+    const g = groups[groups.length - 1]
+    if (g && g.day === day) g.items.push(i)
+    else groups.push({ day, items: [i] })
   }
 
   return {
     counts,
-    previous,
-    previousCents: previous.reduce((s, i) => s + remainingCents(i), 0),
     totals: { expected, received, overdue, pending: Math.max(0, due - overdue), due },
     groups,
     rows: listed.length,
@@ -199,7 +182,9 @@ export function buildView(
 
 /* URL state (improvement 25): /installments?periodo=mes&data=2026-11-09&aba=atrasadas&devedores=a,b */
 const PERIOD_URL: Record<Period, string> = { day: 'dia', week: 'semana', month: 'mes' }
-const TAB_URL: Record<Tab, string> = { all: 'todas', open: 'abertas', overdue: 'atrasadas', paid: 'pagas' }
+const TAB_URL: Record<Tab, string> = { open: 'a-receber', overdue: 'atrasadas', paid: 'pagas' }
+/** Names from before improvement 61 ("Todas" and "Em aberto" are now A receber). */
+const OLD_TABS: Record<string, Tab> = { todas: 'open', all: 'open', abertas: 'open' }
 const fromUrl = <T extends string>(map: Record<T, string>, v: string | null): T | undefined =>
   (Object.keys(map) as T[]).find((k) => map[k] === v || k === v)
 
@@ -215,7 +200,8 @@ export interface InstallmentsUrlState {
 export function readUrlState(params: URLSearchParams, today: string): InstallmentsUrlState {
   // Old names still work (links from earlier versions: ?period=week, ?status=overdue).
   const period = fromUrl(PERIOD_URL, params.get('periodo') ?? params.get('period')) ?? 'month'
-  const tab = fromUrl(TAB_URL, params.get('aba')) ?? (params.get('status') === 'overdue' ? 'overdue' : 'all')
+  const aba = params.get('aba')
+  const tab = fromUrl(TAB_URL, aba) ?? (aba ? OLD_TABS[aba] : undefined) ?? (params.get('status') === 'overdue' ? 'overdue' : 'open')
   const data = params.get('data')
   const anchor = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : today
   const debtorIds = (params.get('devedores') ?? '').split(',').filter(Boolean)
@@ -226,7 +212,7 @@ export function writeUrlState(s: Omit<InstallmentsUrlState, 'summary'>, today: s
   const p = new URLSearchParams()
   if (s.period !== 'month') p.set('periodo', PERIOD_URL[s.period])
   if (!isCurrentPeriod(s.period, s.anchor, today) || (s.period === 'day' && s.anchor !== today)) p.set('data', s.anchor)
-  if (s.tab !== 'all') p.set('aba', TAB_URL[s.tab])
+  if (s.tab !== 'open') p.set('aba', TAB_URL[s.tab])
   if (s.debtorIds.length) p.set('devedores', s.debtorIds.join(','))
   return p
 }

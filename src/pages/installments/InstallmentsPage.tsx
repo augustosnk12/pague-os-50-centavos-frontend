@@ -1,23 +1,17 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
-import { Segmented } from '../../components/ui/Segmented'
-import { ListRow } from '../../components/ui/ListRow'
 import { Avatar } from '../../components/ui/Avatar'
-import { Money } from '../../components/ui/Money'
 import { ListGroup } from '../../components/ui/ListGroup'
 import { Tabs } from '../../components/ui/Tabs'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
-import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
-import type { ReceiptRequest } from '../../lib/receipt'
 import { whatsappLink } from '../../lib/whatsapp'
-import { Detail, usePreferences } from '../../contexts/PreferencesContext'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
 import { localToday } from '../../lib/date'
@@ -32,7 +26,7 @@ import { DebtorFilterSheet } from './DebtorFilterSheet'
 import type { InstallmentEnriched } from '../../types/installment'
 
 const PERIODS: [Period, string][] = [['day', 'Dia'], ['week', 'Semana'], ['month', 'Mês']]
-const TABS: [Tab, string][] = [['all', 'Todas'], ['open', 'Em aberto'], ['overdue', 'Atrasadas'], ['paid', 'Pagas']]
+const TABS: [Tab, string][] = [['open', 'A receber'], ['overdue', 'Atrasadas'], ['paid', 'Pagas']]
 /** Rows rendered at a time ("Mostrar mais 40", improvement 42). */
 const PAGE = 40
 const TOTALS_KEY = 'pague50_parcelas_resumo'
@@ -48,25 +42,23 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /**
- * Parcelas (S3, improvements 13, 14, 15, 25, 27 and 42). Period, tab and
- * debtor filter live in the URL; the list is grouped by day; overdue
- * installments from before the period are always one tap away.
+ * Parcelas (S3, simplified by improvement 61 — proposal D): the period in a
+ * chip next to the debtor filter; a frame with the period and, always in
+ * sight, what is left to receive in it ("Detalhes" opens the breakdown);
+ * 3 tabs (count only on Atrasadas); days without subtotals; lean rows.
+ * Period, tab and debtor filter live in the URL.
  */
 export function InstallmentsPage() {
   const today = localToday()
-  const lean = usePreferences().detail === 'lean'
   const [params, setParams] = useSearchParams()
   const url = readUrlState(params, today)
   const { period, anchor, tab, debtorIds } = url
 
   const [totalsOpen, setTotalsOpen] = useState(() => url.summary || readTotalsOpen())
-  const [showPrevious, setShowPrevious] = useState(false)
-  const [paidOpen, setPaidOpen] = useState<Record<string, boolean>>({})
   const [limit, setLimit] = useState(PAGE)
   const [filterOpen, setFilterOpen] = useState(false)
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
   const [remindId, setRemindId] = useState<string | null>(null)
-  const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
   // Day mode loads the whole week: the strip shows a dot on every day with installments.
   const query = useInstallmentsPeriod({ period: period === 'day' ? 'week' : period, date: anchor, today })
@@ -89,8 +81,6 @@ export function InstallmentsPage() {
   if (lastKey !== viewKey) {
     setLastKey(viewKey)
     setLimit(PAGE)
-    setPaidOpen({})
-    setShowPrevious(false)
   }
 
   const update = (next: Partial<{ period: Period; anchor: string; tab: Tab; debtorIds: string[] }>) =>
@@ -115,17 +105,13 @@ export function InstallmentsPage() {
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
   // Swipe left = WhatsApp reminder, only for debtors with a phone WhatsApp accepts (improvement 27).
   const reachable = useMemo(() => new Set(debtors.filter((d) => whatsappLink(d.phone)).map((d) => d.id)), [debtors])
-  const receiptFor = (inst: InstallmentEnriched) => {
-    const debtorId = inst.debt?.debtor?.id ?? inst.debt?.debtorId
-    return debtorId ? (paymentId: string) => setReceipt({ debtorId, paymentId }) : undefined
-  }
   const remindFor = (inst: InstallmentEnriched) => {
     const id = inst.debt?.debtor?.id ?? inst.debt?.debtorId
     return id && reachable.has(id) ? () => setRemindId(id) : undefined
   }
   const tabName = TABS.find((t) => t[0] === tab)?.[1] ?? ''
 
-  // Compact bar once the period card and tabs have scrolled away (improvement 15).
+  // Compact bar once the frame and tabs have scrolled away (improvement 15).
   const sentinel = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
   useEffect(() => {
@@ -143,6 +129,7 @@ export function InstallmentsPage() {
 
   const loading = query.isLoading && !query.data
   const failed = query.isError && !query.data
+  const where = period === 'day' ? 'neste dia' : period === 'week' ? 'nesta semana' : 'neste mês'
 
   return (
     <main className="lt-page lt-anim-fade lt-ip" data-compact={compact || undefined}>
@@ -155,9 +142,9 @@ export function InstallmentsPage() {
             </button>
             <IconButton name="chevronRight" size={16} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
             <span className="lt-ipb-sep" aria-hidden="true" />
-            <button type="button" className="lt-ipb-f" onClick={scrollToTop} aria-label={`${tabName}, ${view.counts[tab]}. Voltar ao topo`}>
+            <button type="button" className="lt-ipb-f" onClick={scrollToTop} aria-label={`${tabName}${tab === 'overdue' ? `, ${view.counts.overdue}` : ''}. Voltar ao topo`}>
               {tabName}
-              <span className="lt-cnt" data-late={(tab === 'overdue' && view.counts.overdue > 0) || undefined}>{view.counts[tab]}</span>
+              {tab === 'overdue' && <span className="lt-cnt" data-late={view.counts.overdue > 0 || undefined}>{view.counts.overdue}</span>}
               {debtorIds.length > 0 && <span className="lt-ipb-nf">· {filterLabel}</span>}
             </button>
             <IconButton name="user" size={16} label={`Filtrar por devedor: ${filterSpoken}`} onClick={() => setFilterOpen(true)} />
@@ -167,6 +154,8 @@ export function InstallmentsPage() {
 
       <div className="lt-ip-head">
         <h1 ref={top} className="lt-h1" tabIndex={-1}>Parcelas</h1>
+        <span style={{ flex: 1 }} />
+        <PeriodMenu value={period} onChange={(p) => update({ period: p })} />
         <button
           type="button"
           className="lt-chip lt-dfilter"
@@ -187,36 +176,27 @@ export function InstallmentsPage() {
         </button>
       </div>
 
-      <div className="lt-pcard">
-        <Segmented label="Agrupar por" value={period} options={PERIODS.map(([p, l]) => ({ value: p, label: l }))} onChange={(p) => update({ period: p })} />
+      <section className="lt-ipd-frame" aria-label="Período e total">
         <div className="lt-pnav">
           <IconButton name="chevronLeft" size={20} label="Período anterior" onClick={() => update({ anchor: shiftPeriod(period, anchor, -1) })} />
           <div className="lt-pnav-lbl">
             <div className="lt-pnav-t" aria-live="polite">{periodLabel(period, anchor)}</div>
             <div className="lt-pnav-s">
-              <Detail>{relativeLabel(period, anchor, today)}</Detail>
-              {!isNow && (
-                <>
-                  <Detail>{' · '}</Detail>
-                  <button type="button" className="lt-s-today" onClick={() => update({ anchor: today })} aria-label="Ir para o período atual">Hoje</button>
-                </>
+              {isNow ? (
+                relativeLabel(period, anchor, today)
+              ) : (
+                <button type="button" className="lt-s-today" onClick={() => update({ anchor: today })}>Voltar para hoje</button>
               )}
             </div>
           </div>
           <IconButton name="chevronRight" size={20} label="Próximo período" onClick={() => update({ anchor: shiftPeriod(period, anchor, 1) })} />
         </div>
-      </div>
-
-      {period === 'day' && <WeekStrip anchor={anchor} today={today} items={items} debtorIds={debtorIds} onPick={(d) => update({ anchor: d })} />}
-
-      {!loading && !failed && (
-        <Detail>
-          <Totals view={view} period={period} tab={tab} open={totalsOpen} onToggle={toggleTotals} onFilter={(t) => update({ tab: t })} />
-        </Detail>
-      )}
+        {period === 'day' && <WeekStrip anchor={anchor} today={today} items={items} debtorIds={debtorIds} onPick={(d) => update({ anchor: d })} />}
+        {!loading && !failed && <PeriodTotal view={view} where={where} open={totalsOpen} onToggle={toggleTotals} />}
+      </section>
 
       <Tabs
-        items={TABS.map(([id, label]) => ({ id, label, count: loading || failed || (lean && id !== 'overdue') ? null : view.counts[id], late: id === 'overdue' }))}
+        items={TABS.map(([id, label]) => ({ id, label, count: id === 'overdue' && !loading && !failed ? view.counts.overdue : null, late: id === 'overdue' }))}
         value={tab}
         onChange={(t) => update({ tab: t })}
         label="Situação"
@@ -230,58 +210,30 @@ export function InstallmentsPage() {
           <ErrorState onRetry={() => void query.refetch()} retrying={query.isFetching} />
         ) : loading ? (
           <ListSkeleton />
+        ) : view.groups.length ? (
+          <DayGroups groups={view.groups} today={today} limit={limit} lateTab={tab === 'overdue'} onMore={() => setLimit((l) => l + PAGE)} onOpen={openPayment} remindFor={remindFor} />
+        ) : firstUse ? (
+          <EmptyState
+            icon="calendar"
+            title="Nenhuma parcela ainda"
+            sub="As parcelas aparecem aqui quando você registra uma dívida."
+            action={
+              <button type="button" className="lt-btn-lg" data-variant="primary" style={{ width: 'auto', padding: '0 20px' }} onClick={() => navigate('/debts/new')}>
+                <Icon name="plus" size={16} /> Nova dívida
+              </button>
+            }
+          />
         ) : (
           <>
-            {view.previous.length > 0 && (tab === 'all' || tab === 'open') && (
-              <PreviousLine
-                items={view.previous}
-                cents={view.previousCents}
-                open={showPrevious}
-                onToggle={() => setShowPrevious((o) => !o)}
-                today={today}
-                onOpen={openPayment}
-                remindFor={remindFor}
-              />
-            )}
-            {view.groups.length ? (
-              <DayGroups
-                groups={view.groups}
-                today={today}
-                limit={limit}
-                collapsePaid={tab === 'all'}
-                paidOpen={paidOpen}
-                onTogglePaid={(day) => setPaidOpen((o) => ({ ...o, [day]: !o[day] }))}
-                onMore={() => setLimit((l) => l + PAGE)}
-                onOpen={openPayment}
-                remindFor={remindFor}
-                receiptFor={receiptFor}
-              />
-            ) : (
-              firstUse ? (
-                <EmptyState
-                  icon="calendar"
-                  title="Nenhuma parcela ainda"
-                  sub="As parcelas aparecem aqui quando você registra uma dívida."
-                  action={
-                    <button type="button" className="lt-btn-lg" data-variant="primary" style={{ width: 'auto', padding: '0 20px' }} onClick={() => navigate('/debts/new')}>
-                      <Icon name="plus" size={16} /> Nova dívida
-                    </button>
-                  }
-                />
-              ) : (
-              <>
-                <EmptyState
-                  icon={tab === 'paid' ? 'wallet' : 'check'}
-                  title={tab === 'overdue' ? 'Nenhuma parcela atrasada' : tab === 'paid' ? 'Nada recebido neste período' : 'Nenhuma parcela neste período'}
-                  sub={debtorIds.length ? 'Tente remover o filtro de devedor.' : 'Use as setas para navegar entre períodos.'}
-                />
-                {debtorIds.length > 0 && (
-                  <div style={{ textAlign: 'center' }}>
-                    <button type="button" className="lt-chip" onClick={() => update({ debtorIds: [] })}>Limpar filtro</button>
-                  </div>
-                )}
-              </>
-              )
+            <EmptyState
+              icon={tab === 'paid' ? 'wallet' : 'check'}
+              title={tab === 'overdue' ? 'Nenhuma parcela atrasada' : tab === 'paid' ? `Nada recebido ${where}` : `Nada a receber ${where}`}
+              sub={debtorIds.length ? 'Tente remover o filtro de devedor.' : tab === 'overdue' ? undefined : 'Use as setas para navegar entre períodos.'}
+            />
+            {debtorIds.length > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <button type="button" className="lt-chip" onClick={() => update({ debtorIds: [] })}>Limpar filtro</button>
+              </div>
             )}
           </>
         )}
@@ -298,8 +250,132 @@ export function InstallmentsPage() {
       />
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
-      <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
     </main>
+  )
+}
+
+/** "Mês ▾": Dia · Semana · Mês in a small menu, the chosen one with ✓ (improvement 61). */
+function PeriodMenu({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const id = useId()
+  const label = PERIODS.find((p) => p[0] === value)?.[1] ?? ''
+
+  useEffect(() => {
+    if (!open) return
+    const outside = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', outside)
+    requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus())
+    return () => document.removeEventListener('mousedown', outside)
+  }, [open])
+
+  const close = (focus: boolean) => {
+    setOpen(false)
+    if (focus) trigger.current?.focus()
+  }
+  const onKeyDown = (e: KeyboardEvent) => {
+    const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ?? [])
+    const i = items.indexOf(document.activeElement as HTMLElement)
+    const go = (n: number) => {
+      e.preventDefault()
+      items[(n + items.length) % items.length]?.focus()
+    }
+    if (e.key === 'ArrowDown') go(i + 1)
+    else if (e.key === 'ArrowUp') go(i - 1)
+    else if (e.key === 'Home') go(0)
+    else if (e.key === 'End') go(items.length - 1)
+    else if (e.key === 'Escape') {
+      e.preventDefault()
+      close(true)
+    } else if (e.key === 'Tab') setOpen(false)
+  }
+
+  return (
+    <div ref={ref} className="lt-pmenu-wrap">
+      <button
+        ref={trigger}
+        type="button"
+        className="lt-chip lt-dfilter"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-label={`Ver por: ${label}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="lt-dfilter-lbl">{label}</span>
+        <Icon name="chevronDown" size={16} />
+      </button>
+      {open && (
+        // Menu pattern: arrows/Home/End/Esc are handled by the menu itself.
+        // eslint-disable-next-line jsx-a11y/interactive-supports-focus
+        <div id={id} role="menu" aria-label="Ver por" className="lt-pmenu" onKeyDown={onKeyDown}>
+          {PERIODS.map(([p, l]) => (
+            <button
+              key={p}
+              type="button"
+              role="menuitemradio"
+              aria-checked={p === value}
+              className="lt-menu-item"
+              onClick={() => {
+                if (p !== value) onChange(p)
+                close(true)
+              }}
+            >
+              <span style={{ flex: 1 }}>{l}</span>
+              {p === value && <Icon name="check" size={16} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Base of the frame, always in sight: "A receber · R$ X" of the period.
+ * "Detalhes" opens the 3-colour bar, Recebido · Atrasado · A vencer and
+ * "R$ Y previsto … · Z% recebido" (remembered on the device).
+ */
+function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; where: string; open: boolean; onToggle: () => void }) {
+  const { expected, received, overdue, pending, due } = view.totals
+  const pct = expected ? Math.floor((received / expected) * 100) : 0
+  const w = (v: number) => `${expected ? (v / expected) * 100 : 0}%`
+  const id = useId()
+  const legend: [string, number, string][] = [
+    ['Recebido', received, 'var(--paid)'],
+    ['Atrasado', overdue, 'var(--overdue)'],
+    ['A vencer', pending, 'var(--pending)'],
+  ]
+  return (
+    <>
+      <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+        <span className="lt-ipd-k">A receber</span>
+        <span className="lt-ipd-v">{fmtMoney(due / 100)}</span>
+        <span className="lt-ipd-info" aria-hidden="true">
+          {open ? 'Ocultar' : 'Detalhes'}
+          <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
+        </span>
+      </button>
+      {open && (
+        <div id={id} className="lt-ipd-det">
+          <span className="lt-ipd-bar" aria-hidden="true">
+            {legend.map(([k, v, c]) => (v > 0 ? <span key={k} style={{ width: w(v), background: c }} /> : null))}
+          </span>
+          <dl className="lt-ipd-leg">
+            {legend.map(([k, v, c]) => (
+              <div key={k}>
+                <dt><span className="lt-dot" style={{ background: c }} />{k}</dt>
+                <dd data-zero={v === 0 || undefined}>{fmtMoney(v / 100)}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="lt-ipd-exp">{fmtMoney(expected / 100)} previsto {where}{expected ? ` · ${pct}% recebido` : ''}</div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -331,152 +407,39 @@ function WeekStrip({ anchor, today, items, debtorIds, onPick }: { anchor: string
   )
 }
 
-/** Totals in one folded line: to receive · 3-colour bar · % received (improvement 15). */
-function Totals({ view, period, tab, open, onToggle, onFilter }: {
-  view: InstallmentsView
-  period: Period
-  tab: Tab
-  open: boolean
-  onToggle: () => void
-  onFilter: (t: Tab) => void
-}) {
-  const { expected, received, overdue, pending, due } = view.totals
-  const pct = expected ? Math.floor((received / expected) * 100) : 0
-  const w = (v: number) => `${expected ? (v / expected) * 100 : 0}%`
-  const id = useId()
-  const where = period === 'day' ? 'neste dia' : period === 'week' ? 'nesta semana' : 'neste mês'
-  return (
-    <div className="lt-tot" data-open={open || undefined}>
-      <button type="button" className="lt-tot-line" aria-expanded={open} aria-controls={id} onClick={onToggle}>
-        <span className="lt-tot-v">
-          <Money value={due / 100} size={15} /> <span className="lt-tot-k">a receber</span>
-        </span>
-        <span className="lt-tot-bar" aria-hidden="true">
-          <span style={{ width: w(received), background: 'var(--paid)' }} />
-          <span style={{ width: w(overdue), background: 'var(--overdue)' }} />
-          <span style={{ width: w(pending), background: 'var(--pending)' }} />
-        </span>
-        <span className="lt-tot-pct">{pct}%</span>
-        <span className="lt-tot-chev" aria-hidden="true"><Icon name="chevronDown" size={16} /></span>
-      </button>
-      {open && (
-        <div id={id} className="lt-tot-det">
-          <div className="lt-tot-exp">{fmtMoney(expected / 100)} previsto {where} · {pct}% recebido</div>
-          <div className="lt-tot-leg">
-            <button type="button" aria-pressed={tab === 'paid'} onClick={() => onFilter(tab === 'paid' ? 'all' : 'paid')}>
-              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--paid)' }} />Recebido</span>
-              <span className="lt-lv">{fmtMoney(received / 100)}</span>
-            </button>
-            <button type="button" aria-pressed={tab === 'overdue'} onClick={() => onFilter(tab === 'overdue' ? 'all' : 'overdue')}>
-              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--overdue)' }} />Atrasado</span>
-              <span className="lt-lv">{fmtMoney(overdue / 100)}</span>
-            </button>
-            <div className="lt-tot-static">
-              <span className="lt-lk"><span className="lt-dot" style={{ background: 'var(--pending)' }} />A vencer</span>
-              <span className="lt-lv">{fmtMoney(pending / 100)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PreviousLine({ items, cents, open, onToggle, today, onOpen, remindFor }: {
-  items: InstallmentEnriched[]
-  cents: number
-  open: boolean
-  onToggle: () => void
-  today: string
-  onOpen: (i: InstallmentEnriched) => void
-  remindFor: (i: InstallmentEnriched) => (() => void) | undefined
-}) {
-  return (
-    <>
-      <button type="button" className="lt-prevline" aria-expanded={open} onClick={onToggle}>
-        <Icon name="alert" size={16} />
-        <span style={{ flex: 1, textAlign: 'left' }}>{plural(items.length, 'atrasada', 'atrasadas')} de antes deste período</span>
-        <span>{fmtMoney(cents / 100)}</span>
-        <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
-      </button>
-      {open && (
-        <div style={{ marginTop: 8 }}>
-          <ListGroup label="Atrasadas de antes deste período">
-            {items.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} swipe onRemind={remindFor(i)} />)}
-          </ListGroup>
-        </div>
-      )}
-    </>
-  )
-}
-
-/** One card per day; in "Todas" the paid ones of each day fold into one line (improvements 13 and 42). */
-function DayGroups({ groups, today, limit, collapsePaid, paidOpen, onTogglePaid, onMore, onOpen, remindFor, receiptFor }: {
+/** One list per day, the header with the date only (improvement 61). */
+function DayGroups({ groups, today, limit, lateTab, onMore, onOpen, remindFor }: {
   groups: DayGroup[]
   today: string
   limit: number
-  collapsePaid: boolean
-  paidOpen: Record<string, boolean>
-  onTogglePaid: (day: string) => void
+  lateTab: boolean
   onMore: () => void
   onOpen: (i: InstallmentEnriched) => void
   remindFor: (i: InstallmentEnriched) => (() => void) | undefined
-  receiptFor: (i: InstallmentEnriched) => ((paymentId: string) => void) | undefined
 }) {
   let used = 0
   let total = 0
   const out: ReactElement[] = []
   for (const g of groups) {
-    const count = g.open.length + g.paid.length
-    total += count
+    total += g.items.length
     if (used >= limit) continue
-    const folded = collapsePaid && g.paid.length > 0 && !paidOpen[g.day]
-    const rows = folded ? g.open : [...g.open, ...g.paid]
-    const shown = rows.slice(0, limit - used)
-    used += shown.length + (folded && shown.length === rows.length ? g.paid.length : 0)
-    const complete = shown.length === rows.length
+    const shown = g.items.slice(0, limit - used)
+    used += shown.length
     const label = dayLabel(g.day, today)
     out.push(
       <section key={g.day} className="lt-day" id={g.day === today ? 'dia-hoje' : undefined} aria-labelledby={`dia-${g.day}`}>
         <h2 className="lt-dhead" id={`dia-${g.day}`}>
-          <span>
-            <span aria-hidden="true">
-              {label}
-              {count > 1 && <Detail><span className="lt-dh-n">{count}</span></Detail>}
-            </span>
-            {/* One string for screen readers: "Hoje, quinta, 5 de novembro, 2 parcelas". */}
-            <span className="lt-sr-only">
-              {['Hoje', 'Amanhã', 'Ontem'].includes(label) ? `${label}, ${dayLabelLong(g.day)}` : dayLabelLong(g.day)}
-              {count > 1 ? `, ${count} parcelas` : ''}
-            </span>
+          <span aria-hidden="true">{label}</span>
+          {/* One string for screen readers: "Hoje, quinta, 5 de novembro, 2 parcelas". */}
+          <span className="lt-sr-only">
+            {['Hoje', 'Amanhã', 'Ontem'].includes(label) ? `${label}, ${dayLabelLong(g.day)}` : dayLabelLong(g.day)}
+            {g.items.length > 1 ? `, ${g.items.length} parcelas` : ''}
           </span>
-          <Detail>
-            <span className="lt-dh-sum">
-              {g.open.length ? (
-                <>
-                  {fmtMoney(g.dueCents / 100)} a receber
-                  {g.paid.length > 0 && <span style={{ color: 'var(--paid)' }}> · {plural(g.paid.length, 'paga', 'pagas')}</span>}
-                </>
-              ) : (
-                <span style={{ color: 'var(--paid)' }}>✓ {fmtMoney(g.paidCents / 100)} recebido</span>
-              )}
-            </span>
-          </Detail>
         </h2>
         <ListGroup>
-          {shown.map((i) => <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={dayOf(i) !== g.day} swipe onRemind={remindFor(i)} onReceipt={receiptFor(i)} />)}
-          {collapsePaid && g.paid.length > 0 && complete && (
-            <ListRow
-              innerClassName="lt-paid-sum"
-              expanded={!!paidOpen[g.day]}
-              label={`${plural(g.paid.length, 'paga', 'pagas')}, ${fmtMoney(g.paidCents / 100)}. ${paidOpen[g.day] ? 'Recolher' : 'Mostrar'}`}
-              onClick={() => onTogglePaid(g.day)}
-            >
-              <span style={{ color: 'var(--paid)', display: 'inline-flex' }} aria-hidden="true"><Icon name="check" size={16} strokeWidth={2.6} /></span>
-              <span className="lt-paid-sum-t" aria-hidden="true">{paidOpen[g.day] ? 'Recolher pagas' : `${plural(g.paid.length, 'paga', 'pagas')} · ${fmtMoney(g.paidCents / 100)}`}</span>
-              <Icon name="chevronDown" size={16} style={{ color: 'var(--text-faint)', transform: paidOpen[g.day] ? 'rotate(180deg)' : 'none' }} />
-            </ListRow>
-          )}
+          {shown.map((i) => (
+            <InstallmentLine key={i.id} inst={i} today={today} onOpen={onOpen} showDate={lateTab && dayOf(i) !== g.day} swipe lean onRemind={remindFor(i)} />
+          ))}
         </ListGroup>
       </section>,
     )

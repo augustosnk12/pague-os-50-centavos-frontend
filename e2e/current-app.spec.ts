@@ -98,7 +98,6 @@ test.describe('with data', () => {
 
     await page.goto('/installments')
     await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
-    await page.getByRole('radio', { name: 'Mês' }).click()
     await expect(page.getByText('Curso de inglês').first()).toBeVisible()
     await a11y('installments')
 
@@ -375,7 +374,7 @@ test.describe('Parcelas (S3)', () => {
     return new Date(Date.UTC(n.getFullYear(), n.getMonth() + monthOffset, n.getDate() + offset)).toISOString()
   }
 
-  test('tabs and filters live in the URL; earlier overdue folded; compact bar; filter sheet', async ({ page, session, a11y }) => {
+  test('item 61: A receber, Atrasadas (every overdue) and Pagas; tabs and filters in the URL; compact bar; filter sheet', async ({ page, session, a11y }) => {
     const ana = await session.api('POST', '/debtors', { name: 'Ana Abril' })
     const bia = await session.api('POST', '/debtors', { name: 'Bia Brito' })
     // One overdue from two months ago (before this month) and several this month.
@@ -386,17 +385,24 @@ test.describe('Parcelas (S3)', () => {
 
     await page.goto('/installments')
     await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
-    const prev = page.getByRole('button', { name: /1 atrasada de antes deste período/ })
-    await expect(prev).toBeVisible()
+    // A receber (default): this period only; the total is always in sight; count only on Atrasadas.
+    await expect(page.getByRole('tab', { name: /A receber/ })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('button', { name: /^A receber/ })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /Atrasadas/ })).toHaveText(/Atrasadas\s*\d+/)
+    await expect(page.getByText('Antiga')).toHaveCount(0)
     await a11y('parcelas')
+    await page.getByRole('button', { name: /^A receber/ }).click()
+    await expect(page.getByText(/previsto neste mês/)).toBeVisible()
+    await a11y('parcelas-detalhes')
 
-    // Tab → URL; reload keeps it; the earlier overdue is now inside the list.
+    // Tab → URL; reload keeps it; Atrasadas lists the overdue one from two months ago.
     await page.getByRole('tab', { name: /Atrasadas/ }).click()
     await expect(page).toHaveURL(/\/installments\?aba=atrasadas$/)
     await page.reload()
     await expect(page.getByRole('tab', { name: /Atrasadas/ })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByText('Antiga').first()).toBeVisible()
-    await page.getByRole('tab', { name: /Todas/ }).click()
+    await page.getByRole('tab', { name: /A receber/ }).click()
+    await expect(page).toHaveURL(/\/installments$/)
 
     // Debtor filter.
     await page.getByRole('button', { name: 'Filtrar por devedor: todos os devedores' }).click()
@@ -426,8 +432,10 @@ test.describe('Parcelas (S3)', () => {
     const d = await session.api('POST', '/debtors', { name: 'Dora Dia' })
     await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Hoje mesmo', totalAmount: 30, numberOfInstallments: 1, firstDueDate: day(0) })
     await page.goto('/installments')
-    await page.getByRole('radio', { name: 'Dia', exact: true }).click()
+    await page.getByRole('button', { name: 'Ver por: Mês' }).click()
+    await page.getByRole('menuitemradio', { name: 'Dia' }).click()
     await expect(page).toHaveURL(/periodo=dia/)
+    await expect(page.getByRole('button', { name: 'Ver por: Dia' })).toBeVisible()
     const strip = page.getByRole('group', { name: 'Dias da semana' })
     await expect(strip.locator('[aria-current="date"]')).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByText('Hoje mesmo')).toBeVisible()

@@ -35,6 +35,12 @@ interface InstallmentLineProps {
   onReceipt?: (paymentId: string) => void
   /** Inside a debt card of the debtor profile: "Parcela 2/12" + due day, no avatar (S4). */
   inDebt?: boolean
+  /**
+   * Parcelas (improvement 61): name, "descrição · 2/5" and the amount only — no
+   * avatar, no "Receber", no receipt button; the tag only when it is overdue.
+   * Tapping opens the payment (the sheet has the rest); swipes stay.
+   */
+  lean?: boolean
 }
 
 /**
@@ -44,7 +50,7 @@ interface InstallmentLineProps {
  */
 const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
-export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false }: InstallmentLineProps) {
+export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false, lean = false }: InstallmentLineProps) {
   const prefetch = usePrefetchDebtor()
   const debtor = inst.debt?.debtor
   const name = debtor?.name ?? 'Devedor'
@@ -52,7 +58,8 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
   const left = remainingCents(inst)
   const paid = left === 0
   const lastPayment = inst.payments?.[inst.payments.length - 1]
-  const tag = installmentTag(inst, today, { showDate })
+  const fullTag = installmentTag(inst, today, { showDate })
+  const tag = lean && fullTag?.tone !== 'overdue' ? null : fullTag
   const position = installmentPosition(inst.number, inst.debt?.installmentCount, inst.debt?.recurrence)
   const value = paid ? Number(inst.amount) : left / 100
   const spokenPosition = position.startsWith('↻') ? 'mensal' : position.includes('/') ? `parcela ${position.replace('/', ' de ')}` : position
@@ -62,7 +69,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
   const start = useRef<{ x: number; y: number; id: number; horizontal: boolean | null } | null>(null)
   const swiped = useRef(false)
   const canSwipe = swipe && !paid
-  const canRemind = canSwipe && !!onRemind && tag?.tone === 'overdue'
+  const canRemind = canSwipe && !!onRemind && fullTag?.tone === 'overdue'
   const onPointerDown = (e: PointerEvent<HTMLLIElement>) => {
     if (!canSwipe || e.pointerType !== 'touch') return
     start.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: null }
@@ -120,9 +127,9 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
             }
             onOpen(inst)
           }}
-          aria-label={[name, inst.debt?.description, spokenPosition, fmtMoney(value), tag?.spoken].filter(Boolean).join(', ') + (paid ? '. Ver pagamentos' : '. Registrar pagamento')}
+          aria-label={[name, inst.debt?.description, spokenPosition, fmtMoney(value), fullTag?.spoken].filter(Boolean).join(', ') + (paid ? '. Ver pagamentos' : '. Registrar pagamento')}
         />
-        {!inDebt &&
+        {!inDebt && !lean &&
           (debtorId ? (
             <Link to={`/debtors/${debtorId}`} className="lt-av-btn" aria-label={`Abrir ${name}`} onPointerEnter={() => prefetch(debtorId)} onFocus={() => prefetch(debtorId)}>
               <Avatar name={name} size={36} hue={debtor?.avatarHue} emoji={debtor?.avatarEmoji} />
@@ -132,7 +139,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
           ))}
         <div className="lt-lrow-main" aria-hidden="true">
           <div className="lt-lrow-name">{inDebt ? (position.startsWith('↻') ? `Mensalidade de ${MONTH_NAMES[Number(inst.dueDate.slice(5, 7)) - 1]}` : `Parcela ${position.replace('parcela ', '')}`) : name}</div>
-          <Detail>
+          <Detail force={lean}>
             {inDebt ? (
               <div className="lt-lrow-sub">{fmtList(inst.dueDate)}</div>
             ) : (
@@ -152,12 +159,12 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
             </div>
           )}
         </div>
-        {!paid && (
+        {!paid && !lean && (
           <span className="lt-recv" aria-hidden="true">
             Receber
           </span>
         )}
-        {paid && onReceipt && lastPayment && (
+        {paid && !lean && onReceipt && lastPayment && (
           <button
             type="button"
             className="lt-rcpt-btn"

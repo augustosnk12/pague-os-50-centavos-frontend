@@ -70,6 +70,7 @@ export function usePreferences(): PreferencesValue {
  * Wraps the supporting items that "Enxuta" hides (subtitles, explanations,
  * counters…). Amounts owed, overdue, dates and actions must NEVER be wrapped.
  */
-export function Detail({ children }: { children: ReactNode }) {
-  return usePreferences().detail === 'full' ? <>{children}</> : null
+export function Detail({ children, force = false }: { children: ReactNode; /** Show even in "Enxuta" (when it is the only identification left). */ force?: boolean }) {
+  const full = usePreferences().detail === 'full' // always called (rules of hooks)
+  return force || full ? <>{children}</> : null
 }

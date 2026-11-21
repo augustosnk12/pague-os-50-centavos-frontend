@@ -50,31 +50,28 @@ describe('buildView', () => {
     inst('2026-11-20', '200.00', '0.00', 'd2'),
   ]
 
-  it('tabs count; Atrasadas includes the previous periods; partial overdue counts as overdue', () => {
-    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'all', debtorIds: [] })
-    expect(v.counts).toEqual({ all: 4, open: 3, overdue: 2, paid: 1 })
-    expect(v.previous).toHaveLength(1)
-    expect(v.previousCents).toBe(10000)
+  it('counts; Atrasadas includes the previous periods; partial overdue counts as overdue', () => {
+    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'open', debtorIds: [] })
+    expect(v.counts).toEqual({ open: 3, overdue: 2, paid: 1 })
   })
 
   it('totals of the period in cents', () => {
-    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'all', debtorIds: [] })
+    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'open', debtorIds: [] })
     expect(v.totals).toEqual({ expected: 43000, received: 9000, overdue: 6000, pending: 28000, due: 34000 })
   })
 
-  it('groups by day: open first, paid apart; Atrasadas lists the previous ones first', () => {
-    const all = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'all', debtorIds: [] })
-    expect(all.groups.map((g) => g.day)).toEqual(['2026-11-02', '2026-11-09', '2026-11-20'])
-    const today = all.groups[1]
-    expect([today.open.length, today.paid.length, today.dueCents, today.paidCents]).toEqual([1, 1, 8000, 5000])
+  it('A receber = what is left in the period; Atrasadas = every overdue one (earlier months first); Pagas = paid in the period', () => {
+    const open = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'open', debtorIds: [] })
+    expect(open.groups.map((g) => [g.day, g.items.length])).toEqual([['2026-11-02', 1], ['2026-11-09', 1], ['2026-11-20', 1]])
     const late = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'overdue', debtorIds: [] })
     expect(late.groups.map((g) => g.day)).toEqual(['2026-10-05', '2026-11-02'])
+    const paid = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'paid', debtorIds: [] })
+    expect(paid.groups.map((g) => [g.day, g.items.length])).toEqual([['2026-11-09', 1]])
   })
 
   it('debtor filter', () => {
-    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'all', debtorIds: ['d2'] })
-    expect(v.counts.all).toBe(1)
-    expect(v.previous).toHaveLength(0)
+    const v = buildView(items, { period: 'month', anchor: TODAY, today: TODAY, tab: 'open', debtorIds: ['d2'] })
+    expect(v.counts).toEqual({ open: 1, overdue: 0, paid: 0 })
   })
 })
 
@@ -84,11 +81,15 @@ describe('URL state', () => {
     const p = writeUrlState(s, TODAY)
     expect(p.toString()).toBe('periodo=semana&data=2026-11-20&aba=atrasadas&devedores=a%2Cb')
     expect(readUrlState(p, TODAY)).toEqual({ ...s, summary: false })
-    expect(writeUrlState({ period: 'month', anchor: TODAY, tab: 'all', debtorIds: [] }, TODAY).toString()).toBe('')
+    expect(writeUrlState({ period: 'month', anchor: TODAY, tab: 'open', debtorIds: [] }, TODAY).toString()).toBe('')
   })
 
   it('accepts the older names (?period=week, ?status=overdue) and ?resumo=1', () => {
     expect(readUrlState(new URLSearchParams('period=week&status=overdue&resumo=1'), TODAY)).toMatchObject({ period: 'week', tab: 'overdue', summary: true })
     expect(readUrlState(new URLSearchParams('data=lixo'), TODAY).anchor).toBe(TODAY)
+    // Before improvement 61: "Todas" and "Em aberto" are now A receber.
+    expect(readUrlState(new URLSearchParams('aba=todas'), TODAY).tab).toBe('open')
+    expect(readUrlState(new URLSearchParams('aba=abertas'), TODAY).tab).toBe('open')
+    expect(readUrlState(new URLSearchParams('aba=a-receber'), TODAY).tab).toBe('open')
   })
 })
