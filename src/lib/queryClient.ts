@@ -5,6 +5,10 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       retry: 1,
+      // Offline, React Query would hold reads until the connection returns.
+      // 'offlineFirst' sends them anyway, so the service worker answers with
+      // the last data saved (installed app opened offline, issue #5).
+      networkMode: 'offlineFirst',
     },
     mutations: {
       // By default React Query PAUSES changes while offline and sends them by

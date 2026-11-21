@@ -43,6 +43,13 @@ React 19 + Vite + TypeScript 5 strict, React Router v7, TanStack Query v5, Axios
 - **Animations**: translate-only (`ltRise`). Never opacity-from-0 — it freezes content in backgrounded/throttled tabs (Chromium bug). Only `background` is transitioned on `body` (not `color`) for the same reason.
 - **OKLCH hue in `calc()`** must be unitless: `calc(var(--accent-h) + 25)` not `+ 25deg`.
 
+## PWA (installable, offline read-only)
+
+- `vite-plugin-pwa` in `vite.config.ts` (disabled in tests). App files precached; API GETs (except `/auth/*`) are NetworkFirst into the `api-reads` cache, which `removeToken()` deletes (`src/lib/offlineCache.ts`).
+- Queries use `networkMode: 'offlineFirst'` so offline reads reach the service worker; changes are blocked offline by `src/lib/axios.ts`.
+- `registerType: 'prompt'`: `UpdatePrompt` (mounted in `main.tsx`) shows "Nova versão disponível · Atualizar"; the app is never swapped mid-use.
+- `<meta name="theme-color">` follows the app theme (`ThemeContext` + `THEME_COLOR` in `src/styles/colors.ts`). The SW only exists in `vite build`/`preview`, not `npm run dev`.
+
 ## Navigation structure
 
 - **Mobile (< 880px):** fixed `BottomTabs` — Painel | Devedores | [raised +] | Parcelas | Conta. "Conta" opens `AccountSheet` (theme + logout).

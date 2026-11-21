@@ -9,6 +9,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import { PreferencesProvider } from './contexts/PreferencesContext'
 import { AppRouter } from './router'
 import { IconSprite } from './components/ui/Icon'
+import { UpdatePrompt } from './components/layout/UpdatePrompt'
 import './styles/index.css'
 import { startVitals } from './lib/vitals'
 
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <ToastProvider>
               <AppRouter />
+              <UpdatePrompt />
             </ToastProvider>
           </AuthProvider>
           </PreferencesProvider>

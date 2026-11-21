@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie'
+import { clearOfflineData } from './offlineCache'
 
 const TOKEN_KEY = 'pague50_token'
 const LENDER_KEY = 'pague50_lender'
@@ -13,6 +14,8 @@ export function setToken(token: string): void {
 
 export function removeToken(): void {
   Cookies.remove(TOKEN_KEY)
+  // The account's data saved for offline use leaves with the session.
+  clearOfflineData()
 }
 
 export function getLenderFromStorage(): { id: string; email: string; name: string | null } | null {
