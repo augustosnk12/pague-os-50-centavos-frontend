@@ -66,6 +66,9 @@ describe('Painel (S1)', () => {
     )
     expect(rows[0]).toHaveTextContent('16d atraso')
     expect(rows[1]).toHaveTextContent('Mercado · 3/6')
+    // A "›" instead of the "Receber" pill, as in the other lists.
+    expect(overdue.querySelector('.lt-recv')).toBeNull()
+    expect(overdue.querySelectorAll('.lt-lrow-chev')).toHaveLength(2)
     // Older API without the count: "parcela 2".
     expect(screen.getByRole('list', { name: 'Próximos 7 dias' })).toHaveTextContent('Notebook · parcela 2')
     expect(screen.getByRole('list', { name: 'Próximos 7 dias' })).toHaveTextContent('10 nov')

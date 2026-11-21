@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
+import { useReopenPayment } from '../../hooks/useReopenPayment'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
@@ -103,6 +104,7 @@ export function InstallmentsPage() {
 
   const isNow = isCurrentPeriod(period, anchor, today) && (period !== 'day' || anchor === today)
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
+  useReopenPayment(setPayTarget)
   // Swipe left = WhatsApp reminder, only for debtors with a phone WhatsApp accepts (improvement 27).
   const reachable = useMemo(() => new Set(debtors.filter((d) => whatsappLink(d.phone)).map((d) => d.id)), [debtors])
   const remindFor = (inst: InstallmentEnriched) => {

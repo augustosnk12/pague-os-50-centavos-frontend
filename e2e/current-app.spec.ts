@@ -428,6 +428,29 @@ test.describe('Parcelas (S3)', () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(50)
   })
 
+  test('payment sheet: the description opens the debt (highlighted); "Voltar" opens the sheet again while it is open', async ({ page, session }) => {
+    const d = await session.api('POST', '/debtors', { name: 'Vera Volta' })
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Pintura', totalAmount: 90, numberOfInstallments: 3, firstDueDate: day(0) })
+    await page.goto('/installments')
+    await page.getByRole('button', { name: /^Vera Volta, Pintura/ }).first().click()
+    const sheet = page.getByRole('dialog', { name: 'Registrar pagamento de Vera Volta' })
+    await sheet.getByRole('link', { name: 'Pintura' }).click()
+    await expect(page).toHaveURL(new RegExp(`/debtors/${d.id}\\?divida=`))
+    await expect(page.getByRole('region', { name: 'Pintura' })).toHaveAttribute('data-highlight', 'true')
+    // Back (browser or "‹ Parcelas"): the sheet is open again.
+    await page.goBack()
+    await expect(page.getByRole('dialog', { name: 'Registrar pagamento de Vera Volta' })).toBeVisible()
+    // Paid on the profile meanwhile: coming back does not reopen it.
+    await page.getByRole('dialog').getByRole('link', { name: 'Vera Volta' }).click()
+    await page.getByRole('region', { name: 'Pintura' }).getByRole('button', { name: /parcela 1 de 3/ }).click()
+    await page.getByRole('dialog').getByRole('button', { name: /^Quitar parcela/ }).click()
+    await expect(page.locator('.lt-toast')).toBeVisible()
+    await page.getByRole('button', { name: 'Voltar para Parcelas' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Parcelas' })).toBeVisible()
+    await page.waitForTimeout(800)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
   test('day mode: week strip and the period in the URL', async ({ page, session }) => {
     const d = await session.api('POST', '/debtors', { name: 'Dora Dia' })
     await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: 'Hoje mesmo', totalAmount: 30, numberOfInstallments: 1, firstDueDate: day(0) })
@@ -619,7 +642,10 @@ test.describe('Perfil do devedor (S4)', () => {
     await a11y('debtor-actions')
     await page.keyboard.press('Escape')
 
-    await card.getByRole('button', { name: /^Quitar Geladeira/ }).click()
+    // Quitar lives in the ⋯ sheet; tapping the debt's title opens it too.
+    await expect(card.getByRole('button', { name: /Quitar/ })).toHaveCount(0)
+    await card.getByRole('button', { name: 'Geladeira', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Geladeira' }).getByRole('button', { name: /^Quitar dívida/ }).click()
     const sheet = page.getByRole('dialog', { name: 'Quitar Geladeira' })
     await expect(sheet).toContainText('3 parcelas em aberto')
     await sheet.getByRole('button', { name: /^Quitar dívida · R\$\s300,00$/ }).click()
@@ -629,7 +655,8 @@ test.describe('Perfil do devedor (S4)', () => {
     await expect.poll(left).toBe(3)
 
     // Pay it off again and archive.
-    await card.getByRole('button', { name: /^Quitar Geladeira/ }).click()
+    await card.getByRole('button', { name: 'Ações da dívida Geladeira' }).click()
+    await page.getByRole('dialog', { name: 'Geladeira' }).getByRole('button', { name: /^Quitar dívida/ }).click()
     await page.getByRole('dialog', { name: 'Quitar Geladeira' }).getByRole('button', { name: /^Quitar dívida/ }).click()
     await expect(page.getByText('Nada em aberto')).toBeVisible()
     await page.getByRole('button', { name: 'Mais ações' }).click()
@@ -1027,8 +1054,14 @@ test.describe('Configurações (S11)', () => {
   test('"Conta" → Configurações: due day and Pix key save to the API; Nova dívida uses the day (real API)', async ({ page, session, a11y }) => {
     void session
     await page.goto('/dashboard')
-    if ((page.viewportSize()?.width ?? 0) < 880) await page.getByRole('link', { name: 'Conta' }).click()
-    else {
+    if ((page.viewportSize()?.width ?? 0) < 880) {
+      // Phones: the "Conta" tab opens a sheet with the quick items.
+      await page.getByRole('navigation', { name: 'Abas' }).getByRole('button', { name: 'Conta' }).click()
+      const sheet = page.getByRole('dialog', { name: /^Conta/ })
+      await expect(sheet.getByRole('button', { name: /^Tema (claro|escuro)$/ })).toBeVisible()
+      await a11y('account-sheet')
+      await sheet.getByRole('button', { name: 'Configurações' }).click()
+    } else {
       await page.getByRole('button', { name: 'Conta' }).click()
       await page.getByRole('menuitem', { name: 'Configurações' }).click()
     }
@@ -1062,4 +1095,31 @@ test.describe('Configurações (S11)', () => {
       expect(over, `${url} scrolls sideways by ${over}px`).toBeLessThanOrEqual(1)
     }
   })
+})
+
+test('phone top bar: search and "Registrar pagamento" (no second account icon); hides while scrolling down, back on the way up', async ({ page, session, a11y }) => {
+  test.skip((page.viewportSize()?.width ?? 0) >= 880, 'phone only')
+  const n = new Date()
+  const d = await session.api('POST', '/debtors', { name: 'Rita Rolagem' })
+  for (let k = 0; k < 14; k++)
+    await session.api('POST', '/debts', { debtorId: d.id, type: 'PIX', description: `Conta ${k}`, totalAmount: 10 + k, numberOfInstallments: 1, firstDueDate: new Date(Date.UTC(n.getFullYear(), n.getMonth(), 1 + (k % 27))).toISOString() })
+  await page.goto('/installments')
+  await page.getByRole('button', { name: /^A receber/ }).waitFor()
+  const head = page.locator('header.lt-app-head')
+  await expect(head.getByRole('button', { name: 'Registrar pagamento (Alt+R)' })).toBeVisible()
+  await expect(head.getByRole('button', { name: 'Conta' })).toBeHidden()
+
+  await page.mouse.wheel(0, 600)
+  await expect(head).toHaveAttribute('data-hidden', 'true')
+  await page.mouse.wheel(0, -200)
+  await expect(head).not.toHaveAttribute('data-hidden')
+
+  await head.getByRole('button', { name: /Buscar devedor ou dívida/ }).click()
+  await page.getByRole('combobox', { name: 'Buscar devedor ou dívida' }).fill('rita')
+  await expect(page.getByRole('option', { name: /Rita Rolagem/ })).toBeVisible()
+  // The search fits the screen: no sideways scroll.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await a11y('phone-header-search')
+  await page.getByRole('option', { name: /Rita Rolagem/ }).click()
+  await expect(page).toHaveURL(new RegExp(`/debtors/${d.id}`))
 })

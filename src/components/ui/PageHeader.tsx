@@ -28,8 +28,14 @@ interface PageHeaderProps {
 export function PageHeader({ title, sub, keepSub, back, action }: PageHeaderProps) {
   const subtitle = sub != null && sub !== '' ? <p className="lt-sub">{sub}</p> : null
   return (
+    <>
+      {/* Outside the header so it can stay on screen while the page scrolls (.lt-backbar is sticky). */}
+      {back && (
+        <div className="lt-backbar">
+          <BackButton label={back.label} onClick={back.onClick} />
+        </div>
+      )}
     <header className="lt-ph" data-back={back ? true : undefined}>
-      {back && <BackButton label={back.label} onClick={back.onClick} />}
       <div className="lt-ph-row">
         <div className="lt-ph-main">
           <h1 className="lt-h1">{title}</h1>
@@ -38,5 +44,6 @@ export function PageHeader({ title, sub, keepSub, back, action }: PageHeaderProp
         {action}
       </div>
     </header>
+    </>
   )
 }

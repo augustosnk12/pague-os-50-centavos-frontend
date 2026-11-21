@@ -235,6 +235,16 @@ main h1[tabindex="-1"]:focus { outline: none; }
   .lt-mobile-only { display: none !important; }
 }
 
+/* Phones: the top bar slides away while scrolling down (Header.tsx). */
+.lt-app-head { transition: transform var(--dur) var(--ease-std); }
+.lt-app-head[data-hidden] { transform: translateY(-100%); }
+/* Phones: the search opens over the whole top bar. */
+@media (max-width: 879px) {
+  /* Scoped to the header so it wins over the base .lt-hsearch rule further down. */
+  .lt-app-head .lt-hsearch { position: absolute; left: 10px; right: 10px; top: 50%; translate: 0 -50%; width: auto; z-index: 2; }
+  .lt-app-head .lt-hsearch-field kbd { display: none; }
+}
+
 /* Calculator responsive sizing */
 .lt-calc-key { height: 60px; }
 .lt-calc-display { font-size: 2.5rem; }
@@ -311,7 +321,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Page header (improvement 31): "‹ Voltar", the <h1>, subtitle, one action. */
 .lt-ph { margin-bottom: 16px; }
 .lt-ph-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.lt-ph[data-back] .lt-ph-row { margin-top: 6px; }
+/* "‹ Voltar" stays on screen while scrolling, right under the top bar (which may slide away on phones). */
+.lt-page:has(> .lt-backbar) { --backbar-h: 44px; }
+.lt-backbar {
+  position: sticky; top: var(--app-head-h, 60px); z-index: 4; display: flex; align-items: center; min-height: var(--backbar-h, 44px);
+  margin: -6px -16px 0; padding: 0 16px; background: color-mix(in oklch, var(--bg) 90%, transparent); backdrop-filter: blur(12px);
+  transition: top var(--dur) var(--ease-std);
+}
+.lt-backbar + .lt-ph .lt-ph-row { margin-top: 2px; }
 .lt-ph-main { flex: 1; min-width: 0; }
 .lt-ph-row > :not(.lt-ph-main) { flex-shrink: 0; }
 
@@ -373,13 +390,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-lrow-end { text-align: right; flex-shrink: 0; }
 .lt-lrow-tag { font-size: 0.75rem; font-weight: 700; margin-top: 1px; }
 .lt-lrow[data-paid] .lt-lrow-in > *:not(.lt-lrow-hit):not(.lt-lrow-end) { opacity: 0.6; }
-.lt-recv {
-  flex-shrink: 0; font-size: 0.75rem; font-weight: 800; color: var(--primary);
-  border: 1.5px solid var(--primary-weak-2); border-radius: var(--r-pill); padding: 5px 10px;
-  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
-}
-.lt-lrow-in:hover .lt-recv, .lt-lrow-in:has(.lt-lrow-hit:focus-visible) .lt-recv { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-@media (max-width: 380px) { .lt-recv { display: none; } }
+.lt-lrow-chev { flex-shrink: 0; display: flex; color: var(--text-faint); margin-right: -4px; }
 
 /* Painel hero (improvements 1–3): white text on the accent gradient. */
 .lt-hero {
@@ -464,6 +475,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .lt-pay-head { display: flex; align-items: center; gap: 11px; padding: 16px 12px 12px 18px; border-bottom: 1px solid var(--border); }
 .lt-pay-name { margin: 0; font-size: 1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lt-pay-sub { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+/* Payment sheet: "description · Parcela 2/5 · status" in one line; only the description shrinks. */
+.lt-pay-head .lt-pay-sub { display: flex; align-items: center; min-width: 0; }
+.lt-pay-desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+a.lt-pay-desc { display: inline-block; min-height: 24px; line-height: 24px; text-decoration: underline; text-decoration-color: var(--border-strong, var(--border)); text-underline-offset: 3px; }
+a.lt-pay-desc:hover { color: var(--primary); text-decoration-color: currentColor; }
+.lt-pay-rest { flex-shrink: 0; white-space: pre; }
+.lt-pay-link { display: inline-flex; align-items: center; gap: 2px; min-height: 24px; max-width: 100%; color: inherit; text-decoration: none; }
+.lt-pay-link > svg { flex-shrink: 0; color: var(--text-faint); }
+.lt-pay-link:hover { color: var(--primary); }
 .lt-wa-mini {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--wa);
   border: 1px solid color-mix(in oklch, var(--wa) 40%, transparent); background: color-mix(in oklch, var(--wa) 10%, var(--surface));
@@ -1015,6 +1035,7 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 
 /* ===== Perfil do devedor (S4) ===== */
 .lt-prof-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.lt-prof-top.lt-backbar { margin-bottom: 6px; }
 .lt-back {
   display: inline-flex; align-items: center; gap: 4px; margin-left: -8px; padding: 6px 10px 6px 6px; border: none; border-radius: var(--r-sm);
   background: transparent; color: var(--text-muted); font: inherit; font-weight: 800; font-size: 0.84375rem; cursor: pointer;
@@ -1043,12 +1064,18 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 .lt-dsecs { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
 .lt-dsec {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px 12px 10px;
-  box-shadow: var(--shadow-sm); scroll-margin-top: calc(var(--app-head-h, 60px) + 12px);
+  box-shadow: var(--shadow-sm); scroll-margin-top: calc(var(--app-head-h, 60px) + var(--backbar-h, 0px) + 12px);
 }
+/* Reached through a link (?divida=): a ring that pulses twice; with reduced motion, just the ring. */
+.lt-dsec[data-highlight] { box-shadow: 0 0 0 2px var(--primary); animation: ltFlash 1.1s var(--ease-std) 2; }
+@keyframes ltFlash { 0%, 100% { box-shadow: 0 0 0 2px var(--primary); } 45% { box-shadow: 0 0 0 2px var(--primary), 0 0 0 8px var(--primary-weak-2); } }
 .lt-dsec[data-late] { border-left: 4px solid var(--overdue); }
 .lt-dsec .lt-lgroup { border-radius: var(--r-md); }
 .lt-dsec-h { display: flex; align-items: center; gap: 8px; padding: 0 0 8px 4px; }
 .lt-dsec-t { margin: 0; font-size: 0.9375rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-dsec-tbtn { all: unset; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r-sm); }
+.lt-dsec-tbtn:hover { color: var(--primary); }
+.lt-dsec-tbtn:focus-visible { outline: 2.5px solid var(--primary); outline-offset: 2px; }
 .lt-dsec-s { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 1px; }
 .lt-dsec-s[data-monthly] { color: var(--primary); }
 .lt-dsec-left { text-align: right; flex-shrink: 0; }
@@ -1230,8 +1257,6 @@ html:has(.lt-nd-foot) { scroll-padding-bottom: 170px; }
 .lt-lrow-desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lt-lrow-pos { flex-shrink: 0; white-space: nowrap; }
 .lt-lrow-desc + .lt-lrow-pos { margin-left: 0.3em; }
-.lt-pay-desc { margin-top: 1px; font-size: 0.78125rem; font-weight: 700; color: var(--text); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-.lt-pay-desc + .lt-pay-sub { white-space: normal; }
 
 /* ===== Cadastro e exclusão (S9) ===== */
 .lt-df { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
@@ -1280,7 +1305,7 @@ html:has(.lt-nd-foot) { scroll-padding-bottom: 170px; }
 
 /* Expanded debt card: its header stays below the app header while scrolling (improvement 12). */
 .lt-dsec-h[data-sticky] {
-  position: sticky; top: var(--app-head-h, 60px); z-index: 3; margin: -12px -12px 8px; padding: 12px 12px 8px 16px;
+  position: sticky; top: calc(var(--app-head-h, 60px) + var(--backbar-h, 0px)); z-index: 3; margin: -12px -12px 8px; padding: 12px 12px 8px 16px;
   background: color-mix(in oklch, var(--surface) 94%, transparent); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border); border-radius: var(--r-lg) var(--r-lg) 0 0;
 }

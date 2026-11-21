@@ -57,6 +57,9 @@ const gendered = (first: string, word: string) => `${word}${/a$/i.test(first) ? 
  * tabs Em aberto / Quitadas / Pagamentos; each open debt as its own card with
  * its next installments, "Quitar" and its own ⋯; archive and reactivate.
  */
+/** How long the card reached through ?divida= stays highlighted. */
+const FLASH_MS = 2400
+
 export function DebtorDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   // Another debtor picked in the search: start fresh (tab, expanded cards, open sheets).
@@ -106,11 +109,16 @@ function DebtorProfile({ id }: { id: string }) {
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
   const focused = debts.find((d) => d.id === focusDebt)
+  // The card it lands on blinks for a moment, so the eye finds it.
+  const [flash, setFlash] = useState<string | null>(null)
   useEffect(() => {
     if (!focused) return
     setTab(debtLeft(focused) > 0 ? 'open' : 'paid')
     setExpanded((s) => new Set(s).add(focused.id))
+    setFlash(focused.id)
+    const off = setTimeout(() => setFlash(null), FLASH_MS)
     requestAnimationFrame(() => document.getElementById(`divida-${focused.id}`)?.scrollIntoView({ block: 'start' }))
+    return () => clearTimeout(off)
     // location.key: picking the same debt again (after changing tab or collapsing it) still works.
   }, [focused?.id, location.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -331,7 +339,7 @@ function DebtorProfile({ id }: { id: string }) {
 
   return (
     <main className="lt-page lt-anim-fade">
-      <div className="lt-prof-top">
+      <div className="lt-prof-top lt-backbar">
         <BackButton label={back.label} onClick={back.go} />
         <IconButton name="dots" label="Mais ações" onClick={() => setActionsOpen(true)} />
       </div>
@@ -425,8 +433,8 @@ function DebtorProfile({ id }: { id: string }) {
                   onToggle={() => toggle(d.id)}
                   onOpen={openPayment}
                   onActions={() => setDebtActions(d)}
-                  onPayoff={() => setPayoff(d)}
                   onReceipt={(paymentId) => setReceipt({ debtorId: debtor.id, paymentId })}
+                  highlight={flash === d.id}
                 />
               ))}
               {openTotal > 1 && <p className="lt-prof-note">{openTotal} parcelas em aberto</p>}

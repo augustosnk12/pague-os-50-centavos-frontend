@@ -30,15 +30,20 @@ describe('Configurações (S11)', () => {
     })
   })
 
-  it('"Conta" opens Configurações and is the current tab; default due day saves on choosing', async () => {
+  it('the "Conta" tab opens its sheet (Configurações, tema, Apoie…); default due day saves on choosing', async () => {
     const user = userEvent.setup()
     renderApp('/settings')
     expect(await screen.findByRole('heading', { level: 1, name: 'Configurações' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Conta' }).some((a) => a.getAttribute('aria-current') === 'page')).toBe(true)
+    await user.click(within(screen.getByRole('navigation', { name: 'Abas' })).getByRole('button', { name: 'Conta' }))
+    const sheet = await screen.findByRole('dialog', { name: /^Conta/ })
+    for (const name of ['Recebimentos', 'Configurações', /^Tema (claro|escuro)$/, 'Calculadora', 'Sair']) expect(within(sheet).getByRole('button', { name })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(await screen.findByText(/Próximo: sáb, 05 dez/i, undefined, { timeout: 3000 })).toBeInTheDocument()
     await user.selectOptions(screen.getByRole('combobox', { name: 'Dia padrão para Cartão de crédito' }), '10')
     expect(put).toHaveBeenCalledWith('/settings', { defaultCardDueDay: 10 })
-    expect(await screen.findByText('Salvo', undefined, { timeout: 3000 })).toBeInTheDocument()
+    // The toast and its screen-reader announcement may both be on screen.
+    expect((await screen.findAllByText('Salvo', undefined, { timeout: 3000 })).length).toBeGreaterThan(0)
     expect(await screen.findByText(/Próximo: qui, 10 dez/i, undefined, { timeout: 3000 })).toBeInTheDocument()
   })
 

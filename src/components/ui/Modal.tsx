@@ -13,6 +13,13 @@ interface ModalProps {
    * put it on the element holding the visible name (and include a close button).
    */
   head?: (titleId: string, close: () => void) => ReactNode
+  /**
+   * Where focus lands on open. 'content' (default): the first field or control.
+   * 'dialog': the dialog itself — no field focused, so the phone keyboard stays
+   * closed when typing is optional (e.g. the payment sheet, where the amount is
+   * already filled in).
+   */
+  initialFocus?: 'content' | 'dialog'
 }
 
 import { MODAL_EXIT_MS } from '../../lib/timing'
@@ -56,7 +63,7 @@ const focusables = (root: HTMLElement) =>
  * returns to the element that opened it. Background is inert. Enters by
  * translating (never from opacity 0) and leaves with a short animation.
  */
-export function Modal({ open, onClose, title, children, footer, head }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, head, initialFocus = 'content' }: ModalProps) {
   const titleId = useId()
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
@@ -107,6 +114,7 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
     requestAnimationFrame(() => {
       const dialog = dialogRef.current
       if (!dialog || dialog.contains(document.activeElement)) return
+      if (initialFocus === 'dialog') return dialog.focus()
       const content = dialog.querySelector<HTMLElement>('[data-modal-content]')
       const first = (content && focusables(content)[0]) ?? focusables(dialog)[0]
       ;(first ?? dialog).focus()
@@ -128,7 +136,7 @@ export function Modal({ open, onClose, title, children, footer, head }: ModalPro
       const focusInAnotherDialog = stack.some((h) => h.contains(document.activeElement))
       if (target && document.contains(target) && !focusInAnotherDialog) target.focus()
     }
-  }, [mounted, host])
+  }, [mounted, host, initialFocus])
 
   if (!mounted || !host) return null
 

@@ -67,12 +67,36 @@ describe('PaymentSheet (S2)', () => {
     })
   })
 
+  it('opens with focus on the sheet, not on the amount (no phone keyboard: most payments are the full amount)', async () => {
+    renderSheet(target())
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
+    await waitFor(() => expect(dialog).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: 'Valor recebido' })).not.toHaveFocus()
+  })
+
+  it('without a description, the debt link sits on "Parcela 2/12"', async () => {
+    renderSheet({ ...target(), debtDescription: null })
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
+    expect(within(dialog).getByRole('link', { name: 'Parcela 2/12' })).toHaveAttribute('href', '/debtors/d1?divida=debt1')
+    expect(dialog.querySelector('.lt-pay-sub')).toHaveTextContent(/^Parcela 2\/12 · atrasada há 3 dias$/)
+  })
+
+  it('from outside the profile: the name opens the debtor, the description opens the debt (opened and in view); tapping closes the sheet', async () => {
+    const user = userEvent.setup()
+    renderSheet(target())
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
+    expect(within(dialog).getByRole('link', { name: 'João Araújo' })).toHaveAttribute('href', '/debtors/d1')
+    expect(within(dialog).getByRole('link', { name: 'Notebook' })).toHaveAttribute('href', `/debtors/d1?divida=${installment().debtId}`)
+    await user.click(within(dialog).getByRole('link', { name: 'João Araújo' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
   it('header gives the context: who, what and how late (improvement 6)', async () => {
     renderSheet(target())
     const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento de João Araújo' })
-    // The description gets its own line (it wraps); the position and the status are never cut off.
+    // Two lines: the name, then "description · position · status" (only the description shrinks).
     expect(dialog.querySelector('.lt-pay-desc')).toHaveTextContent('Notebook')
-    expect(dialog.querySelector('.lt-pay-sub')).toHaveTextContent('Parcela 2/12 · atrasada há 3 dias')
+    expect(dialog.querySelector('.lt-pay-sub')).toHaveTextContent(/^Notebook · Parcela 2\/12 · atrasada há 3 dias$/)
     // The 3 numbers Parcela / Já pago / Restante are gone: the amount already holds what is left.
     expect(within(dialog).queryByText('Restante')).toBeNull()
     expect(within(dialog).getByRole('textbox', { name: 'Valor recebido' })).toHaveValue('250,00')
@@ -95,17 +119,18 @@ describe('PaymentSheet (S2)', () => {
     expect(mocked.get.mock.calls.map(([url]) => url).filter((u) => /^\/debtors\/[^/]+$/.test(String(u)))).toEqual([])
   })
 
-  it('Total / Metade and the partial note; the button says what will happen', async () => {
+  it('the full amount comes filled (no Total / Metade); a smaller one shows the partial note; the button says what will happen', async () => {
     const user = userEvent.setup()
     renderSheet(target())
     const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).queryByRole('button', { name: /^Total|^Metade$/ })).toBeNull()
     expect(within(dialog).getByRole('button', { name: /^Quitar parcela · R\$\s250,00$/ })).toBeEnabled()
-    await user.click(within(dialog).getByRole('button', { name: 'Metade' }))
-    expect(within(dialog).getByRole('button', { name: 'Metade' })).toHaveAttribute('aria-pressed', 'true')
+    const input = within(dialog).getByRole('textbox', { name: 'Valor recebido' })
+    await user.clear(input)
+    await user.type(input, '12500')
     expect(dialog).toHaveTextContent(/Pagamento parcial · restam R\$\s125,00/)
     expect(within(dialog).getByRole('button', { name: /^Registrar · R\$\s125,00$/ })).toBeInTheDocument()
     // Typed values are capped at what is left.
-    const input = within(dialog).getByRole('textbox', { name: 'Valor recebido' })
     await user.clear(input)
     await user.type(input, '99999')
     expect(input).toHaveValue('250,00')
@@ -195,7 +220,9 @@ describe('PaymentSheet (S2)', () => {
     expect(dialog).toHaveTextContent('Parcela quitada')
     expect(within(dialog).queryByRole('textbox')).toBeNull()
     expect(within(dialog).getByRole('button', { name: /Excluir pagamento de R\$\s250,00 de 03 nov/ })).toBeInTheDocument()
-    expect(within(dialog).getAllByRole('button', { name: 'Fechar' }).length).toBeGreaterThan(0)
+    // Only the "x" in the header closes it: no second "Fechar" in the footer.
+    expect(within(dialog).getAllByRole('button', { name: 'Fechar' })).toHaveLength(1)
+    expect(dialog.querySelector('.lt-btn-lg')).toBeNull()
   })
 
   it('a failure keeps the sheet open and says nothing was saved', async () => {
