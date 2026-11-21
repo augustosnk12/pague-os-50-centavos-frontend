@@ -37,7 +37,7 @@ interface InstallmentLineProps {
   inDebt?: boolean
   /**
    * Parcelas (improvement 61): name, "descrição · 2/5" and the amount only — no
-   * avatar, no "Receber", no receipt button; the tag only when it is overdue.
+   * avatar, no receipt button; the tag only when it is overdue.
    * Tapping opens the payment (the sheet has the rest); swipes stay.
    */
   lean?: boolean
@@ -159,9 +159,10 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
             </div>
           )}
         </div>
-        {!paid && !lean && (
-          <span className="lt-recv" aria-hidden="true">
-            Receber
+        {/* A "›" tells the whole row opens the payment (no "Receber" pill anywhere); paid rows may show the receipt button instead. */}
+        {(!paid || lean || !onReceipt || !lastPayment) && (
+          <span className="lt-lrow-chev" aria-hidden="true">
+            <Icon name="chevronRight" size={16} />
           </span>
         )}
         {paid && !lean && onReceipt && lastPayment && (

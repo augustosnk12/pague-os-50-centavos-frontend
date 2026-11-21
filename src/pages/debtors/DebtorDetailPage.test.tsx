@@ -57,7 +57,15 @@ describe('Perfil do devedor (S4)', () => {
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Em aberto2', 'Quitadas1', 'Pagamentos2'])
   })
 
-  it('open debts as cards, overdue first; next 3 installments; "Ver todas"; Quitar only with 2+ open', async () => {
+  it('?divida= (from the payment sheet or the search): that card opens, in view and highlighted for a moment', async () => {
+    renderApp('/debtors/d1?divida=nb')
+    const card = await screen.findByRole('region', { name: 'Notebook' })
+    await waitFor(() => expect(card).toHaveAttribute('data-highlight', 'true'))
+    expect(screen.getByRole('region', { name: 'Mercado' })).not.toHaveAttribute('data-highlight')
+    await waitFor(() => expect(card).not.toHaveAttribute('data-highlight'), { timeout: 4000 })
+  })
+
+  it('open debts as cards, overdue first; next 3 installments with "›"; "Ver todas (N)"; no Quitar button; the title opens the ⋯ sheet', async () => {
     const user = userEvent.setup()
     renderApp('/debtors/d1')
     const cards = await screen.findAllByRole('region', { name: /^(Notebook|Mercado)$/ })
@@ -65,9 +73,20 @@ describe('Perfil do devedor (S4)', () => {
     const nb = cards[0]
     expect(within(nb).getByRole('list', { name: 'Parcelas de Notebook' }).children).toHaveLength(3)
     expect(nb).toHaveTextContent('Parcela 2/5')
-    expect(within(nb).getByRole('button', { name: /^Quitar Notebook, R\$\s400,00$/ })).toBeInTheDocument()
-    expect(within(cards[1]).queryByRole('button', { name: /Quitar/ })).toBeNull()
-    await user.click(within(nb).getByRole('button', { name: 'Ver todas as 5 parcelas' }))
+    // As in Parcelas (item 61): no "Receber" pill, the whole row opens the payment.
+    expect(nb.querySelector('.lt-recv')).toBeNull()
+    expect(nb.querySelectorAll('.lt-lrow-chev')).toHaveLength(3)
+    // Quitar lives only in the ⋯ sheet, which the title also opens.
+    expect(within(nb).queryByRole('button', { name: /Quitar/ })).toBeNull()
+    await user.click(within(nb).getByRole('button', { name: 'Notebook' }))
+    const actions = await screen.findByRole('dialog', { name: 'Notebook' })
+    expect(within(actions).getByRole('button', { name: /^Quitar dívida/ })).toBeInTheDocument()
+    expect(within(actions).getByRole('button', { name: /^Editar dívida/ })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const all = within(nb).getByRole('button', { name: 'Ver todas as 5 parcelas' })
+    expect(all).toHaveTextContent(/^Ver todas \(5\)$/)
+    await user.click(all)
     expect(within(nb).getByRole('list', { name: 'Parcelas de Notebook' }).children).toHaveLength(5)
   })
 
@@ -76,7 +95,8 @@ describe('Perfil do devedor (S4)', () => {
     post.mockResolvedValue({ data: { batchId: 'B1', kind: 'PAYOFF', installments: [], payments: [{ id: 'q1' }] } })
     del.mockResolvedValue({ data: { installments: [] } })
     renderApp('/debtors/d1')
-    await user.click(await screen.findByRole('button', { name: /^Quitar Notebook/ }))
+    await user.click(await screen.findByRole('button', { name: 'Ações da dívida Notebook' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Notebook' })).getByRole('button', { name: /^Quitar dívida/ }))
     const sheet = await screen.findByRole('dialog', { name: 'Quitar Notebook' })
     expect(sheet).toHaveTextContent('4 parcelas em aberto de João Araújo serão marcadas como pagas')
     await user.click(within(sheet).getByRole('button', { name: 'Ontem' }))
@@ -200,6 +220,8 @@ describe('Perfil do devedor (S4)', () => {
     expect(within(nb).queryByRole('button', { name: 'Recolher Notebook' })).toBeNull()
     await user.click(within(nb).getByRole('button', { name: 'Ver todas as 5 parcelas' }))
     expect(nb.querySelector('.lt-dsec-h')).toHaveAttribute('data-sticky')
+    // The ⋯ stays next to "Recolher".
+    expect(within(nb).getByRole('button', { name: 'Ações da dívida Notebook' })).toBeInTheDocument()
     await user.click(within(nb).getByRole('button', { name: 'Recolher Notebook' }))
     expect(within(nb).getByRole('list', { name: 'Parcelas de Notebook' }).children).toHaveLength(3)
     expect(nb.querySelector('.lt-dsec-h')).not.toHaveAttribute('data-sticky')

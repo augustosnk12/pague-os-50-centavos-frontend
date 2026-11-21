@@ -10,6 +10,7 @@ import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
+import { useReopenPayment } from '../../hooks/useReopenPayment'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
 import { useAuth } from '../../contexts/AuthContext'
 import { usePreferences } from '../../contexts/PreferencesContext'
@@ -50,6 +51,7 @@ export function DashboardPage() {
   const firstName = lender?.name?.split(' ')[0] ?? 'você'
 
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
+  useReopenPayment(setPayTarget)
 
   const subtitle = firstUse
     ? 'Vamos começar?'

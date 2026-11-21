@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import type { MouseEvent } from 'react'
+import { withReopenPayment } from '../../hooks/useReopenPayment'
 import { Modal } from '../ui/Modal'
 import { DateInput } from '../ui/DateInput'
 import { Avatar } from '../ui/Avatar'
@@ -62,6 +65,8 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const { showToast } = useToast()
   const register = useRegisterPayment()
   const remove = useDeletePayment()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   // Keep the last target while the sheet plays its closing animation.
   const lastTarget = useRef<PaymentTarget | null>(target)
@@ -109,6 +114,19 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const due = dueText(inst, today)
   const position = installmentPosition(inst.number, t.installmentCount, t.recurrence)
   const name = t.debtor.name
+  const positionText = position ? (/^\d/.test(position) ? `Parcela ${position}` : position.charAt(0).toUpperCase() + position.slice(1)) : ''
+  const debtLabel = t.debtDescription || positionText
+  // From outside the debtor's own page: links to the profile and to this debt (opened and in view).
+  const showLinks = !!t.debtor.id && location.pathname !== `/debtors/${t.debtor.id}`
+  /** Leaves for the profile, remembering this sheet so "Voltar" opens it again (useReopenPayment). */
+  const leave = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return // new tab: plain link
+    e.preventDefault()
+    const to = e.currentTarget.getAttribute('href') ?? '/'
+    navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, { replace: true, state: withReopenPayment(location.state, t) })
+    onClose()
+    navigate(to)
+  }
   // WhatsApp reminder (S5): for an overdue installment of someone with a valid phone.
   const canRemind = overdue && !!whatsappLink(debtorFull?.phone)
 
@@ -224,18 +242,40 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
       open={!!target}
       onClose={onClose}
       title={name}
+      // Most payments are the full amount (already filled in): do not open the phone keyboard.
+      initialFocus="dialog"
       head={(titleId, close) => (
         <div className="lt-pay-head">
           <Avatar name={name} size={36} hue={t.debtor.avatarHue} emoji={t.debtor.avatarEmoji} />
           <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Two lines: the name (→ profile) and "description · Parcela 2/5 · status" (description → the debt). */}
             <h2 id={titleId} className="lt-pay-name">
               <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
-              {name}
+              {showLinks ? (
+                <Link to={`/debtors/${t.debtor.id}`} onClick={leave} className="lt-pay-link" title="Ver devedor">
+                  {name}
+                  <Icon name="chevronRight" size={16} />
+                </Link>
+              ) : (
+                name
+              )}
             </h2>
-            {t.debtDescription && <div className="lt-pay-desc">{t.debtDescription}</div>}
             <div className="lt-pay-sub">
-              {position && <>{/^\d/.test(position) ? `Parcela ${position}` : position.charAt(0).toUpperCase() + position.slice(1)} · </>}
-              <span style={{ color: due.color }}>{due.text}</span>
+              {/* The debt's link sits on its description or, without one, on "Parcela 2/5". */}
+              {debtLabel &&
+                (showLinks ? (
+                  <Link to={`/debtors/${t.debtor.id}?divida=${inst.debtId}`} onClick={leave} className="lt-pay-desc" title="Ver dívida">
+                    {debtLabel}
+                  </Link>
+                ) : (
+                  <span className="lt-pay-desc">{debtLabel}</span>
+                ))}
+              {/* A long description shrinks ("Empréstimo de ag…"); the position and the status are never cut off. */}
+              <span className="lt-pay-rest">
+                {debtLabel && ' · '}
+                {t.debtDescription && positionText && <>{positionText} · </>}
+                <span style={{ color: due.color }}>{due.text}</span>
+              </span>
             </div>
           </div>
           {canRemind && (
@@ -246,10 +286,9 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
           <IconButton name="x" onClick={close} label="Fechar" />
         </div>
       )}
+      // A paid installment is read-only: no footer (the "x" in the header closes it).
       footer={
-        readOnly ? (
-          <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={onClose}>Fechar</button>
-        ) : (
+        readOnly ? undefined : (
           <button type="button" className="lt-btn-lg" data-variant="primary" onClick={confirm} disabled={amount <= 0 || !date || register.isPending}>
             <Icon name="check" size={16} />
             {register.isPending ? 'Registrando…' : `${willPayOff ? 'Quitar parcela' : 'Registrar'}${amount > 0 ? ` · ${fmtMoney(amount / 100)}` : ''}`}
@@ -284,14 +323,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                   style={{ width: amountWidth(formatCents(cents)) }}
                 />
               </label>
-              <div className="lt-amt-chips">
-                <button type="button" className="lt-chip" aria-pressed={amount === left} onClick={() => setCents(String(left))}>
-                  Total {fmtMoney(left / 100)}
-                </button>
-                <button type="button" className="lt-chip" aria-pressed={amount === Math.round(left / 2)} onClick={() => setCents(String(Math.round(left / 2)))}>
-                  Metade
-                </button>
-              </div>
               {amount > 0 && !willPayOff ? (
                 <div className="lt-partial-note">
                   <Icon name="clock" size={16} />

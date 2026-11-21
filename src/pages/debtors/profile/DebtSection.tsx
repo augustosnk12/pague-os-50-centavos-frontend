@@ -20,18 +20,21 @@ interface DebtSectionProps {
   expanded: boolean
   onToggle: () => void
   onOpen: (inst: InstallmentEnriched) => void
+  /** The ⋯ sheet: Quitar, Editar, recurrence… Also opened by tapping the title. */
   onActions: () => void
-  onPayoff: () => void
   onReceipt: (paymentId: string) => void
+  /** Reached through a link (?divida=): highlighted for a moment. */
+  highlight?: boolean
 }
 
 /**
  * One open debt as its own card (improvement 12): header (description,
  * x/y pagas or monthly, what is left, ⋯), a thin bar, the next open
- * installments ready for "Receber", "Ver todas as N parcelas" and
- * "✓ Quitar · R$ X" when 2+ are open (34). Red edge when something is late.
+ * installments (a tap opens the payment) and "Ver todas (N)". Quitar, Editar
+ * and the recurrence live in the ⋯ sheet, also opened by tapping the title.
+ * Red edge when something is late.
  */
-export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onOpen, onActions, onPayoff, onReceipt }: DebtSectionProps) {
+export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onOpen, onActions, onReceipt, highlight = false }: DebtSectionProps) {
   const total = debt.installments.length
   const left = debtLeft(debt)
   const open = openInstallments(debt)
@@ -61,11 +64,13 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
   }
 
   return (
-    <section ref={sectionRef} id={`divida-${debt.id}`} className="lt-dsec" data-late={late || undefined} aria-labelledby={`divida-h-${debt.id}`}>
+    <section ref={sectionRef} id={`divida-${debt.id}`} className="lt-dsec" data-late={late || undefined} data-highlight={highlight || undefined} aria-labelledby={`divida-h-${debt.id}`}>
       {/* Expanded, the header stays on screen while scrolling, with "Recolher". */}
       <div className="lt-dsec-h" data-sticky={sticky || undefined}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 id={`divida-h-${debt.id}`} className="lt-dsec-t">{title}</h3>
+          <h3 id={`divida-h-${debt.id}`} className="lt-dsec-t">
+            <button type="button" className="lt-dsec-tbtn" aria-haspopup="dialog" onClick={onActions}>{title}</button>
+          </h3>
           <Detail>
             <div className="lt-dsec-s" data-monthly={monthly || undefined}>
               {monthly
@@ -78,13 +83,13 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           <div className="lt-dsec-v">{fmtMoney(left / 100)}</div>
           <Detail><div className="lt-dsec-k">restam</div></Detail>
         </div>
-        {sticky ? (
+        {sticky && (
           <button type="button" className="lt-dsec-collapse" aria-expanded onClick={toggle} aria-label={`Recolher ${title}`}>
             Recolher <Icon name="chevronDown" size={16} style={{ transform: 'rotate(180deg)' }} />
           </button>
-        ) : (
-          <IconButton name="dots" size={16} label={`Ações da dívida ${title}`} onClick={onActions} />
         )}
+        {/* ⋯ stays next to "Recolher" when the card is expanded. */}
+        <IconButton name="dots" size={16} label={`Ações da dívida ${title}`} onClick={onActions} />
       </div>
       <Detail>
         <div className="lt-dsec-bar" aria-hidden="true"><span style={{ width: `${expected ? (received / expected) * 100 : 0}%` }} /></div>
@@ -94,21 +99,12 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           <InstallmentLine key={i.id} inst={enrich(i, debt, debtor)} today={today} onOpen={onOpen} inDebt showDate={false} onReceipt={onReceipt} />
         ))}
       </ListGroup>
-      {(canToggle || open.length > 1) && (
+      {canToggle && (
         <div className="lt-dsec-foot">
-          {canToggle ? (
-            <button type="button" className="lt-more-link" aria-expanded={expanded} onClick={toggle}>
-              {expanded ? 'Mostrar só as em aberto' : `Ver todas as ${total} parcelas`}
-              <Icon name="chevronDown" size={16} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
-            </button>
-          ) : (
-            <span />
-          )}
-          {open.length > 1 && (
-            <button type="button" className="lt-payoff-btn" onClick={onPayoff} aria-label={`${monthly ? 'Pagar o que está em aberto em' : 'Quitar'} ${title}, ${fmtMoney(left / 100)}`}>
-              <Icon name="check" size={16} strokeWidth={2.8} /> {monthly ? 'Pagar em aberto' : 'Quitar'} · {fmtMoney(left / 100)}
-            </button>
-          )}
+          <button type="button" className="lt-more-link" aria-expanded={expanded} onClick={toggle} aria-label={expanded ? undefined : `Ver todas as ${total} parcelas`}>
+            {expanded ? 'Mostrar só as em aberto' : `Ver todas (${total})`}
+            <Icon name="chevronDown" size={16} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
+          </button>
         </div>
       )}
     </section>

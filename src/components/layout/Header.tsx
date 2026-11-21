@@ -14,6 +14,11 @@ import { NAV } from '../../constants/nav'
 import { SupportSheet } from '../shared/SupportSheet'
 import { supportPix } from '../../lib/support'
 
+/** Same breakpoint as `.lt-desktop-only` in index.css. */
+const DESKTOP_MIN = 880
+/** Pixels of scroll before the phone bar hides or shows (ignores tiny jitters). */
+const SCROLL_SLACK = 6
+
 function UserMenu({ onCalc }: { onCalc: () => void }) {
   const navigate = useNavigate()
   const [supportOpen, setSupportOpen] = useState(false)
@@ -179,19 +184,50 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
 
   const activeRoute = NAV.find((n) => location.pathname.startsWith(n.path))?.path
 
-  // Its height as --app-head-h, so sticky bars inside pages sit right below it.
+  // Phones: the bar hides while scrolling down and comes back on the way up (never with the search open).
+  const [scrolledAway, setScrolledAway] = useState(false)
+  const hidden = scrolledAway && !searchOpen
+  useEffect(() => {
+    const phone = window.matchMedia?.(`(max-width: ${DESKTOP_MIN - 1}px)`)
+    let lastY = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      if (Math.abs(y - lastY) < SCROLL_SLACK) return
+      setScrolledAway(!!phone?.matches && y > lastY && y > (headerRef.current?.offsetHeight ?? 60))
+      lastY = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  // A new screen starts with the bar in view.
+  useEffect(() => setScrolledAway(false), [location.pathname])
+
+  // Its height as --app-head-h, so sticky bars inside pages sit right below it (0 while hidden: they go up with it).
   const headerRef = useRef<HTMLElement>(null)
+  const hiddenRef = useRef(hidden)
+  hiddenRef.current = hidden
   useEffect(() => {
     const el = headerRef.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--app-head-h', `${el.offsetHeight}px`))
+    if (!el) return
+    const sync = () => document.documentElement.style.setProperty('--app-head-h', hiddenRef.current ? '0px' : `${el.offsetHeight}px`)
+    sync()
+    // Tabbing into a hidden bar brings it back.
+    const show = () => setScrolledAway(false)
+    el.addEventListener('focusin', show)
+    if (typeof ResizeObserver === 'undefined') return () => el.removeEventListener('focusin', show)
+    const ro = new ResizeObserver(sync)
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('focusin', show)
+    }
+  }, [hidden])
 
   return (
     <header
       ref={headerRef}
+      data-hidden={hidden || undefined}
+      className="lt-app-head"
       style={{
         position: 'sticky',
         top: 0,
@@ -247,13 +283,10 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
 
         <div style={{ flex: 1 }} />
 
-        <span className="lt-desktop-only">
-          <HeaderSearch open={searchOpen} onOpenChange={onSearchOpen} />
-        </span>
+        {/* Search and "Registrar pagamento" on phones too (on a phone the search opens over the whole bar). */}
+        <HeaderSearch open={searchOpen} onOpenChange={onSearchOpen} />
 
-        <span className="lt-desktop-only">
-          <IconButton name="wallet" onClick={onRegister} label="Registrar pagamento (Alt+R)" aria-keyshortcuts="Alt+R" />
-        </span>
+        <IconButton name="wallet" onClick={onRegister} label="Registrar pagamento (Alt+R)" aria-keyshortcuts="Alt+R" />
 
         <span className="lt-desktop-only" style={{ marginRight: 2 }}>
           <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')} title="Nova dívida (Alt+N)" shortcut="Alt+N">Nova dívida</Button>
@@ -263,7 +296,10 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
           <IconButton name="calc" onClick={onCalc} label="Calculadora" />
         </span>
 
-        <UserMenu onCalc={onCalc} />
+        {/* Phones reach the account through the "Conta" tab: no second person icon up here. */}
+        <span className="lt-desktop-only">
+          <UserMenu onCalc={onCalc} />
+        </span>
 
         {/* notification bell — temporarily disabled
         <div style={{ position: 'relative' }}>

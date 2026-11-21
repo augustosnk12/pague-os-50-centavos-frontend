@@ -57,7 +57,11 @@ describe('S10 · busca e atalhos', () => {
     expect(screen.getAllByRole('button', { name: 'Nova dívida' }).some((b) => b.getAttribute('aria-keyshortcuts') === 'Alt+N')).toBe(true)
     fireEvent.keyDown(window, { key: 'r', code: 'KeyR', altKey: true })
     const picker = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
-    expect(await within(picker).findByRole('list', { name: 'Parcelas em aberto' })).toHaveTextContent('João Araújo')
+    const rows = await within(picker).findByRole('list', { name: 'Parcelas em aberto' })
+    expect(rows).toHaveTextContent('João Araújo')
+    // As in Parcelas and the profile: a "›" instead of the "Receber" pill.
+    expect(rows.querySelector('.lt-recv')).toBeNull()
+    expect(rows.querySelector('.lt-lrow-chev')).not.toBeNull()
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     fireEvent.keyDown(window, { key: 'n', code: 'KeyN', altKey: true })

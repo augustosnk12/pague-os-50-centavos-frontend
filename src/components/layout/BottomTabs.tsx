@@ -5,18 +5,22 @@ import { scrollTopIfActive } from '../../lib/scroll'
 import { preloadRoute } from '../../router/routes'
 import { Icon } from '../ui/Icon'
 import { NAV } from '../../constants/nav'
+import { AccountSheet } from './AccountSheet'
 
 interface BottomTabsProps {
   overdueCount: number
   /** Second action of the "+" (held): register a payment (improvement 29). */
   onRegister: () => void
+  /** For the "Conta" sheet. */
+  onCalc: () => void
 }
 
 /** How long "+" must be held to open the menu. */
 const HOLD_MS = 450
 
-export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
+export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const held = useRef(false)
   const startHold = () => {
@@ -109,8 +113,9 @@ export function BottomTabs({ overdueCount, onRegister }: BottomTabsProps) {
 
       <Tab to={NAV[2].path} label={NAV[2].label} icon={NAV[2].icon} active={isActive(NAV[2].path)} badge={overdueCount} badgeLabel="atrasada" />
 
-      {/* Conta → Configurações (improvement 26) */}
-      <Tab to="/settings" label="Conta" icon="user" active={isActive('/settings') || isActive('/payments')} />
+      {/* Conta → a sheet with Recebimentos, Configurações, tema, calculadora, Apoie, Sair. */}
+      <Tab label="Conta" icon="user" active={isActive('/settings') || isActive('/payments')} onClick={() => setAccountOpen(true)} />
+      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} onCalc={onCalc} />
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
         <div className="lt-fab-menu">

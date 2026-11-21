@@ -39,6 +39,20 @@ describe('Modal (accessible dialog)', () => {
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Valor' })).toHaveFocus())
   })
 
+  it('initialFocus="dialog": focuses the dialog itself, no field; Tab still stays inside', async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal open title="Registrar pagamento" onClose={vi.fn()} initialFocus="dialog" footer={<button>Salvar</button>}>
+        <input aria-label="Valor" />
+      </Modal>,
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
+    await waitFor(() => expect(dialog).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: 'Valor' })).not.toHaveFocus()
+    await user.tab()
+    expect(dialog).toContainElement(document.activeElement as HTMLElement)
+  })
+
   it('keeps Tab and Shift+Tab inside the dialog', async () => {
     const user = userEvent.setup()
     render(<Harness />)

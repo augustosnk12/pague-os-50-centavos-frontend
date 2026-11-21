@@ -53,7 +53,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <a href="#conteudo" className="lt-skip-link">Pular para o conteúdo</a>
       <OfflineBanner />
       <Header onCalc={openCalc} onRegister={openRegister} searchOpen={searchOpen} onSearchOpen={setSearchOpen} />
-      <BottomTabs overdueCount={overdueCount} onRegister={openRegister} />
+      <BottomTabs overdueCount={overdueCount} onRegister={openRegister} onCalc={openCalc} />
       {registerLoaded && (
         <Suspense fallback={null}>
           <RegisterPicker open={registerOpen} onClose={() => setRegisterOpen(false)} />
