@@ -1,11 +1,11 @@
 import { useState, type ButtonHTMLAttributes, type CSSProperties, type Ref } from 'react'
-import { Icon } from './Icon'
+import { Icon, type IconSize } from './Icon'
 
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style' | 'children' | 'name'> {
   name: string
   /** Required: an icon-only button has no other accessible name (improvement 20). */
   label: string
-  size?: number
+  size?: IconSize
   active?: boolean
   style?: CSSProperties
   ref?: Ref<HTMLButtonElement>
@@ -29,7 +29,7 @@ export function IconButton({ name, onClick, size = 20, label, active, style, cla
         placeItems: 'center',
         width: 42,
         height: 42,
-        borderRadius: 12,
+        borderRadius: 'var(--r-sm)',
         cursor: 'pointer',
         background: active ? 'var(--primary-weak)' : hover ? 'var(--surface-hover)' : 'transparent',
         color: active ? 'var(--primary)' : 'var(--text-muted)',

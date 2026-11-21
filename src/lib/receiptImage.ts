@@ -114,14 +114,18 @@ export function drawReceipt(r: Receipt): HTMLCanvasElement {
  * Elsewhere: download the PNG. Returns what happened.
  */
 export async function shareOrDownload(r: Receipt, text: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
+  return shareImage(() => drawReceipt(r), `${r.code}.png`, r.title, text)
+}
+
+/** Same as shareOrDownload, for any picture drawn on a canvas (receipt, extrato). */
+export async function shareImage(draw: () => HTMLCanvasElement, name: string, title: string, text: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
   await document.fonts?.ready
-  const blob = await new Promise<Blob | null>((ok) => drawReceipt(r).toBlob(ok, 'image/png'))
+  const blob = await new Promise<Blob | null>((ok) => draw().toBlob(ok, 'image/png'))
   if (!blob) throw new Error('canvas')
-  const name = `${r.code}.png`
   const file = new File([blob], name, { type: 'image/png' })
   if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: r.title, text })
+      await navigator.share({ files: [file], title, text })
       return 'shared'
     } catch {
       return 'cancelled'

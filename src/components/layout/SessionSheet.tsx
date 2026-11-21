@@ -122,7 +122,7 @@ export function SessionSheet() {
         <div id={errId} className="lt-auth-err" role="alert">
           {err && (
             <>
-              <Icon name="alert" size={14} /> {err}
+              <Icon name="alert" size={16} /> {err}
             </>
           )}
         </div>

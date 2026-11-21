@@ -9,6 +9,7 @@ import { debtLeft, debtRecurrenceEnd, openInstallments, recurrenceEndLabel, type
 import { recurrenceEnd } from '../../../lib/newDebt'
 import { fmtBR } from '../../../lib/format'
 import { DateInput } from '../../../components/ui/DateInput'
+import { Segmented } from '../../../components/ui/Segmented'
 import { localToday } from '../../../lib/date'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
@@ -20,7 +21,7 @@ const canCall = () => typeof window !== 'undefined' && window.matchMedia?.('(poi
 function Item({ icon, title, sub, onClick, disabled, danger }: { icon: string; title: string; sub?: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
     <button type="button" className="lt-act" data-danger={danger || undefined} aria-disabled={disabled || undefined} onClick={onClick}>
-      <Icon name={icon} size={19} />
+      <Icon name={icon} size={20} />
       <span className="lt-act-txt">
         <span className="lt-act-t">{title}</span>
         {sub && <span className="lt-act-s">{sub}</span>}
@@ -61,7 +62,7 @@ export function DebtorInfoSheet({ open, onClose, debtor, numbers, onEdit, onCopi
       title="Contato e anotações"
       footer={
         <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={onEdit}>
-          <Icon name="edit" size={15} /> Editar cadastro
+          <Icon name="edit" size={16} /> Editar cadastro
         </button>
       }
     >
@@ -100,12 +101,14 @@ export interface ArchiveState {
   blockedBy: string | null
 }
 
-export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
+export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onStatement, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
   open: boolean
   onClose: () => void
   debtor: Debtor
   archive: ArchiveState
   onInfo: () => void
+  /** "Enviar extrato" (S14). */
+  onStatement: () => void
   /** "Enxuta": the Pagamentos tab moves here. */
   onPayments?: () => void
   paymentsCount?: number
@@ -127,6 +130,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onP
         {phone && <Item icon={phone.icon} title={phone.title} sub={phone.sub} onClick={then(phone.run)} />}
         <Item icon="user" title="Ver contato e anotações" onClick={then(onInfo)} />
         {onPayments && <Item icon="history" title="Pagamentos" sub={paymentsCount === 1 ? '1 pagamento' : `${paymentsCount} pagamentos`} onClick={then(onPayments)} />}
+        <Item icon="receipt" title="Enviar extrato" sub="O que deve, numa imagem ou mensagem" onClick={then(onStatement)} />
         <Item icon="edit" title="Editar cadastro" onClick={then(onEdit)} />
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />
@@ -206,7 +210,7 @@ export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoff
             <h2 id={id} className="lt-remind-title">{title}</h2>
             <div className="lt-act-s">{debtorName} · {left > 0 ? `restam ${fmtMoney(left / 100)}` : 'quitada'}</div>
           </div>
-          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={18} /></button>
+          <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={20} /></button>
         </div>
       )}
     >
@@ -243,7 +247,7 @@ export function PayoffSheet({ debt, debtorName, today, busy, onClose, onConfirm 
       title={monthly ? 'Pagar em aberto' : `Quitar ${d.description || 'dívida'}`}
       footer={
         <button type="button" className="lt-btn-lg" data-variant="primary" disabled={busy || !date} onClick={() => onConfirm(d, date)}>
-          <Icon name="check" size={17} /> {busy ? 'Registrando…' : `${monthly ? 'Registrar' : 'Quitar dívida'} · ${fmtMoney(left / 100)}`}
+          <Icon name="check" size={16} /> {busy ? 'Registrando…' : `${monthly ? 'Registrar' : 'Quitar dívida'} · ${fmtMoney(left / 100)}`}
         </button>
       }
     >
@@ -327,7 +331,7 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
           disabled={busy || !!problem || unchanged}
           onClick={() => onSave(d, { occurrences: mode === 'count' ? n : null, endsAt: mode === 'date' ? `${until}T00:00:00.000Z` : null })}
         >
-          <Icon name="check" size={17} /> {busy ? 'Salvando…' : 'Salvar término'}
+          <Icon name="check" size={16} /> {busy ? 'Salvando…' : 'Salvar término'}
         </button>
       }
     >
@@ -337,23 +341,17 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
         </p>
         <div>
           <div className="lt-flabel" id="end-mode-l">Termina</div>
-          <div className="lt-seg" role="group" aria-labelledby="end-mode-l">
-            {END_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={mode === m.id}
-                onClick={() => {
-                  setMode(m.id)
-                  // Start from the current end (or what already exists), not from an empty field.
-                  if (m.id === 'date' && !until) setUntil(now.last ?? lastDue)
-                  if (m.id === 'count' && !months) setMonths(String(Math.max(created, now.last ? created + (now.remaining ?? 0) : created)))
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            labelledBy="end-mode-l"
+            value={mode}
+            options={END_MODES.map((m) => ({ value: m.id, label: m.label }))}
+            onChange={(id) => {
+              setMode(id)
+              // Start from the current end (or what already exists), not from an empty field.
+              if (id === 'date' && !until) setUntil(now.last ?? lastDue)
+              if (id === 'count' && !months) setMonths(String(Math.max(created, now.last ? created + (now.remaining ?? 0) : created)))
+            }}
+          />
           {mode === 'count' && (
             <label className="lt-end-months">
               <input
@@ -457,7 +455,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
         <div className="lt-del">
           {!archive.archived && (
             <div className="lt-del-arch">
-              <div className="lt-del-arch-t"><Icon name="archive" size={15} /> Prefere arquivar?</div>
+              <div className="lt-del-arch-t"><Icon name="archive" size={16} /> Prefere arquivar?</div>
               <div className="lt-del-arch-s">Some das listas e mantém o histórico de {fmtMoney(received / 100)} recebidos. Dá para reativar.</div>
               {archive.blockedBy ? (
                 <div className="lt-del-arch-why">{archive.blockedBy}</div>

@@ -42,7 +42,9 @@ export function LoginPage() {
   const [params] = useSearchParams()
   const urlError = params.get('error') ? decodeURIComponent(params.get('error')!) : ''
   const [step, setStep] = useState<Step>(EXPIRED.includes(urlError) ? 'expired' : 'form')
-  const [email, setEmail] = useState(readLast)
+  // Always starts empty (a shared computer must not show who used it before);
+  // the last address is only offered, masked, on the expired-link screen.
+  const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
   const [unconfirmed, setUnconfirmed] = useState(false)
   const login = useLogin()
@@ -100,7 +102,7 @@ export function LoginPage() {
     const last = readLast()
     return (
       <AuthShell>
-        <div className="lt-auth-ic" data-tone="warn" aria-hidden="true"><Icon name="alert" size={26} /></div>
+        <div className="lt-auth-ic" data-tone="warn" aria-hidden="true"><Icon name="alert" size={24} /></div>
         <h1 className="lt-auth-h">Esse link expirou</h1>
         <p className="lt-auth-p">Links e códigos de acesso valem por 15 minutos e só funcionam uma vez.</p>
         {last ? (
@@ -112,7 +114,7 @@ export function LoginPage() {
             <Icon name="mail" size={16} /> Pedir um novo link
           </button>
         )}
-        {err && <div className="lt-auth-err" role="alert"><Icon name="alert" size={14} /> {err}</div>}
+        {err && <div className="lt-auth-err" role="alert"><Icon name="alert" size={16} /> {err}</div>}
         <div className="lt-auth-links">
           <LinkButton onClick={() => { setEmail(''); setStep('form') }}>Usar outro e-mail</LinkButton>
         </div>
@@ -162,7 +164,7 @@ export function LoginPage() {
           autoFocus
         />
         <div id={errId} className="lt-auth-err" role="alert">
-          {err && <><Icon name="alert" size={14} /> {err}</>}
+          {err && <><Icon name="alert" size={16} /> {err}</>}
         </div>
         <button type="submit" className="lt-btn-lg" data-variant="primary" style={{ width: '100%' }} disabled={login.isPending}>
           <Icon name="mail" size={16} /> {login.isPending ? 'Enviando…' : 'Enviar link de acesso'}

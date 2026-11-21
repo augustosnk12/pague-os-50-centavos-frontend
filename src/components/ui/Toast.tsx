@@ -50,7 +50,7 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
         background: 'var(--text)',
         color: 'var(--bg)',
         padding: actions.length ? '9px 9px 9px 18px' : '13px 20px',
-        borderRadius: 99,
+        borderRadius: 'var(--r-pill)',
         fontWeight: 700,
         fontSize: '0.90625rem',
         boxShadow: 'var(--shadow-lg)',
@@ -60,7 +60,7 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
         maxWidth: '92vw',
       }}
     >
-      <Icon name={toast.icon ?? 'check'} size={18} strokeWidth={2.6} color={m ? m.color : 'var(--primary)'} />
+      <Icon name={toast.icon ?? 'check'} size={20} strokeWidth={2.6} color={m ? m.color : 'var(--primary)'} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{toast.msg}</span>
       {actions.map((k, i) => (
         <button
@@ -71,7 +71,7 @@ export function Toast({ toast, leaving, onAction, onPause }: ToastProps) {
             marginLeft: i === 0 ? 4 : 0,
             flexShrink: 0,
             border: 'none',
-            borderRadius: 99,
+            borderRadius: 'var(--r-pill)',
             padding: '7px 13px',
             background: 'color-mix(in oklch, var(--bg) 18%, transparent)',
             color: 'var(--bg)',

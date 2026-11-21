@@ -55,7 +55,7 @@ export function GettingStarted() {
       <h2 id="onb-title" className="lt-onb-title">Comece em 2 passos</h2>
       <ol className="lt-onb-steps">
         <li data-done={has || undefined}>
-          <span className="lt-onb-num" aria-hidden="true">{has ? <Icon name="check" size={14} /> : '1'}</span>
+          <span className="lt-onb-num" aria-hidden="true">{has ? <Icon name="check" size={16} /> : '1'}</span>
           <div className="lt-onb-text">
             <div className="lt-onb-step">
               Cadastre quem te deve{has && <span className="lt-sr-only"> (feito)</span>}

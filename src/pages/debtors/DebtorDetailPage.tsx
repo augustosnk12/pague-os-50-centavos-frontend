@@ -10,12 +10,17 @@ import { Money } from '../../components/ui/Money'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { ListGroup } from '../../components/ui/ListGroup'
+import { ListRow, RowText } from '../../components/ui/ListRow'
+import { BackButton } from '../../components/ui/PageHeader'
+import { useBack } from '../../hooks/useBack'
+import { PaymentRow } from '../../components/shared/PaymentRow'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { DebtForm } from '../../components/shared/DebtForm'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
 import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
+import { StatementSheet } from '../../components/shared/StatementSheet'
 import { BatchSheet } from '../../components/shared/BatchSheet'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
@@ -30,7 +35,6 @@ import { getReliabilityOption } from '../../constants/reliability'
 import { translateApiError, DEBT_TYPE_META } from '../../lib/utils'
 import { getApiError } from '../../lib/api'
 import { localToday } from '../../lib/date'
-import { backLabel } from '../../lib/navOrigin'
 import { failedSave } from '../../lib/saveError'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { installmentPosition } from '../../lib/installmentTag'
@@ -62,6 +66,7 @@ export function DebtorDetailPage() {
 function DebtorProfile({ id }: { id: string }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const back = useBack({ path: '/debtors', label: 'Devedores' })
   const [searchParams] = useSearchParams()
   const { showToast } = useToast()
   const { detail } = usePreferences()
@@ -96,6 +101,7 @@ function DebtorProfile({ id }: { id: string }) {
   const [batchOpen, setBatchOpen] = useState(false)
   const [endFor, setEndFor] = useState<DebtWithInstallments | null>(null)
   const [paysOpen, setPaysOpen] = useState(false)
+  const [statementOpen, setStatementOpen] = useState(false)
 
   // A debt picked in the search opens expanded, in the right tab, and in view (improvement 21).
   const focusDebt = searchParams.get('divida')
@@ -112,20 +118,20 @@ function DebtorProfile({ id }: { id: string }) {
     return (
       <main className="lt-page" aria-busy="true">
         <span className="lt-sr-only">Carregando…</span>
-        <div className="lt-skel" style={{ height: 18, width: 70, borderRadius: 8 }} />
+        <div className="lt-skel" style={{ height: 18, width: 70, borderRadius: 'var(--r-sm)' }} />
         <div className="lt-skel-item" style={{ padding: '16px 0 12px' }}>
-          <div className="lt-skel" style={{ width: 58, height: 58, borderRadius: 18 }} />
+          <div className="lt-skel" style={{ width: 58, height: 58, borderRadius: 'var(--r-lg)' }} />
           <div style={{ flex: 1 }}>
             <div className="lt-skel" style={{ height: 20, width: '50%' }} />
             <div className="lt-skel" style={{ height: 12, width: '65%', marginTop: 8 }} />
           </div>
         </div>
         <div className="lt-skel-row">
-          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
-          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 14 }} />
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 'var(--r-md)' }} />
+          <div className="lt-skel" style={{ flex: 1, height: 46, borderRadius: 'var(--r-md)' }} />
         </div>
-        <div className="lt-skel" style={{ height: 40, borderRadius: 10, marginTop: 14 }} />
-        <div className="lt-skel" style={{ height: 210, borderRadius: 18, marginTop: 14 }} />
+        <div className="lt-skel" style={{ height: 40, borderRadius: 'var(--r-sm)', marginTop: 14 }} />
+        <div className="lt-skel" style={{ height: 210, borderRadius: 'var(--r-lg)', marginTop: 14 }} />
       </main>
     )
   }
@@ -165,9 +171,6 @@ function DebtorProfile({ id }: { id: string }) {
   const openTotal = open.reduce((n, d) => n + openInstallments(d).length, 0)
 
   const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
-  const back = () => (location.key !== 'default' ? navigate(-1) : navigate('/debtors'))
-  // "‹ Parcelas", "‹ Painel"…: where Voltar goes (improvement 24).
-  const origin = location.key !== 'default' ? backLabel() : 'Devedores'
   const openPayment = (inst: Parameters<typeof paymentTarget>[0]) => setPayTarget(paymentTarget(inst))
   const toggle = (debtId: string) =>
     setExpanded((s) => {
@@ -290,33 +293,22 @@ function DebtorProfile({ id }: { id: string }) {
   // The payment timeline: a tab in "Detalhada", a sheet from the ⋯ in "Enxuta" (improvement 32).
   const shownTab: Tab = detail === 'lean' && tab === 'pays' ? 'open' : tab
   const paymentsList = timeline.length ? (
-          <ul className="lt-lgroup" aria-label="Pagamentos" style={{ marginTop: 12 }}>
+          <ListGroup label="Pagamentos" style={{ marginTop: 12 }}>
             {timeline.map(({ payment, installment, debt, daysLate }) => {
               const pos = installmentPosition(installment.number, debt.installments.length, debt.recurrence)
               const spoken = pos.startsWith('↻') ? 'mensalidade' : pos.includes('/') ? `parcela ${pos.replace('/', ' de ')}` : pos
               return (
-                <li key={payment.id} className="lt-lrow">
-                  <div className="lt-lrow-in">
-                    <button
-                      type="button"
-                      className="lt-lrow-hit"
-                      onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
-                      aria-label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
-                    />
-                    <span className="lt-hist-ok" style={{ width: 30, height: 30 }} aria-hidden="true"><Icon name="check" size={13} strokeWidth={2.8} /></span>
-                    <div className="lt-lrow-main" aria-hidden="true">
-                      <div className="lt-lrow-name">{debt.description || 'Dívida'} · {pos}</div>
-                      <div className="lt-lrow-sub">
-                        {fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}
-                      </div>
-                    </div>
-                    <span aria-hidden="true"><Money value={payment.amount} size={14.5} color="var(--paid)" /></span>
-                    <span className="lt-rcpt-ic" aria-hidden="true"><Icon name="receipt" size={17} /></span>
-                  </div>
-                </li>
+                <PaymentRow
+                  key={payment.id}
+                  label={`Comprovante: ${debt.description || 'Dívida'}, ${spoken}, ${fmtMoney(payment.amount)} em ${fmtList(payment.paidAt)}`}
+                  title={`${debt.description || 'Dívida'} · ${pos}`}
+                  sub={<>{fmtList(payment.paidAt)} · {daysLate > 0 ? <span style={{ color: 'var(--pending)' }}>{daysLate}d após o vencimento</span> : 'em dia'}</>}
+                  amount={payment.amount}
+                  onClick={() => setReceipt({ debtorId: debtor.id, paymentId: payment.id })}
+                />
               )
             })}
-          </ul>
+          </ListGroup>
         ) : (
           <EmptyState icon="history" title="Nenhum pagamento ainda" sub="Os pagamentos registrados aparecem aqui." />
         )
@@ -324,7 +316,7 @@ function DebtorProfile({ id }: { id: string }) {
   const summary =
     numbers.owed === 0 ? (
       <span style={{ color: 'var(--paid)' }}>
-        <Icon name="check" size={13} strokeWidth={3} /> {debts.length ? `Tudo quitado · ${fmtMoney(numbers.received / 100)} recebidos` : 'Sem dívidas'}
+        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? `Tudo quitado · ${fmtMoney(numbers.received / 100)} recebidos` : 'Sem dívidas'}
       </span>
     ) : (
       <>
@@ -340,25 +332,23 @@ function DebtorProfile({ id }: { id: string }) {
   return (
     <main className="lt-page lt-anim-fade">
       <div className="lt-prof-top">
-        <button type="button" className="lt-back" onClick={back} aria-label={`Voltar para ${origin ?? 'a tela anterior'}`}>
-          <Icon name="chevronLeft" size={17} /> {origin ?? 'Voltar'}
-        </button>
+        <BackButton label={back.label} onClick={back.go} />
         <IconButton name="dots" label="Mais ações" onClick={() => setActionsOpen(true)} />
       </div>
 
       <div className="lt-prof">
         <button type="button" className="lt-prof-hit" onClick={() => setInfoOpen(true)} aria-label={`Ver contato e anotações de ${debtor.name}`} />
         <span className="lt-prof-av">
-          <Avatar name={debtor.name} size={52} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />
+          <Avatar name={debtor.name} size={48} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />
           {rel && (
             <span className="lt-prof-rel" style={{ background: rel.color }} title={rel.label}>
-              <Icon name={rel.icon} size={10} strokeWidth={3.2} color="var(--surface)" />
+              <Icon name={rel.icon} size={12} strokeWidth={3.2} color="var(--surface)" />
             </span>
           )}
         </span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1 className="lt-h1 lt-prof-name">
-            <span>{debtor.name}</span> <Icon name="chevronRight" size={18} />
+            <span>{debtor.name}</span> <Icon name="chevronRight" size={20} />
           </h1>
           <div className="lt-prof-sum">{debtsQuery.isLoading ? <span className="lt-skel" style={{ display: 'inline-block', height: 12, width: 170, verticalAlign: 'middle' }} /> : summary}</div>
         </div>
@@ -412,7 +402,7 @@ function DebtorProfile({ id }: { id: string }) {
         {debtsQuery.isError && !debtsQuery.data ? (
           <ErrorState title="Não foi possível carregar as dívidas" onRetry={() => void debtsQuery.refetch()} retrying={debtsQuery.isFetching} />
         ) : debtsQuery.isLoading ? (
-          <div className="lt-skel" style={{ height: 200, borderRadius: 16, marginTop: 12 }} />
+          <div className="lt-skel" style={{ height: 200, borderRadius: 'var(--r-lg)', marginTop: 12 }} />
         ) : shownTab === 'open' ? (
           open.length ? (
             <div className="lt-dsecs">
@@ -421,7 +411,7 @@ function DebtorProfile({ id }: { id: string }) {
                   <Icon name="layers" size={16} />
                   <span style={{ flex: 1 }}>Receber várias de uma vez</span>
                   <span className="lt-batch-link-n">{openTotal} em aberto</span>
-                  <Icon name="chevronRight" size={15} />
+                  <Icon name="chevronRight" size={16} />
                 </button>
               )}
               {open.map((d) => (
@@ -460,34 +450,37 @@ function DebtorProfile({ id }: { id: string }) {
           )
         ) : shownTab === 'paid' ? (
           paid.length ? (
-            <ul className="lt-lgroup" aria-label="Dívidas quitadas" style={{ marginTop: 12 }}>
+            <ListGroup label="Dívidas quitadas" style={{ marginTop: 12 }}>
               {paid.map((d) => {
                 const isOpen = expanded.has(d.id)
                 const total = d.installments.reduce((s, i) => s + Number(i.amount), 0)
                 const on = paidOffOn(d)
                 return (
-                  <li key={d.id} id={`divida-${d.id}`} className="lt-paid-debt">
-                    <div className="lt-lrow-in">
-                      <button type="button" className="lt-lrow-hit" aria-expanded={isOpen} onClick={() => toggle(d.id)} aria-label={`${d.description || 'Dívida'}, quitada${on ? ` em ${fmtList(on)}` : ''}, ${fmtMoney(total)}. ${isOpen ? 'Recolher' : 'Ver parcelas'}`} />
-                      <span className="lt-sr-debt" data-paid aria-hidden="true"><Icon name={DEBT_TYPE_META[d.type]?.icon ?? 'wallet'} size={16} /></span>
-                      <div className="lt-lrow-main" aria-hidden="true">
-                        <div className="lt-lrow-name">{d.description || 'Dívida'}</div>
-                        <div className="lt-lrow-sub">{DEBT_TYPE_META[d.type]?.label} · {d.installments.length}×{on ? ` · quitada em ${fmtList(on)}` : ''}</div>
-                      </div>
-                      <span aria-hidden="true"><Money value={total} size={14.5} color="var(--paid)" /></span>
-                      <IconButton name="dots" size={16} label={`Ações da dívida ${d.description || 'Dívida'}`} onClick={() => setDebtActions(d)} style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto' }} />
-                    </div>
-                    {isOpen && (
-                      <ListGroup label={`Parcelas de ${d.description || 'Dívida'}`}>
-                        {[...d.installments].sort((a, b) => a.number - b.number).map((i) => (
-                          <InstallmentLine key={i.id} inst={enrich(i, d, debtor)} today={today} onOpen={openPayment} inDebt showDate={false} onReceipt={(paymentId) => setReceipt({ debtorId: debtor.id, paymentId })} />
-                        ))}
-                      </ListGroup>
-                    )}
-                  </li>
+                  <ListRow
+                    key={d.id}
+                    id={`divida-${d.id}`}
+                    className="lt-paid-debt"
+                    expanded={isOpen}
+                    onClick={() => toggle(d.id)}
+                    label={`${d.description || 'Dívida'}, quitada${on ? ` em ${fmtList(on)}` : ''}, ${fmtMoney(total)}. ${isOpen ? 'Recolher' : 'Ver parcelas'}`}
+                    after={
+                      isOpen && (
+                        <ListGroup label={`Parcelas de ${d.description || 'Dívida'}`}>
+                          {[...d.installments].sort((a, b) => a.number - b.number).map((i) => (
+                            <InstallmentLine key={i.id} inst={enrich(i, d, debtor)} today={today} onOpen={openPayment} inDebt showDate={false} onReceipt={(paymentId) => setReceipt({ debtorId: debtor.id, paymentId })} />
+                          ))}
+                        </ListGroup>
+                      )
+                    }
+                  >
+                    <span className="lt-sr-debt" data-paid aria-hidden="true"><Icon name={DEBT_TYPE_META[d.type]?.icon ?? 'wallet'} size={16} /></span>
+                    <RowText title={d.description || 'Dívida'} sub={`${DEBT_TYPE_META[d.type]?.label} · ${d.installments.length}×${on ? ` · quitada em ${fmtList(on)}` : ''}`} />
+                    <span aria-hidden="true"><Money value={total} size={14.5} color="var(--paid)" /></span>
+                    <IconButton name="dots" size={16} label={`Ações da dívida ${d.description || 'Dívida'}`} onClick={() => setDebtActions(d)} style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto' }} />
+                  </ListRow>
                 )
               })}
-            </ul>
+            </ListGroup>
           ) : (
             <EmptyState icon="check" title="Nenhuma dívida quitada ainda" sub="As dívidas totalmente pagas aparecem aqui." />
           )
@@ -502,6 +495,7 @@ function DebtorProfile({ id }: { id: string }) {
         debtor={debtor}
         archive={{ archived, blockedBy }}
         onInfo={() => setInfoOpen(true)}
+        onStatement={() => setStatementOpen(true)}
         onPayments={detail === 'lean' ? () => setPaysOpen(true) : undefined}
         paymentsCount={timeline.length}
         onEdit={() => setEditOpen(true)}
@@ -579,6 +573,7 @@ function DebtorProfile({ id }: { id: string }) {
       <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
       <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
+      <StatementSheet debtorId={statementOpen ? debtor.id : null} onClose={() => setStatementOpen(false)} />
     </main>
   )
 }

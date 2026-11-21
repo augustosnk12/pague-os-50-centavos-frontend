@@ -1,6 +1,7 @@
 import type { Debtor } from '../types/debtor'
 import type { InstallmentEnriched } from '../types/installment'
 import type { DashboardOverview } from '../types/dashboard'
+import type { PaymentsSummary, ReportPayment } from '../api/payments.api'
 
 /**
  * Minimal in-memory stand-in for the API used by smoke tests. It answers the
@@ -45,6 +46,14 @@ export const fixtures = {
     counts: { overdue: 2, today: 0, next7: 1 },
   } satisfies DashboardOverview,
   summary: { debtors: 1, debts: 1, installments: 1, payments: 0 },
+  payments: [
+    { id: 'p1', amount: '250.00', paidAt: '2026-11-03T12:00:00.000Z', batchId: null, batchKind: null, installmentId: 'i0', installmentNumber: 1,
+      installmentsCount: 3, debtId: 'debt1', debtDescription: 'Notebook', debtRecurrence: null, debtorId: 'd1', debtorName: 'João Araújo' },
+  ] satisfies ReportPayment[],
+  paymentsSummary: {
+    from: '2026-06-01', to: '2026-11-05', total: '250.00', count: 1, averagePerMonth: '41.67',
+    months: ['06', '07', '08', '09', '10', '11'].map((m) => ({ month: `2026-${m}`, total: m === '11' ? '250.00' : '0.00', count: m === '11' ? 1 : 0 })),
+  } satisfies PaymentsSummary,
   search: {
     debtors: [{ id: 'd1', name: 'João Araújo', avatarHue: 200, avatarEmoji: null, outstanding: '250.00', archived: false }],
     debts: [{ id: 'debt1', description: 'Notebook', debtorId: 'd1', debtorName: 'João Araújo', remaining: '250.00', recurring: false }],
@@ -60,6 +69,9 @@ export function fakeGet(url: string): unknown {
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors
   if (url === '/debtors?archived=true') return []
+  if (url === '/contact/token') return { token: 'form-token' }
+  if (url === '/payments') return fixtures.payments
+  if (url === '/payments/summary') return fixtures.paymentsSummary
   const debtor = url.match(/^\/debtors\/([^/]+)$/)
   if (debtor) return fixtures.debtors.find((d) => d.id === debtor[1])
   if (/^\/debtors\/[^/]+\/debts$/.test(url)) return []

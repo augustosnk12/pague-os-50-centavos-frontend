@@ -180,29 +180,29 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
         <div className="lt-pay-hist-count">{payments.length} {payments.length === 1 ? 'pagamento' : 'pagamentos'}</div>
       ) : (
         <button type="button" className="lt-hist-toggle" aria-expanded={histOpen} onClick={() => setHistOpen((o) => !o)}>
-          <Icon name="clock" size={14} />
+          <Icon name="clock" size={16} />
           <span style={{ flex: 1, textAlign: 'left' }}>
             {payments.length} {payments.length === 1 ? 'pagamento anterior' : 'pagamentos anteriores'} · {fmtMoney(paidCents / 100)}
           </span>
-          <Icon name="chevronDown" size={15} style={{ transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
+          <Icon name="chevronDown" size={16} style={{ transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
         </button>
       )}
       {histOpen && (
         <ul className="lt-hist-list">
           {payments.map((p) => (
             <li key={p.id} className="lt-hist-row">
-              <span className="lt-hist-ok" aria-hidden="true"><Icon name="check" size={11} strokeWidth={3} /></span>
+              <span className="lt-hist-ok" aria-hidden="true"><Icon name="check" size={12} strokeWidth={3} /></span>
               <span style={{ flex: 1, fontWeight: 700, fontSize: '0.8125rem' }}>{fmtList(p.paidAt)}</span>
               <Money value={p.amount} size={13.5} color="var(--paid)" />
               <IconButton
                 name="receipt"
-                size={15}
+                size={16}
                 label={`Comprovante do pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
                 onClick={() => setReceipt({ debtorId: t.debtor.id, paymentId: p.id })}
               />
               <IconButton
                 name="trash"
-                size={15}
+                size={16}
                 label={`Excluir pagamento de ${fmtMoney(p.amount)} de ${fmtList(p.paidAt)}`}
                 onClick={() => deletePayment(p)}
                 disabled={!!deleting}
@@ -226,7 +226,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
       title={name}
       head={(titleId, close) => (
         <div className="lt-pay-head">
-          <Avatar name={name} size={40} hue={t.debtor.avatarHue} emoji={t.debtor.avatarEmoji} />
+          <Avatar name={name} size={36} hue={t.debtor.avatarHue} emoji={t.debtor.avatarEmoji} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 id={titleId} className="lt-pay-name">
               <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
@@ -251,7 +251,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
           <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={onClose}>Fechar</button>
         ) : (
           <button type="button" className="lt-btn-lg" data-variant="primary" onClick={confirm} disabled={amount <= 0 || !date || register.isPending}>
-            <Icon name="check" size={17} />
+            <Icon name="check" size={16} />
             {register.isPending ? 'Registrando…' : `${willPayOff ? 'Quitar parcela' : 'Registrar'}${amount > 0 ? ` · ${fmtMoney(amount / 100)}` : ''}`}
           </button>
         )
@@ -261,7 +261,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
         {readOnly ? (
           <>
             <div className="lt-paid-box">
-              <Icon name="check" size={18} strokeWidth={2.8} />
+              <Icon name="check" size={20} strokeWidth={2.8} />
               <div>
                 <div style={{ fontWeight: 800 }}>Parcela quitada</div>
                 <div style={{ fontWeight: 700, fontSize: '0.75rem' }}>{fmtMoney(inst.amount)}</div>
@@ -294,7 +294,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               </div>
               {amount > 0 && !willPayOff ? (
                 <div className="lt-partial-note">
-                  <Icon name="clock" size={13} />
+                  <Icon name="clock" size={16} />
                   <span>Pagamento parcial · restam <b>{fmtMoney((left - amount) / 100)}</b></span>
                 </div>
               ) : paidCents > 0 ? (
@@ -323,7 +323,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                   />
                 ) : (
                   <button type="button" className="lt-chip" onClick={() => { setOtherDate(addDays(today, -2)); setDateMode('other') }}>
-                    <Icon name="calendar" size={14} /> Outra
+                    <Icon name="calendar" size={16} /> Outra
                   </button>
                 )}
               </div>
@@ -338,7 +338,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                   setBatchFrom(from)
                 }}
               >
-                <Icon name="layers" size={13} /> Pagou mais de uma parcela? Receber em lote
+                <Icon name="layers" size={16} /> Pagou mais de uma parcela? Receber em lote
               </button>
             )}
             {history}

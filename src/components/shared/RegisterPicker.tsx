@@ -46,13 +46,13 @@ export function RegisterPicker({ open, onClose }: RegisterPickerProps) {
     <>
       <Modal open={open} onClose={close} title="Registrar pagamento">
         <div className="lt-search-field">
-          <Icon name="search" size={17} />
+          <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou dívida…" aria-label="Buscar parcela por nome ou dívida" />
         </div>
         {query.isLoading ? (
           <div aria-busy="true">
             <span className="lt-sr-only">Carregando parcelas…</span>
-            <div className="lt-skel" style={{ height: 160, borderRadius: 16 }} />
+            <div className="lt-skel" style={{ height: 160, borderRadius: 'var(--r-lg)' }} />
           </div>
         ) : list.length ? (
           <div className="lt-pick-scroll">

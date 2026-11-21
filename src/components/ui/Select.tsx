@@ -35,7 +35,7 @@ export function Select({ label, value, onChange, options, required, error, hint,
             appearance: 'none',
             background: 'var(--surface)',
             border: `1.5px solid ${error ? 'var(--overdue)' : 'var(--border-input)'}`,
-            borderRadius: 'calc(var(--radius) * 0.6)',
+            borderRadius: 'var(--r-sm)',
             padding: '14px 40px 14px 15px',
             fontSize: '1rem',
             fontWeight: 600,
@@ -52,7 +52,7 @@ export function Select({ label, value, onChange, options, required, error, hint,
         </select>
         <Icon
           name="chevronDown"
-          size={18}
+          size={20}
           color="var(--text-faint)"
           style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
         />

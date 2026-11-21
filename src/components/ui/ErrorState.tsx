@@ -19,7 +19,7 @@ export function ErrorState({ onRetry, title = 'Não foi possível carregar', ret
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)',
+        borderRadius: 'var(--r-lg)',
         padding: '22px 18px',
         display: 'flex',
         flexDirection: 'column',
@@ -29,8 +29,8 @@ export function ErrorState({ onRetry, title = 'Não foi possível carregar', ret
         boxShadow: 'var(--shadow-sm)',
       }}
     >
-      <span style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--overdue-weak)', display: 'grid', placeItems: 'center' }}>
-        <Icon name="alert" size={22} color="var(--overdue)" />
+      <span style={{ width: 46, height: 46, borderRadius: 'var(--r-md)', background: 'var(--overdue-weak)', display: 'grid', placeItems: 'center' }}>
+        <Icon name="alert" size={24} color="var(--overdue)" />
       </span>
       <div style={{ fontWeight: 800, fontSize: '1rem' }}>{title}</div>
       <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.5, maxWidth: 340 }}>

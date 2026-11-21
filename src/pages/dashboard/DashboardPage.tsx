@@ -4,14 +4,15 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
 import { Money } from '../../components/ui/Money'
-import { GroupLabel, ListGroup } from '../../components/ui/ListGroup'
+import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
+import { PageHeader } from '../../components/ui/PageHeader'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import { useDashboardOverview } from '../../hooks/dashboard/useDashboardOverview'
 import { useAccountSummary } from '../../hooks/account/useAccountSummary'
 import { useAuth } from '../../contexts/AuthContext'
-import { Detail, usePreferences } from '../../contexts/PreferencesContext'
+import { usePreferences } from '../../contexts/PreferencesContext'
 import { localToday } from '../../lib/date'
 import { fmtMoney, fmtSentence } from '../../lib/format'
 import { GettingStarted } from './GettingStarted'
@@ -56,12 +57,7 @@ export function DashboardPage() {
 
   return (
     <main className="lt-page lt-anim-fade">
-      <div style={{ marginBottom: 16 }}>
-        <h1 className="lt-h1">Olá, {firstName} 👋</h1>
-        <Detail>
-          <p className="lt-sub">{subtitle}</p>
-        </Detail>
-      </div>
+      <PageHeader title={`Olá, ${firstName} 👋`} sub={subtitle} />
 
       {overview.isError && !o ? (
         <ErrorState onRetry={() => void overview.refetch()} retrying={overview.isFetching} />
@@ -110,19 +106,19 @@ function Hero({ o }: { o: DashboardOverview }) {
             <b>{fmtMoney(o.month.received)}</b> recebido de {fmtMoney(o.month.expected)}
           </span>
           <span className="lt-hm-pct">
-            {pct}% <Icon name="chevronRight" size={13} />
+            {pct}% <Icon name="chevronRight" size={16} />
           </span>
         </span>
       </Link>
       {hasOverdue && (
         <div className="lt-hero-pills">
           <Link to="/installments?aba=atrasadas" className="lt-late-pill">
-            <Icon name="alert" size={14} />
+            <Icon name="alert" size={16} />
             <span>
               {fmtMoney(o.overdue.amount)} em atraso
               {prev > 0 && ` · ${prev} de meses anteriores`}
             </span>
-            <Icon name="chevronRight" size={13} />
+            <Icon name="chevronRight" size={16} />
           </Link>
         </div>
       )}
@@ -160,7 +156,7 @@ function Agenda({ o, today, lean, showWeek, onShowWeek, onOpen }: AgendaProps) {
     <>
       {overdue.length > 0 && (
         <>
-          <GroupLabel color="var(--overdue)" count={o.counts.overdue}>Em atraso</GroupLabel>
+          <SectionHeader color="var(--overdue)" count={o.counts.overdue}>Em atraso</SectionHeader>
           {rows(overdue.slice(0, OVERDUE_SHOWN), 'Em atraso')}
           {moreOverdue > 0 && (
             <Link to="/installments?aba=atrasadas" className="lt-more-link">
@@ -171,18 +167,18 @@ function Agenda({ o, today, lean, showWeek, onShowWeek, onOpen }: AgendaProps) {
       )}
       {dueToday.length > 0 && (
         <>
-          <GroupLabel color="var(--pending)" count={o.counts.today}>Hoje</GroupLabel>
+          <SectionHeader color="var(--pending)" count={o.counts.today}>Hoje</SectionHeader>
           {rows(dueToday, 'Hoje')}
         </>
       )}
       {next7.length > 0 &&
         (lean && !showWeek ? (
           <button type="button" className="lt-more-link" aria-expanded="false" onClick={onShowWeek}>
-            Próximos 7 dias · {o.counts.next7} <Icon name="chevronDown" size={13} />
+            Próximos 7 dias · {o.counts.next7} <Icon name="chevronDown" size={16} />
           </button>
         ) : (
           <>
-            <GroupLabel color="var(--text-faint)" count={o.counts.next7}>Próximos 7 dias</GroupLabel>
+            <SectionHeader color="var(--text-faint)" count={o.counts.next7}>Próximos 7 dias</SectionHeader>
             {rows(next7, 'Próximos 7 dias')}
           </>
         ))}
@@ -194,9 +190,9 @@ function DashboardSkeleton() {
   return (
     <div aria-busy="true">
       <span className="lt-sr-only">Carregando o painel…</span>
-      <div className="lt-skel" style={{ height: 150, borderRadius: 'calc(var(--radius) * 1.15)' }} />
+      <div className="lt-skel" style={{ height: 150, borderRadius: 'var(--r-lg)' }} />
       <div className="lt-skel" style={{ height: 14, width: 140, margin: '22px 3px 10px' }} />
-      <div className="lt-skel" style={{ height: 180, borderRadius: 16 }} />
+      <div className="lt-skel" style={{ height: 180, borderRadius: 'var(--r-lg)' }} />
     </div>
   )
 }

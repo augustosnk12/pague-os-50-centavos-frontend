@@ -20,6 +20,11 @@ import { failedSave } from '../../lib/saveError'
 import { DataSheet, DeleteAccountSheet } from './DataSheets'
 import { SupportSheet } from '../../components/shared/SupportSheet'
 import { supportPix } from '../../lib/support'
+import { preloadRoute } from '../../router/routes'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
+import { NavRow } from '../../components/ui/ListRow'
+import { Segmented } from '../../components/ui/Segmented'
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 const SIZES: { id: TextSize; label: string; px: number }[] = [
@@ -33,7 +38,7 @@ function DueDayRow({ icon, label, value, today, onChange }: { icon: string; labe
   const next = value ? nextDayOf(value, today) : null
   return (
     <div className="lt-set-row">
-      <span className="lt-set-ic" aria-hidden="true"><Icon name={icon} size={18} /></span>
+      <span className="lt-set-ic" aria-hidden="true"><Icon name={icon} size={20} /></span>
       <div className="lt-set-main">
         <div className="lt-set-t">{label}</div>
         <div className="lt-set-s">{next ? `Próximo: ${fmtTitle(next)}` : 'Sem padrão · usa o dia 1 do mês seguinte'}</div>
@@ -44,7 +49,7 @@ function DueDayRow({ icon, label, value, today, onChange }: { icon: string; labe
           <option value="">Sem padrão</option>
           {DAYS.map((d) => <option key={d} value={d}>Dia {d}</option>)}
         </select>
-        <Icon name="chevronDown" size={14} />
+        <Icon name="chevronDown" size={16} />
       </label>
     </div>
   )
@@ -155,12 +160,11 @@ export function SettingsPage() {
 
   return (
     <main className="lt-page lt-set">
-      <h1 className="lt-h1">Configurações</h1>
-      <p className="lt-sub">As alterações são salvas automaticamente.</p>
+      <PageHeader title="Configurações" sub="As alterações são salvas automaticamente." keepSub />
 
       {lender && (
         <div className="lt-set-card lt-set-me">
-          <Avatar name={lender.name ?? lender.email} size={44} />
+          <Avatar name={lender.name ?? lender.email} size={48} />
           <div style={{ minWidth: 0 }}>
             <div className="lt-set-t lt-ellipsis">{lender.name ?? '—'}</div>
             <div className="lt-set-s lt-ellipsis">{lender.email}</div>
@@ -168,11 +172,23 @@ export function SettingsPage() {
         </div>
       )}
 
-      <h2 className="lt-set-h">Vencimento padrão</h2>
+      {/* Recebimentos (S12, improvement 38): right under the account, as in the mock. */}
+      <ListGroup style={{ marginTop: 10 }}>
+        <NavRow
+          icon="trend"
+          title="Recebimentos"
+          sub="Quanto entrou nos últimos meses"
+          label="Recebimentos: relatório e exportação"
+          onClick={() => navigate('/payments')}
+          onPointerEnter={() => preloadRoute('/payments')}
+        />
+      </ListGroup>
+
+      <SectionHeader variant="plain">Vencimento padrão</SectionHeader>
       {settings.isError && !s ? (
         <ErrorState onRetry={() => void settings.refetch()} retrying={settings.isFetching} />
       ) : !s ? (
-        <div className="lt-skel" style={{ height: 130, borderRadius: 16 }} aria-busy="true" />
+        <div className="lt-skel" style={{ height: 130, borderRadius: 'var(--r-lg)' }} aria-busy="true" />
       ) : (
         <>
           <div className="lt-set-card">
@@ -181,7 +197,7 @@ export function SettingsPage() {
           </div>
           <p className="lt-set-note">Preenche o primeiro vencimento ao criar uma dívida desse tipo. Dá para mudar a data em cada dívida. Dias 29 a 31 usam o último dia nos meses mais curtos.</p>
 
-          <h2 className="lt-set-h">Receber por Pix</h2>
+          <SectionHeader variant="plain">Receber por Pix</SectionHeader>
           <PixKeyField
             settings={s}
             onSave={(type, key) => save({ pixKeyType: type, pixKey: key }, 'a chave Pix', () => showToast('Chave Pix salva', { icon: 'check' }))}
@@ -195,93 +211,75 @@ export function SettingsPage() {
         </>
       )}
 
-      <h2 className="lt-set-h">Nível de detalhe</h2>
+      <SectionHeader variant="plain">Nível de detalhe</SectionHeader>
       <div className="lt-set-card lt-set-pad">
-        <div className="lt-seg" role="group" aria-label="Nível de detalhe">
-          {([['full', 'Detalhada'], ['lean', 'Enxuta']] as [DetailLevel, string][]).map(([id, label]) => (
-            <button key={id} type="button" aria-pressed={detail === id} onClick={() => detail !== id && (setDetail(id), saved())}>{label}</button>
-          ))}
-        </div>
+        <Segmented<DetailLevel>
+          label="Nível de detalhe"
+          value={detail}
+          options={[{ value: 'full', label: 'Detalhada' }, { value: 'lean', label: 'Enxuta' }]}
+          onChange={(id) => {
+            setDetail(id)
+            saved()
+          }}
+        />
         <p className="lt-set-note" style={{ margin: '10px 2px 0' }}>
           {detail === 'lean' ? 'Enxuta: esconde subtítulos, barras, subtotais, contadores e descrições nas listas.' : 'Detalhada: mostra todas as informações de apoio.'} Valores devidos, atrasos, datas e ações aparecem sempre.
         </p>
       </div>
 
-      <h2 className="lt-set-h">Aparência</h2>
+      <SectionHeader variant="plain">Aparência</SectionHeader>
       <div className="lt-set-card">
         <div className="lt-set-row">
           <div className="lt-set-main"><div className="lt-set-t" id="theme-l">Tema</div></div>
-          <div className="lt-seg lt-seg-mini" role="group" aria-labelledby="theme-l">
-            {([['light', 'Claro'], ['dark', 'Escuro']] as const).map(([id, label]) => (
-              <button key={id} type="button" aria-pressed={theme === id} onClick={() => theme !== id && (toggleTheme(), saved())}>{label}</button>
-            ))}
-          </div>
+          <Segmented
+            mini
+            labelledBy="theme-l"
+            value={theme}
+            options={[{ value: 'light', label: 'Claro' }, { value: 'dark', label: 'Escuro' }]}
+            onChange={() => {
+              toggleTheme()
+              saved()
+            }}
+          />
         </div>
         <div className="lt-set-row">
           <div className="lt-set-main">
             <div className="lt-set-t" id="fz-l">Tamanho do texto</div>
             <div className="lt-set-s">{SIZES.find((x) => x.id === textSize)?.label}</div>
           </div>
-          <div className="lt-seg lt-seg-mini" role="radiogroup" aria-labelledby="fz-l">
-            {SIZES.map((x) => (
-              <button key={x.id} type="button" role="radio" aria-checked={textSize === x.id} aria-label={x.label} onClick={() => textSize !== x.id && (setTextSize(x.id), saved())}>
-                <span aria-hidden="true" style={{ fontSize: x.px, fontWeight: 800 }}>Aa</span>
-              </button>
-            ))}
-          </div>
+          <Segmented<TextSize>
+            mini
+            labelledBy="fz-l"
+            value={textSize}
+            options={SIZES.map((x) => ({ value: x.id, ariaLabel: x.label, label: <span aria-hidden="true" style={{ fontSize: x.px, fontWeight: 800 }}>Aa</span> }))}
+            onChange={(id) => {
+              setTextSize(id)
+              saved()
+            }}
+          />
         </div>
       </div>
 
-      <h2 className="lt-set-h">Mais</h2>
-      <ul className="lt-lgroup">
+      <SectionHeader variant="plain">Mais</SectionHeader>
+      <ListGroup>
         {supportPix() && (
-          <li className="lt-lrow">
-            <div className="lt-lrow-in">
-              <button type="button" className="lt-lrow-hit" onClick={() => setSupportOpen(true)} aria-label="Apoie o projeto: pague um café para quem desenvolve" />
-              <span className="lt-set-ic lt-coffee-row-ic" aria-hidden="true"><Icon name="coffee" size={17} /></span>
-              <div className="lt-lrow-main" aria-hidden="true">
-                <div className="lt-lrow-name">Apoie o projeto</div>
-                <div className="lt-lrow-sub">Pague um café para quem desenvolve</div>
-              </div>
-              <Icon name="chevronRight" size={16} />
-            </div>
-          </li>
+          <NavRow
+            icon="coffee"
+            iconClassName="lt-coffee-row-ic"
+            title="Apoie o projeto"
+            sub="Pague um café para quem desenvolve"
+            label="Apoie o projeto: pague um café para quem desenvolve"
+            onClick={() => setSupportOpen(true)}
+          />
         )}
-        <li className="lt-lrow">
-          <div className="lt-lrow-in">
-            <button type="button" className="lt-lrow-hit" onClick={() => setCalcOpen(true)} aria-label="Calculadora" />
-            <span className="lt-set-ic" aria-hidden="true"><Icon name="calc" size={17} /></span>
-            <div className="lt-lrow-main" aria-hidden="true"><div className="lt-lrow-name">Calculadora</div></div>
-            <Icon name="chevronRight" size={16} />
-          </div>
-        </li>
-      </ul>
+        <NavRow icon="calc" title="Calculadora" onClick={() => setCalcOpen(true)} />
+      </ListGroup>
 
-      <h2 className="lt-set-h">Seus dados</h2>
-      <ul className="lt-lgroup">
-        <li className="lt-lrow">
-          <div className="lt-lrow-in">
-            <button type="button" className="lt-lrow-hit" onClick={() => setDataOpen(true)} aria-label="Baixar meus dados" />
-            <span className="lt-set-ic" aria-hidden="true"><Icon name="download" size={17} /></span>
-            <div className="lt-lrow-main" aria-hidden="true">
-              <div className="lt-lrow-name">Baixar meus dados</div>
-              <div className="lt-lrow-sub">Cópia de devedores, dívidas e pagamentos</div>
-            </div>
-            <Icon name="chevronRight" size={16} />
-          </div>
-        </li>
-        <li className="lt-lrow">
-          <div className="lt-lrow-in">
-            <button type="button" className="lt-lrow-hit" onClick={() => setDeleteOpen(true)} aria-label="Excluir conta" />
-            <span className="lt-set-ic" data-danger aria-hidden="true"><Icon name="trash" size={17} /></span>
-            <div className="lt-lrow-main" aria-hidden="true">
-              <div className="lt-lrow-name" style={{ color: 'var(--overdue)' }}>Excluir conta</div>
-              <div className="lt-lrow-sub">Apaga a conta e todos os dados</div>
-            </div>
-            <Icon name="chevronRight" size={16} />
-          </div>
-        </li>
-      </ul>
+      <SectionHeader variant="plain">Seus dados</SectionHeader>
+      <ListGroup>
+        <NavRow icon="download" title="Baixar meus dados" sub="Cópia de devedores, dívidas e pagamentos" onClick={() => setDataOpen(true)} />
+        <NavRow icon="trash" title="Excluir conta" sub="Apaga a conta e todos os dados" danger onClick={() => setDeleteOpen(true)} />
+      </ListGroup>
 
       <button type="button" className="lt-set-logout" onClick={logout}>Sair da conta</button>
       <p className="lt-set-ver">Pague os 50 centavos · versão {__APP_VERSION__}</p>

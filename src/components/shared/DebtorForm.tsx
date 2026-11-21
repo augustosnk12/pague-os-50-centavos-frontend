@@ -200,7 +200,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
       title={editing ? 'Editar cadastro' : 'Novo devedor'}
       footer={
         <button type="button" className="lt-btn-lg" data-variant="primary" onClick={save} disabled={loading}>
-          <Icon name="check" size={17} /> {loading ? 'Salvando…' : editing ? 'Salvar alterações' : 'Salvar devedor'}
+          <Icon name="check" size={16} /> {loading ? 'Salvando…' : editing ? 'Salvar alterações' : 'Salvar devedor'}
         </button>
       }
     >
@@ -241,7 +241,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
 
         <button type="button" className="lt-more-link lt-df-more" aria-expanded={more} onClick={() => setMore((m) => !m)}>
           {more ? 'Menos dados' : 'Mais dados'}
-          <Icon name="chevronDown" size={13} style={more ? { transform: 'rotate(180deg)' } : undefined} />
+          <Icon name="chevronDown" size={16} style={more ? { transform: 'rotate(180deg)' } : undefined} />
         </button>
 
         {more && (
@@ -261,7 +261,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                     style={v.reliability === o.id ? { color: o.color, borderColor: o.color } : undefined}
                     onClick={() => set('reliability', v.reliability === o.id ? null : o.id)}
                   >
-                    <Icon name={o.icon} size={13} strokeWidth={3} /> {o.label}
+                    <Icon name={o.icon} size={16} strokeWidth={3} /> {o.label}
                   </button>
                 ))}
               </div>
@@ -277,7 +277,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                   focusIn('df-zip')
                 }}
               >
-                <Icon name="plus" size={13} /> Adicionar endereço
+                <Icon name="plus" size={16} /> Adicionar endereço
               </button>
             ) : (
               <fieldset className="lt-df-addr">
@@ -304,12 +304,12 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                   {cep === 'loading' && 'Buscando o endereço…'}
                   {cep === 'found' && (
                     <>
-                      <Icon name="check" size={13} strokeWidth={3} /> Endereço encontrado
+                      <Icon name="check" size={16} strokeWidth={3} /> Endereço encontrado
                     </>
                   )}
                   {cep === 'notfound' && (
                     <>
-                      <Icon name="alert" size={13} /> CEP não encontrado. Preencha o endereço.
+                      <Icon name="alert" size={16} /> CEP não encontrado. Preencha o endereço.
                     </>
                   )}
                 </div>

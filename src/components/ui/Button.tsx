@@ -49,7 +49,7 @@ export function Button({ children, variant = 'primary', size = 'md', icon, iconR
     justifyContent: 'center',
     gap: 8,
     border: '1px solid transparent',
-    borderRadius: 'calc(var(--radius) * 0.66)',
+    borderRadius: 'var(--r-md)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     fontWeight: 700,
     fontSize: size === 'lg' ? 17 : size === 'sm' ? 13.5 : 15,
@@ -77,9 +77,9 @@ export function Button({ children, variant = 'primary', size = 'md', icon, iconR
       onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
       style={{ ...base, ...VARIANTS[variant], ...hoverStyle, ...style }}
     >
-      {icon && <Icon name={icon} size={size === 'sm' ? 16 : 18} />}
+      {icon && <Icon name={icon} size={size === 'sm' ? 16 : 20} />}
       {children}
-      {iconRight && <Icon name={iconRight} size={size === 'sm' ? 16 : 18} />}
+      {iconRight && <Icon name={iconRight} size={size === 'sm' ? 16 : 20} />}
     </button>
   )
 }

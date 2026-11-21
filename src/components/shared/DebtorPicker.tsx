@@ -79,12 +79,12 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
       ) : (
         <div className="lt-dp-chips" role="group" aria-labelledby="nd-debtor-l" data-invalid={invalid || undefined}>
           <button type="button" className="lt-dp-search" onClick={() => setOpen(true)}>
-            <Icon name="search" size={15} strokeWidth={2.6} /> Buscar devedor
+            <Icon name="search" size={16} strokeWidth={2.6} /> Buscar devedor
           </button>
           {sorted.length > 0 && <span className="lt-dp-sep" aria-hidden="true" />}
           {sorted.slice(0, 4).map((d) => (
             <button key={d.id} type="button" className="lt-chip lt-dp-chip" onClick={() => pick(d)} aria-label={`Escolher ${d.name}`}>
-              <Avatar name={d.name} size={22} hue={d.avatarHue} emoji={d.avatarEmoji} /> {firstName(d.name)}
+              <Avatar name={d.name} size={24} hue={d.avatarHue} emoji={d.avatarEmoji} /> {firstName(d.name)}
             </button>
           ))}
         </div>
@@ -99,14 +99,14 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
         title="Para quem é a dívida?"
       >
         <div className="lt-search-field">
-          <Icon name="search" size={17} />
+          <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pelo nome…" aria-label="Buscar devedor pelo nome" />
         </div>
         <ul className="lt-pick-list" aria-label="Devedores">
           {list.map((d) => (
             <li key={d.id}>
               <button type="button" className="lt-pick" aria-pressed={value?.id === d.id} onClick={() => pick(d)}>
-                <Avatar name={d.name} size={34} hue={d.avatarHue} emoji={d.avatarEmoji} />
+                <Avatar name={d.name} size={36} hue={d.avatarHue} emoji={d.avatarEmoji} />
                 <span className="lt-pick-name" style={{ flex: 1 }}>{d.name}</span>
                 {value?.id === d.id && <Icon name="check" size={16} color="var(--primary)" />}
               </button>

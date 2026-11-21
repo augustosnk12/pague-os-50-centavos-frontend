@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ErrorState } from '../../components/ui/ErrorState'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useArchivedDebtors, useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebtor } from '../../hooks/debtors/useCreateDebtor'
+import { usePrefetchDebtor } from '../../hooks/debtors/usePrefetchDebtor'
 import { useSearch } from '../../hooks/search/useSearch'
 import { scrollBehavior } from '../../lib/scroll'
 import { rankByTerm } from '../../lib/searchMatch'
@@ -15,10 +16,14 @@ import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
+import { LinkRow, RowText } from '../../components/ui/ListRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { DebtorForm, type DebtorFormPayload } from '../../components/shared/DebtorForm'
 import { RELIABILITY_OPTIONS, getReliabilityOption } from '../../constants/reliability'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
-import { Detail, usePreferences } from '../../contexts/PreferencesContext'
+import { usePreferences } from '../../contexts/PreferencesContext'
 
 /** Accent- and case-insensitive ("joao" finds "João", "c" finds "ç"). */
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -27,6 +32,7 @@ const AZ_FROM = 15
 
 export function DebtorsPage() {
   const [params, setParams] = useSearchParams()
+  const prefetch = usePrefetchDebtor()
   const [q, setQ] = useState(() => params.get('q') ?? '')
   const [reliabilityFilter, setReliabilityFilter] = useState<DebtorReliability | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -134,15 +140,15 @@ export function DebtorsPage() {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} aria-busy="true">
         <span className="lt-sr-only">Carregando devedores…</span>
-        <div className="lt-skel" style={{ height: 30, width: 160, borderRadius: 10 }} />
-        <div className="lt-skel" style={{ height: 46, borderRadius: 14, marginTop: 18 }} />
+        <div className="lt-skel" style={{ height: 30, width: 160, borderRadius: 'var(--r-sm)' }} />
+        <div className="lt-skel" style={{ height: 46, borderRadius: 'var(--r-md)', marginTop: 18 }} />
         <div className="lt-skel-row" style={{ marginTop: 12 }}>
-          {[90, 110, 96].map((w) => <div key={w} className="lt-skel" style={{ height: 34, width: w, borderRadius: 99 }} />)}
+          {[90, 110, 96].map((w) => <div key={w} className="lt-skel" style={{ height: 34, width: w, borderRadius: 'var(--r-pill)' }} />)}
         </div>
         <div className="lt-skel-list">
           {[0, 1, 2, 3, 4].map((k) => (
             <div key={k} className="lt-skel-item">
-              <div className="lt-skel" style={{ width: 40, height: 40, borderRadius: 12 }} />
+              <div className="lt-skel" style={{ width: 40, height: 40, borderRadius: 'var(--r-md)' }} />
               <div style={{ flex: 1 }}>
                 <div className="lt-skel" style={{ height: 13, width: '55%' }} />
                 <div className="lt-skel" style={{ height: 10, width: '35%', marginTop: 7 }} />
@@ -158,88 +164,52 @@ export function DebtorsPage() {
   if (isError && debtors.length === 0) {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
-        <h1 style={{ margin: '0 0 16px', fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
+        <PageHeader title="Devedores" />
         <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
   }
 
-  const row = (dt: Debtor, idx: number, archived = false) => (
-    // The row opens the profile: a real link (keyboard, middle-click, screen readers).
-    <Link
-      key={dt.id}
-      to={`/debtors/${dt.id}`}
-      className="lt-row-hover"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)',
-        padding: 15,
-        boxShadow: 'var(--shadow-sm)',
-        color: 'inherit',
-        transition: 'transform .15s, box-shadow .2s, border-color .2s',
-        animation: `ltRise .4s cubic-bezier(0.22,1,0.36,1) ${Math.min(idx, 12) * 0.04}s both`,
-      }}
-    >
-      <div style={{ position: 'relative', flexShrink: 0 }} hidden={detail === 'lean'}>
-        <Avatar name={dt.name} size={48} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
-        {(() => {
-          const opt = getReliabilityOption(dt.reliability)
-          return opt ? (
-            <span
-              title={opt.label}
-              style={{
-                position: 'absolute', bottom: -3, right: -3, width: 19, height: 19,
-                borderRadius: '50%', display: 'grid', placeItems: 'center',
-                background: opt.color, border: '2.5px solid var(--surface)',
-              }}
-            >
-              <Icon name={opt.icon} size={11} color="var(--on-primary)" strokeWidth={3} />
-            </span>
-          ) : null
-        })()}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 800, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dt.name}</span>
-          {archived && <span className="lt-arch-tag"><Icon name="archive" size={11} /> Arquivado</span>}
-        </div>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'}
-        </div>
-      </div>
-      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-        <Icon name="chevronRight" size={18} color="var(--text-faint)" />
-      </div>
-    </Link>
-  )
+  // One row of the list (improvement 31, as in the mock): a real link to the profile,
+  // prefetched on intent (improvement 43).
+  const row = (dt: Debtor, archived = false) => {
+    const rel = getReliabilityOption(dt.reliability)
+    const sub = dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'
+    return (
+      <LinkRow key={dt.id} to={`/debtors/${dt.id}`} onIntent={() => prefetch(dt.id)} label={`${dt.name}${rel ? `, ${rel.label}` : ''}${archived ? ', Arquivado' : ''}`}>
+        {detail !== 'lean' && (
+          <span className="lt-av-rel" aria-hidden="true">
+            <Avatar name={dt.name} size={36} hue={dt.avatarHue} emoji={dt.avatarEmoji} />
+            {rel && <span title={rel.label} style={{ background: rel.color }}><Icon name={rel.icon} size={12} strokeWidth={3} /></span>}
+          </span>
+        )}
+        <RowText
+          title={<>{dt.name}{archived && <> <StatusBadge tone="muted" icon="archive" small>Arquivado</StatusBadge></>}</>}
+          sub={detail === 'lean' ? undefined : sub}
+        />
+        <Icon name="chevronRight" size={16} />
+      </LinkRow>
+    )
+  }
 
   const nothing = filtered.length === 0 && debtHits.length === 0 && archivedHits.length === 0
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: '1.5625rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Devedores</h1>
-          <Detail>
-            <p style={{ margin: '3px 0 0', color: 'var(--text-muted)', fontSize: '0.90625rem' }}>
-              {debtors.length} {debtors.length === 1 ? 'pessoa' : 'pessoas'}
-            </p>
-          </Detail>
-        </div>
-        <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
-          Adicionar
-        </Button>
-      </div>
+      <PageHeader
+        title="Devedores"
+        sub={`${debtors.length} ${debtors.length === 1 ? 'pessoa' : 'pessoas'}`}
+        action={
+          <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
+            Adicionar
+          </Button>
+        }
+      />
 
       {/* Search: people by name and debts by description (improvement 21) */}
       <div ref={fieldBox} style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 99, padding: '11px 16px', boxShadow: 'var(--shadow-sm)' }}>
-          <Icon name="search" size={18} color="var(--text-faint)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--r-pill)', padding: '11px 16px', boxShadow: 'var(--shadow-sm)' }}>
+          <Icon name="search" size={20} color="var(--text-faint)" />
           <input
             ref={searchRef}
             type="search"
@@ -265,14 +235,14 @@ export function DebtorsPage() {
               onClick={() => setReliabilityFilter(f.id)}
               style={{
                 flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '8px 14px', borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                padding: '8px 14px', borderRadius: 'var(--r-pill)', cursor: 'pointer', fontFamily: 'inherit',
                 fontWeight: 700, fontSize: '0.84375rem', transition: 'all .15s', whiteSpace: 'nowrap',
                 border: `1.5px solid ${active ? f.color : 'var(--border)'}`,
                 background: active ? f.color : 'var(--surface)',
                 color: active ? 'var(--on-primary)' : 'var(--text-muted)',
               }}
             >
-              {f.icon && <Icon name={f.icon} size={14} strokeWidth={3} />}
+              {f.icon && <Icon name={f.icon} size={16} strokeWidth={3} />}
               {f.label}
             </button>
           )
@@ -295,57 +265,50 @@ export function DebtorsPage() {
               <p className="lt-az-hint lt-desktop-only">Dica: digite uma letra para ir ao grupo.</p>
               {groups.map(([letter, list]) => (
                 <section key={letter} id={`letra-${letter}`} className="lt-az" aria-labelledby={`letra-h-${letter}`}>
-                  <h2 id={`letra-h-${letter}`} className="lt-group-label lt-az-h" data-flash={flash === letter || undefined}>
-                    <span>{letter}</span>
-                    <span className="lt-group-line" aria-hidden="true" />
-                  </h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.map((d, i) => row(d, i))}</div>
+                  <SectionHeader id={`letra-h-${letter}`} className="lt-az-h" flash={flash === letter}>{letter}</SectionHeader>
+                  <ListGroup>{list.map((d) => row(d))}</ListGroup>
                 </section>
               ))}
             </>
           ) : (
             <>
-              {term && filtered.length > 0 && debtHits.length > 0 && <h2 className="lt-group-label"><span>Devedores · {filtered.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{filtered.map((d, i) => row(d, i))}</div>
+              {term && filtered.length > 0 && debtHits.length > 0 && <SectionHeader count={filtered.length}>Devedores</SectionHeader>}
+              {filtered.length > 0 && <ListGroup label="Devedores">{filtered.map((d) => row(d))}</ListGroup>}
             </>
           )}
           {archivedHits.length > 0 && (
             <>
-              <h2 className="lt-group-label"><span>Arquivados · {archivedHits.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{archivedHits.map((d, i) => row(d, i, true))}</div>
+              <SectionHeader count={archivedHits.length}>Arquivados</SectionHeader>
+              <ListGroup label="Arquivados encontrados">{archivedHits.map((d) => row(d, true))}</ListGroup>
             </>
           )}
           {!term && !reliabilityFilter && archivedAll.length > 0 && (
             <div className="lt-arch-group">
               <button type="button" className="lt-more-link lt-arch-link" aria-expanded={showArchived} onClick={() => setShowArchived((v) => !v)}>
-                <Icon name="archive" size={14} /> Arquivados ({archivedAll.length})
-                <Icon name="chevronDown" size={13} style={showArchived ? { transform: 'rotate(180deg)' } : undefined} />
+                <Icon name="archive" size={16} /> Arquivados ({archivedAll.length})
+                <Icon name="chevronDown" size={16} style={showArchived ? { transform: 'rotate(180deg)' } : undefined} />
               </button>
               {showArchived && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 10 }}>{archivedAll.map((d, i) => row(d, i, true))}</div>
+                <ListGroup label="Arquivados" style={{ marginTop: 10 }}>{archivedAll.map((d) => row(d, true))}</ListGroup>
               )}
             </div>
           )}
           {debtHits.length > 0 && (
             <>
-              <h2 className="lt-group-label"><span>Dívidas · {debtHits.length}</span><span className="lt-group-line" aria-hidden="true" /></h2>
-              <ul className="lt-lgroup" aria-label="Dívidas encontradas">
-                {debtHits.map((d) => (
-                  <li key={d.id} className="lt-lrow">
-                    <Link to={`/debtors/${d.debtorId}?divida=${d.id}`} className="lt-lrow-in lt-debt-hit">
+              <SectionHeader count={debtHits.length}>Dívidas</SectionHeader>
+              <ListGroup label="Dívidas encontradas">
+                {debtHits.map((d) => {
+                  const left = Number(d.remaining) > 0
+                  return (
+                    <LinkRow key={d.id} to={`/debtors/${d.debtorId}?divida=${d.id}`} label={`${d.description || 'Dívida'}, de ${d.debtorName}, ${left ? `restam ${fmtMoney(d.remaining)}` : 'quitada'}`}>
                       <span className="lt-sr-debt" aria-hidden="true"><Icon name="layers" size={16} /></span>
-                      <span className="lt-lrow-main">
-                        <span className="lt-lrow-name" style={{ display: 'block' }}>{d.description || 'Dívida'}</span>
-                        <span className="lt-lrow-sub" style={{ display: 'block' }}>{d.debtorName}</span>
-                      </span>
-                      <span className="lt-debt-hit-v" style={{ color: Number(d.remaining) > 0 ? undefined : 'var(--paid)' }}>
-                        {Number(d.remaining) > 0 ? fmtMoney(d.remaining) : 'Quitada'}
-                      </span>
+                      <RowText title={d.description || 'Dívida'} sub={d.debtorName} />
+                      <span className="lt-debt-hit-v" aria-hidden="true" style={{ color: left ? undefined : 'var(--paid)' }}>{left ? fmtMoney(d.remaining) : 'Quitada'}</span>
                       <Icon name="chevronRight" size={16} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                    </LinkRow>
+                  )
+                })}
+              </ListGroup>
             </>
           )}
         </>
@@ -355,7 +318,7 @@ export function DebtorsPage() {
 
       {fieldGone && (floatOpen ? (
         <div className="lt-fsearch">
-          <Icon name="search" size={17} />
+          <Icon name="search" size={16} />
           <input
             ref={floatRef}
             type="search"
@@ -370,11 +333,11 @@ export function DebtorsPage() {
             placeholder="Buscar devedor ou dívida…"
             aria-label="Buscar devedor ou dívida"
           />
-          {q && <IconButton name="x" size={15} label="Limpar" onClick={() => { setQ(''); floatRef.current?.focus() }} />}
+          {q && <IconButton name="x" size={16} label="Limpar" onClick={() => { setQ(''); floatRef.current?.focus() }} />}
         </div>
       ) : (
         <button type="button" className="lt-float lt-float-search" onClick={() => setFloatOpen(true)} aria-label="Buscar devedor ou dívida">
-          <Icon name="search" size={18} />
+          <Icon name="search" size={20} />
         </button>
       ))}
 

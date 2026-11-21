@@ -7,14 +7,12 @@ export interface DebtWithInstallments extends Debt {
   installments: Installment[]
 }
 
-// GET /debtors/:id/debts — returns debts with their installments
+/** GET /debtors/:id/debts — debts with their installments (also used to prefetch a profile). */
+export const debtsByDebtorQuery = (debtorId: string) => ({
+  queryKey: ['debts', debtorId],
+  queryFn: async () => (await api.get<DebtWithInstallments[]>(`/debtors/${debtorId}/debts`)).data,
+})
+
 export function useDebtsByDebtor(debtorId: string) {
-  return useQuery({
-    queryKey: ['debts', debtorId],
-    queryFn: async () => {
-      const res = await api.get<DebtWithInstallments[]>(`/debtors/${debtorId}/debts`)
-      return res.data
-    },
-    enabled: !!debtorId,
-  })
+  return useQuery({ ...debtsByDebtorQuery(debtorId), enabled: !!debtorId })
 }
