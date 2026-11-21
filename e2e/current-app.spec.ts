@@ -28,6 +28,41 @@ test('an already-used magic link is refused', async ({ page }) => {
   await expect(page).toHaveURL(/\/login\?error=/)
 })
 
+test('landing: visitors see it at "/", it fits the screen and leads to Criar conta and Entrar', async ({ page, a11y }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Emprestou\? Anota/ })).toBeVisible()
+  await a11y('landing')
+  const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  expect(over, `landing scrolls sideways by ${over}px`).toBeLessThanOrEqual(1)
+  // The header fits: "Entrar" entirely on screen; the theme button switches light/dark.
+  const entrar = (await page.getByRole('link', { name: 'Entrar' }).boundingBox())!
+  expect(entrar.x + entrar.width).toBeLessThanOrEqual(page.viewportSize()!.width)
+  await page.getByRole('button', { name: 'Tema escuro' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await a11y('landing-dark')
+  await page.getByRole('button', { name: 'Tema escuro' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  // FAQ opens with the keyboard.
+  const q = page.getByText('Quanto custa?')
+  await q.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText(/O app é gratuito e sem anúncios/)).toBeVisible()
+
+  // "Fale comigo": a form, never the developer's address on the page.
+  await page.getByRole('link', { name: 'Contato' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'Fale comigo' })).toBeInViewport()
+  expect(await page.content()).not.toMatch(/mailto:|@gmail\.com/)
+  await page.getByRole('button', { name: 'Enviar mensagem' }).click()
+  await expect(page.getByText('Informe seu e-mail para eu poder responder.')).toBeVisible()
+  await expect(page.getByLabel('Seu e-mail')).toBeFocused()
+
+  await page.getByRole('link', { name: 'Criar minha conta' }).first().click()
+  await expect(page).toHaveURL(/\/register$/)
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Entrar' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible()
+})
+
 test('login page', async ({ page, a11y }) => {
   await page.goto('/login')
   await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible()

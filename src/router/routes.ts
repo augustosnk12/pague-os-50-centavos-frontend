@@ -14,6 +14,7 @@ function page<M>(load: () => Promise<M>, pick: (m: M) => ComponentType): { Compo
 }
 
 export const pages = {
+  landing: page(() => import('../pages/landing/LandingPage'), (m) => m.LandingPage),
   login: page(() => import('../pages/auth/LoginPage'), (m) => m.LoginPage),
   register: page(() => import('../pages/auth/RegisterPage'), (m) => m.RegisterPage),
   verify: page(() => import('../pages/auth/VerifyPage'), (m) => m.VerifyPage),

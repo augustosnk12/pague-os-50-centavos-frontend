@@ -1,8 +1,8 @@
 /**
  * Lighthouse CI (improvement 43). Measures the production build served by
- * `vite preview` on the only public screen (Entrar), which carries the whole
- * first-load cost (bundle, font, layout). Logged-in screens are measured in
- * real use by web-vitals (POST /vitals).
+ * `vite preview` on the public screens — the landing ("/") and Entrar —
+ * which carry the whole first-load cost (bundle, font, layout). Logged-in
+ * screens are measured in real use by web-vitals (POST /vitals).
  *
  * Targets from the plan: LCP < 2 s (simulated 4G, mobile), CLS < 0.05,
  * accessibility 100, performance score ≥ 0.9. Reports stay local / as a CI
@@ -13,7 +13,7 @@ module.exports = {
     collect: {
       startServerCommand: 'npx vite preview --port 4173 --strictPort',
       startServerReadyPattern: 'Local',
-      url: ['http://localhost:4173/login'],
+      url: ['http://localhost:4173/', 'http://localhost:4173/login'],
       numberOfRuns: 3,
       settings: {
         // Chrome on the CI runner has no sandbox user namespace.

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { PrivateRoute } from './PrivateRoute'
 import { AppLayout } from '../components/layout/AppLayout'
 import { pages } from './routes'
+import { getToken } from '../lib/cookies'
 
 /** Shown for the instant a page's code is still downloading. */
 function PageLoading() {
@@ -19,7 +20,13 @@ function AppShell() {
   )
 }
 
+/** "/": the landing for visitors; signed-in people go straight to the Painel. */
+function Home() {
+  return getToken() ? <Navigate to="/dashboard" replace /> : <LandingPage />
+}
+
 const {
+  landing: { Component: LandingPage },
   login: { Component: LoginPage },
   register: { Component: RegisterPage },
   verify: { Component: VerifyPage },
@@ -57,7 +64,7 @@ export function AppRouter() {
         </Route>
 
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Home />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>

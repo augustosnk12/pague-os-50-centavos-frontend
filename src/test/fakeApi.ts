@@ -69,6 +69,7 @@ export function fakeGet(url: string): unknown {
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors
   if (url === '/debtors?archived=true') return []
+  if (url === '/contact/token') return { token: 'form-token' }
   if (url === '/payments') return fixtures.payments
   if (url === '/payments/summary') return fixtures.paymentsSummary
   const debtor = url.match(/^\/debtors\/([^/]+)$/)

@@ -30,6 +30,67 @@ describe('routes (smoke)', () => {
     expect(screen.getByPlaceholderText('voce@email.com')).toBeInTheDocument()
   })
 
+  it('"/" shows the landing to visitors, with real links to Criar conta and Entrar', async () => {
+    renderApp('/', { loggedIn: false })
+    expect(await screen.findByRole('heading', { level: 1, name: /emprestou\? anota/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Criar minha conta' }).every((a) => a.getAttribute('href') === '/register')).toBe(true)
+    expect(screen.getByRole('link', { name: 'Entrar' })).toHaveAttribute('href', '/login')
+    // The WhatsApp example is the app's own message, with a Pix BR Code.
+    expect(screen.getByText(/Moto \(3\/10\) — R\$\s250,00 · venceu 04 nov/)).toBeInTheDocument()
+    expect(screen.getByText(/^00020126/)).toBeInTheDocument()
+  })
+
+  it('landing: the theme button switches light/dark and remembers it', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const user = userEvent.setup()
+    renderApp('/', { loggedIn: false })
+    const btn = await screen.findByRole('button', { name: 'Tema escuro' })
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+    await user.click(btn)
+    expect(btn).toHaveAttribute('aria-pressed', 'true')
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(localStorage.getItem('lt-theme')).toBe('dark')
+    await user.click(btn)
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+  })
+
+  it('landing: "Fale comigo" form — errors in the fields, then sends to the API (no e-mail on the page)', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const { api } = await import('../lib/axios')
+    // The form waits the anti-bot 3 s after its token before sending: simulated clock.
+    vi.useRealTimers()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderApp('/', { loggedIn: false })
+    await screen.findByRole('heading', { level: 2, name: 'Fale comigo' })
+    await vi.waitFor(() => expect(vi.mocked(api.get)).toHaveBeenCalledWith('/contact/token'))
+    expect(screen.queryByText(/@gmail\.com/)).toBeNull()
+    expect(screen.getByRole('link', { name: 'Contato' })).toHaveAttribute('href', '#contato')
+
+    await user.click(screen.getByRole('button', { name: 'Enviar mensagem' }))
+    expect(screen.getByLabelText('Seu e-mail')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Informe seu e-mail para eu poder responder.')).toBeInTheDocument()
+    expect(screen.getByText('Escreva pelo menos 10 caracteres.')).toBeInTheDocument()
+    expect(vi.mocked(api.post)).not.toHaveBeenCalledWith('/contact', expect.anything())
+
+    await user.type(screen.getByLabelText(/Nome/), 'Rita')
+    await user.type(screen.getByLabelText('Seu e-mail'), 'rita@exemplo.com')
+    await user.type(screen.getByLabelText('Mensagem'), 'Adorei o app, uma sugestão!')
+    await user.click(screen.getByRole('button', { name: 'Enviar mensagem' }))
+    expect(screen.getByRole('button', { name: /Enviando/ })).toBeDisabled()
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(vi.mocked(api.post)).toHaveBeenCalledWith('/contact', { name: 'Rita', email: 'rita@exemplo.com', message: 'Adorei o app, uma sugestão!', website: '', token: 'form-token' })
+    expect(await screen.findByRole('heading', { name: 'Mensagem enviada!' })).toBeInTheDocument()
+    // The confirmation shows no e-mail address at all.
+    expect(screen.getByRole('heading', { name: 'Mensagem enviada!' }).closest('[role="status"]')).not.toHaveTextContent('@')
+    vi.useRealTimers()
+  })
+
+  it('"/" takes signed-in people to the Painel', async () => {
+    renderApp('/')
+    expect(await screen.findByRole('heading', { level: 1, name: /olá, augusto/i })).toBeInTheDocument()
+  })
+
   it('unknown routes redirect to the dashboard', async () => {
     renderApp('/nao-existe')
     expect(await screen.findByRole('heading', { level: 1, name: /olá, augusto/i })).toBeInTheDocument()
@@ -91,6 +152,7 @@ describe('axe on every screen (improvement 43: axe in the unit tests)', () => {
   })
 
   const SCREENS: [string, RegExp | string, boolean?][] = [
+    ['/', /emprestou\? anota/i, false],
     ['/login', 'Entrar', false],
     ['/dashboard', /olá, augusto/i],
     ['/debtors', 'Devedores'],
