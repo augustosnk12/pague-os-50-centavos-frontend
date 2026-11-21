@@ -43,3 +43,6 @@ export const cssVar = {
   // radius
   radius: 'var(--radius)',
 } as const
+
+/** --bg of each theme in hex, for <meta name="theme-color"> (same as the manifest in vite.config.ts). */
+export const THEME_COLOR = { light: '#faf9fe', dark: '#0d0b13' } as const
