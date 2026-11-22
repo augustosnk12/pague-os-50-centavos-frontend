@@ -130,7 +130,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
         {phone && <Item icon={phone.icon} title={phone.title} sub={phone.sub} onClick={then(phone.run)} />}
         <Item icon="user" title="Ver contato e anotações" onClick={then(onInfo)} />
         {onPayments && <Item icon="history" title="Pagamentos" sub={paymentsCount === 1 ? '1 pagamento' : `${paymentsCount} pagamentos`} onClick={then(onPayments)} />}
-        <Item icon="receipt" title="Enviar extrato" sub="O que deve, numa imagem ou mensagem" onClick={then(onStatement)} />
+        <Item icon="receipt" title="Enviar extrato" sub="O que deve, em imagem ou texto" onClick={then(onStatement)} />
         <Item icon="edit" title="Editar cadastro" onClick={then(onEdit)} />
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />
