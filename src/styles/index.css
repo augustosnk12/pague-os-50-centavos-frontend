@@ -1495,7 +1495,14 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-adm-switch[aria-checked="true"] .sw { background: var(--primary); }
 .lt-adm-switch[aria-checked="true"] .sw::after { transform: translateX(16px); }
 /* Gmail-style pager: "1–20 de 45 ‹ ›" at the top right of the list. */
-.lt-adm-pager { display: flex; align-items: center; justify-content: flex-end; gap: 2px; margin: -4px 0 6px; }
+.lt-adm-pager {
+  display: flex; align-items: center; justify-content: flex-end; gap: 2px; margin: -4px -8px 6px; padding: 4px 8px;
+  /* Stays under the app header and the back bar while the list scrolls. */
+  position: sticky; top: calc(var(--app-head-h, 60px) + var(--backbar-h, 0px)); z-index: 3;
+  background: color-mix(in oklch, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent; transition: border-color var(--dur-fast) var(--ease-std);
+}
+.lt-adm-pager[data-stuck] { border-bottom-color: var(--border); }
 .lt-adm-pager > span { margin-right: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lt-adm-pg { width: 36px; height: 36px; display: grid; place-items: center; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; }
 .lt-adm-pg:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }

@@ -167,6 +167,17 @@ function LendersTab({ plans }: { plans: AdminPlan[] }) {
   const [lenderId, setLenderId] = useState<string | null>(null)
   const listTop = useRef<HTMLDivElement>(null)
   const search = useDebounced(q.trim())
+  // The pager is sticky: once the marker right above it leaves the screen
+  // (under the header), the pager is "stuck" and shows its bottom border.
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = listTop.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const head = parseFloat(getComputedStyle(el).scrollMarginTop) || 0
+    const io = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting && e.boundingClientRect.top < head), { rootMargin: `-${Math.round(head)}px 0px 0px 0px` })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   // A new search or filter starts again at page 1.
   const [seen, setSeen] = useState({ search, filter })
@@ -210,7 +221,8 @@ function LendersTab({ plans }: { plans: AdminPlan[] }) {
         ))}
       </div>
 
-      <div ref={listTop} style={{ scrollMarginTop: 'calc(var(--app-head-h, 60px) + 12px)' }} />
+      {/* Marker: the pager below sticks right where this goes off screen (same offset as its sticky top). */}
+      <div ref={listTop} style={{ scrollMarginTop: 'calc(var(--app-head-h, 60px) + var(--backbar-h, 0px))' }} />
       {lenders.isError && !data ? (
         <ErrorState onRetry={() => void lenders.refetch()} retrying={lenders.isFetching} />
       ) : !data ? (
@@ -220,7 +232,7 @@ function LendersTab({ plans }: { plans: AdminPlan[] }) {
       ) : (
         <>
           {/* Like Gmail: "1–20 de 45 ‹ ›" right above the list. */}
-          <nav className="lt-adm-pager" aria-label="Páginas de contas">
+          <nav className="lt-adm-pager" aria-label="Páginas de contas" data-stuck={stuck || undefined}>
             <span className="lt-set-s" aria-live="polite">
               <span className="lt-sr-only">Contas </span>
               {fmtCount(from)}–{fmtCount(to)} de {fmtCount(data.total)}
