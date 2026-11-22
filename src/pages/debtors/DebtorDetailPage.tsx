@@ -174,6 +174,8 @@ function DebtorProfile({ id }: { id: string }) {
       : activeMonthly
         ? `Encerre a recorrência de ${activeMonthly.description || 'dívida mensal'} para arquivar`
         : null
+  // One line in the ⋯ menu; the tap (toast) and the delete sheet keep the full reason.
+  const blockedShort = numbers.owed > 0 ? `Quite os ${fmtMoney(numbers.owed / 100)} antes` : blockedBy
   const rel = getReliabilityOption(debtor.reliability)
   // "Cobrar" only stops when there is nothing to charge. Without a phone (or with
   // one WhatsApp can't use) it still opens the sheet, which asks for the number
@@ -515,7 +517,7 @@ function DebtorProfile({ id }: { id: string }) {
         open={actionsOpen}
         onClose={() => setActionsOpen(false)}
         debtor={debtor}
-        archive={{ archived, blockedBy }}
+        archive={{ archived, blockedBy, blockedShort }}
         onInfo={() => setInfoOpen(true)}
         onStatement={() => setStatementOpen(true)}
         onPayments={detail === 'lean' ? () => setPaysOpen(true) : undefined}
@@ -563,7 +565,7 @@ function DebtorProfile({ id }: { id: string }) {
         onClose={() => setConfirmDelete(false)}
         debtor={debtor}
         debts={debts}
-        archive={{ archived, blockedBy }}
+        archive={{ archived, blockedBy, blockedShort }}
         received={numbers.received}
         busy={deleteDebtor.isPending}
         onArchive={() => {

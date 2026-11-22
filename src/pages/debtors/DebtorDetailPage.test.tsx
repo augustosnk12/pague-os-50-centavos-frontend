@@ -118,11 +118,13 @@ describe('Perfil do devedor (S4)', () => {
     const menu = await screen.findByRole('dialog', { name: 'João Araújo' })
     const archive = within(menu).getByRole('button', { name: /Arquivar João/ })
     expect(archive).toHaveAttribute('aria-disabled', 'true')
-    expect(archive).toHaveTextContent(/Quite os R\$\s430,00 em aberto para arquivar/)
+    // One line in the menu; the tap says the full reason.
+    expect(archive).toHaveTextContent(/Quite os R\$\s430,00 antes$/)
     // Not a touch screen: copy the phone instead of calling.
     expect(within(menu).getByRole('button', { name: /Copiar telefone/ })).toBeInTheDocument()
     await user.click(archive)
     expect(patch).not.toHaveBeenCalled()
+    expect(await screen.findByText(/Quite os R\$\s430,00 em aberto para arquivar/)).toBeInTheDocument()
   })
 
   it('all paid off: Arquivar works, shows the banner, "Reativar" brings back', async () => {

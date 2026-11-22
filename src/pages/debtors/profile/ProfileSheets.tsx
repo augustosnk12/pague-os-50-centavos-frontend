@@ -99,6 +99,8 @@ export interface ArchiveState {
   archived: boolean
   /** Why archiving is not allowed now (owes something, or an active monthly debt). */
   blockedBy: string | null
+  /** The same reason, short enough for one line under "Arquivar" in the ⋯ menu. */
+  blockedShort?: string | null
 }
 
 export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onStatement, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
@@ -135,7 +137,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />
         ) : archive.blockedBy ? (
-          <Item icon="archive" title={`Arquivar ${first}`} sub={archive.blockedBy} disabled onClick={() => onBlocked(archive.blockedBy!)} />
+          <Item icon="archive" title={`Arquivar ${first}`} sub={archive.blockedShort ?? archive.blockedBy} disabled onClick={() => onBlocked(archive.blockedBy!)} />
         ) : (
           <Item icon="archive" title={`Arquivar ${first}`} sub="Some das listas. Dá para reativar depois." onClick={then(() => onArchive(true))} />
         )}
