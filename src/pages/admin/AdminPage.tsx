@@ -219,6 +219,19 @@ function LendersTab({ plans }: { plans: AdminPlan[] }) {
         <EmptyState icon="users" title="Nenhuma conta encontrada" sub="Tente outro e-mail ou filtro." />
       ) : (
         <>
+          {/* Like Gmail: "1–20 de 45 ‹ ›" right above the list. */}
+          <nav className="lt-adm-pager" aria-label="Páginas de contas">
+            <span className="lt-set-s" aria-live="polite">
+              <span className="lt-sr-only">Contas </span>
+              {fmtCount(from)}–{fmtCount(to)} de {fmtCount(data.total)}
+            </span>
+            <button type="button" className="lt-adm-pg" disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Página anterior" title="Página anterior">
+              <Icon name="chevronLeft" size={20} />
+            </button>
+            <button type="button" className="lt-adm-pg" disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Próxima página" title="Próxima página">
+              <Icon name="chevronRight" size={20} />
+            </button>
+          </nav>
           <div aria-busy={lenders.isPlaceholderData || undefined} className="lt-adm-page" data-loading={lenders.isPlaceholderData || undefined}>
             <ListGroup label="Contas">
               {data.items.map((l) => {
@@ -253,18 +266,6 @@ function LendersTab({ plans }: { plans: AdminPlan[] }) {
               })}
             </ListGroup>
           </div>
-
-          <nav className="lt-adm-pager" aria-label="Páginas de contas">
-            <button type="button" className="lt-chip" disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Página anterior">
-              <Icon name="chevronLeft" size={16} /> Anterior
-            </button>
-            <span className="lt-set-s" aria-live="polite">
-              {fmtCount(from)}–{fmtCount(to)} de {fmtCount(data.total)}{pages > 1 && <> · página {page} de {pages}</>}
-            </span>
-            <button type="button" className="lt-chip" disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Próxima página">
-              Próxima <Icon name="chevronRight" size={16} />
-            </button>
-          </nav>
         </>
       )}
 

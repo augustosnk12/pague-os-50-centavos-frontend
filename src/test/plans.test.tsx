@@ -150,14 +150,17 @@ describe('Administração (melhoria 63)', () => {
       Promise.resolve({ data: url === '/me/plan' ? plan : url === '/admin/lenders' ? page(cfg?.params?.page ?? 1) : fakeGet(url) }))
     const user = userEvent.setup()
     renderApp('/admin')
-    expect(await screen.findByText(/1–20 de 45 · página 1 de 3/)).toBeInTheDocument()
+    expect(await screen.findByText(/1–20 de 45/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
+    // At the top, like Gmail: the pager comes before the list.
+    const pager = screen.getByRole('navigation', { name: 'Páginas de contas' })
+    expect(pager.compareDocumentPosition(screen.getByRole('list', { name: 'Contas' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Próxima página' }))
-    expect(await screen.findByText(/21–40 de 45 · página 2 de 3/)).toBeInTheDocument()
+    expect(await screen.findByText(/21–40 de 45/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Conta 2-0,/ })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Próxima página' }))
-    expect(await screen.findByText(/41–45 de 45 · página 3 de 3/)).toBeInTheDocument()
+    expect(await screen.findByText(/41–45 de 45/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Próxima página' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Pediram mais' }))
