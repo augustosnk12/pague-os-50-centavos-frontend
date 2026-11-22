@@ -773,7 +773,7 @@ a.lt-pay-desc:hover { color: var(--primary); text-decoration-color: currentColor
 .lt-switch-row[aria-checked="true"] .lt-switch span { transform: translateX(18px); }
 
 .lt-btn-lg[data-variant="wa"] { background: var(--wa); color: var(--surface); }
-.lt-btn-lg[data-variant="wa"]:hover:not(:disabled) { background: color-mix(in oklch, var(--wa) 88%, black); }
+.lt-btn-lg[data-variant="wa"]:hover:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in oklch, var(--wa) 88%, black); }
 button.lt-wa-mini { cursor: pointer; padding: 0; }
 
 /* Swipe left to "Cobrar" (overdue rows with a phone). */

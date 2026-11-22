@@ -138,9 +138,35 @@ describe('Perfil do devedor (S4)', () => {
     await user.click(within(await screen.findByRole('dialog', { name: 'João Araújo' })).getByRole('button', { name: /Arquivar João/ }))
     expect(patch).toHaveBeenCalledWith('/debtors/d1/archive')
     expect(await screen.findByText('Arquivado · fora das listas e dos totais')).toBeInTheDocument()
-    expect(within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Reativar' }))
+    const newDebt = within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })
+    expect(newDebt).toHaveAttribute('aria-disabled', 'true')
+    // Tapping it explains (a disabled button would swallow the tap on phones) and offers "Reativar".
+    await user.click(newDebt)
+    expect(await screen.findByText('João está arquivado. Reative para criar uma dívida.')).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Reativar' })[0])
     expect(patch).toHaveBeenCalledWith('/debtors/d1/unarchive')
+  })
+
+  it('"Cobrar" without a phone: the tap explains and "Adicionar telefone" opens the form', async () => {
+    debtor = { ...debtor, phone: null }
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    const cobrar = await screen.findByRole('button', { name: /Cobrar/ })
+    expect(cobrar).toHaveAttribute('aria-disabled', 'true')
+    await user.click(cobrar)
+    expect(await screen.findByText('Sem telefone cadastrado. Adicione o de João para cobrar no WhatsApp.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /Lembrar/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Adicionar telefone' }))
+    expect(await screen.findByRole('dialog', { name: 'Editar cadastro' })).toBeInTheDocument()
+  })
+
+  it('"Cobrar" with an invalid phone or nothing owed: the tap says why', async () => {
+    debtor = { ...debtor, phone: '123' }
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: /Cobrar/ }))
+    expect(await screen.findByText('O telefone cadastrado não parece válido para o WhatsApp.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Corrigir telefone' })).toBeInTheDocument()
   })
 
   it('tapping the name opens "Contato e anotações" with the indicators', async () => {
