@@ -124,7 +124,8 @@ describe('Perfil do devedor (S4)', () => {
     expect(within(menu).getByRole('button', { name: /Copiar telefone/ })).toBeInTheDocument()
     await user.click(archive)
     expect(patch).not.toHaveBeenCalled()
-    expect(await screen.findByText(/Quite os R\$\s430,00 em aberto para arquivar/)).toBeInTheDocument()
+    // The toast keeps the full reason (only the menu line is short). Generous wait: the full suite runs in parallel.
+    expect(await screen.findByText(/Quite os R\$\s430,00 em aberto para arquivar/, {}, { timeout: 3000 })).toBeInTheDocument()
   })
 
   it('all paid off: Arquivar works, shows the banner, "Reativar" brings back', async () => {
