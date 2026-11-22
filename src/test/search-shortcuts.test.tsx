@@ -57,6 +57,9 @@ describe('S10 · busca e atalhos', () => {
     expect(screen.getAllByRole('button', { name: 'Nova dívida' }).some((b) => b.getAttribute('aria-keyshortcuts') === 'Alt+N')).toBe(true)
     fireEvent.keyDown(window, { key: 'r', code: 'KeyR', altKey: true })
     const picker = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
+    // No autofocus on the search: the phone keyboard stays closed (most pick from the list).
+    await waitFor(() => expect(picker).toHaveFocus())
+    expect(within(picker).getByRole('textbox', { name: 'Buscar parcela por nome ou dívida' })).not.toHaveFocus()
     const rows = await within(picker).findByRole('list', { name: 'Parcelas em aberto' })
     expect(rows).toHaveTextContent('João Araújo')
     // As in Parcelas and the profile: a "›" instead of the "Receber" pill.
