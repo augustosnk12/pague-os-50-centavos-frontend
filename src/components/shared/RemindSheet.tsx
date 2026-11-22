@@ -156,7 +156,6 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
                   if (phoneErr) setPhoneErr('')
                 }}
                 onBlur={() => phone.trim() && setPhoneErr(phoneIssue(phone))}
-                autoFocus
               />
               <p id={phoneId} className={phoneErr ? 'lt-field-error' : 'lt-remind-info'} role={phoneErr ? 'alert' : undefined}>
                 {phoneErr || (debtor.phone ? `O telefone cadastrado (${debtor.phone}) não serve para o WhatsApp. Corrija aqui; ele fica salvo no cadastro.` : 'Sem telefone no cadastro. Informe aqui: ele fica salvo para as próximas cobranças.')}
