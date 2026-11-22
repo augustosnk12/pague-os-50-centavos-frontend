@@ -160,11 +160,13 @@ describe('Parcelas (S3)', () => {
     expect(screen.getByRole('tab', { name: /Atrasadas/ })).toHaveTextContent('Atrasadas0')
   })
 
-  it('"Detalhes": 3-colour breakdown and % received; ?resumo=1 (from the Painel) opens it; remembered', async () => {
+  it('the arrow of "A receber": 3-colour breakdown and % received; ?resumo=1 (from the Painel) opens it; remembered', async () => {
     const user = userEvent.setup()
     renderApp('/installments?resumo=1')
     const total = await screen.findByRole('button', { name: /^A receber/ })
     expect(total).toHaveAttribute('aria-expanded', 'true')
+    // Only the arrow: no "Detalhes" / "Ocultar" text.
+    expect(total).not.toHaveTextContent(/Detalhes|Ocultar/)
     expect(screen.getByText(/R\$\s400,00 previsto neste mês · 25% recebido/)).toBeInTheDocument()
     expect(screen.getByText('Recebido').closest('div')).toHaveTextContent(/R\$\s100,00/)
     await user.click(total)

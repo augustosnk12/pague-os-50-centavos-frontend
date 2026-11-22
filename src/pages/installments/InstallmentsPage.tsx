@@ -44,7 +44,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /**
  * Parcelas (S3, simplified by improvement 61 — proposal D): the period in a
  * chip next to the debtor filter; a frame with the period and, always in
- * sight, what is left to receive in it ("Detalhes" opens the breakdown);
+ * sight, what is left to receive in it (its arrow opens the breakdown);
  * 3 tabs (count only on Atrasadas); days without subtotals; lean rows.
  * Period, tab and debtor filter live in the URL.
  */
@@ -337,7 +337,7 @@ function PeriodMenu({ value, onChange }: { value: Period; onChange: (p: Period) 
 
 /**
  * Base of the frame, always in sight: "A receber · R$ X" of the period.
- * "Detalhes" opens the 3-colour bar, Recebido · Atrasado · A vencer and
+ * Its arrow opens the 3-colour bar, Recebido · Atrasado · A vencer and
  * "R$ Y previsto … · Z% recebido" (remembered on the device).
  */
 function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; where: string; open: boolean; onToggle: () => void }) {
@@ -352,11 +352,11 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
   ]
   return (
     <>
-      <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle} title={open ? 'Ocultar detalhes' : 'Ver detalhes'}>
         <span className="lt-ipd-k">A receber</span>
         <span className="lt-ipd-v">{fmtMoney(due / 100)}</span>
+        {/* Only the arrow: aria-expanded already says open/closed to screen readers. */}
         <span className="lt-ipd-info" aria-hidden="true">
-          {open ? 'Ocultar' : 'Detalhes'}
           <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
         </span>
       </button>
