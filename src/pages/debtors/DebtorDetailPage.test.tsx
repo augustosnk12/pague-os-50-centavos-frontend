@@ -124,8 +124,9 @@ describe('Perfil do devedor (S4)', () => {
     expect(within(menu).getByRole('button', { name: /Copiar telefone/ })).toBeInTheDocument()
     await user.click(archive)
     expect(patch).not.toHaveBeenCalled()
-    // The toast keeps the full reason (only the menu line is short). Generous wait: the full suite runs in parallel.
-    expect(await screen.findByText(/Quite os R\$\s430,00 em aberto para arquivar/, {}, { timeout: 3000 })).toBeInTheDocument()
+    // The toast keeps the full reason (only the menu line is short). The text is also copied, a moment later,
+    // into the screen-reader live region, so it can be found twice.
+    expect((await screen.findAllByText(/Quite os R\$\s430,00 em aberto para arquivar/)).length).toBeGreaterThan(0)
   })
 
   it('all paid off: Arquivar works, shows the banner, "Reativar" brings back', async () => {
