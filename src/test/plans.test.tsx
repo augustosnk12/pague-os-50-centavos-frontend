@@ -130,6 +130,8 @@ describe('Administração (melhoria 63)', () => {
     expect(await screen.findByRole('button', { name: /^Augusto, augusto@email\.com, plano Grátis/ })).toBeInTheDocument()
     expect(screen.getByText(/1–1 de 1/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Plano Grátis/ })).not.toBeInTheDocument()
+    const chips = within(screen.getByRole('group', { name: 'Filtrar contas' })).getAllByRole('button').map((b) => b.textContent)
+    expect(chips).toEqual(['Todas', 'No limite', 'Pediram mais', 'Grátis', 'Pro'])
 
     await user.click(within(tabs).getByRole('tab', { name: /Planos/ }))
     expect(await screen.findByRole('button', { name: /^Plano Grátis: 10 devedores, 50 dívidas, 1 conta, padrão/ })).toBeInTheDocument()

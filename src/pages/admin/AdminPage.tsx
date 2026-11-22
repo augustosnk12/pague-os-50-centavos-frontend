@@ -32,9 +32,7 @@ const use = (u: UsageItem) => `${fmtCount(u.used)}/${u.limit === null ? '∞' : 
 /** Filter chips of "Contas": a status or a plan (one at a time), all answered by the API. */
 const STATUS_FILTERS: { id: LenderStatus; label: string }[] = [
   { id: 'full', label: 'No limite' },
-  { id: 'near', label: 'Perto' },
   { id: 'requested', label: 'Pediram mais' },
-  { id: 'adjusted', label: 'Com ajuste' },
 ]
 const toQuery = (filter: string): Pick<LenderQuery, 'status' | 'planId'> =>
   filter.startsWith('plan:') ? { planId: filter.slice(5) } : filter === 'all' ? {} : { status: filter as LenderStatus }
