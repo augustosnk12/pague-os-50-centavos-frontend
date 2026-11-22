@@ -17,6 +17,7 @@ import { usePreferences } from '../../contexts/PreferencesContext'
 import { localToday } from '../../lib/date'
 import { fmtMoney, fmtSentence } from '../../lib/format'
 import { GettingStarted } from './GettingStarted'
+import { LimitBanner } from '../../components/shared/LimitBanner'
 import type { DashboardOverview } from '../../types/dashboard'
 import type { InstallmentEnriched } from '../../types/installment'
 
@@ -60,6 +61,7 @@ export function DashboardPage() {
   return (
     <main className="lt-page lt-anim-fade">
       <PageHeader title={`Olá, ${firstName} 👋`} sub={subtitle} />
+      <LimitBanner kinds={['debtors', 'debts']} />
 
       {overview.isError && !o ? (
         <ErrorState onRetry={() => void overview.refetch()} retrying={overview.isFetching} />

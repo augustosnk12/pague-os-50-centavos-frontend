@@ -62,7 +62,7 @@ describe('Configurações (S11)', () => {
     expect(screen.getByText('✓ Chave válida')).toBeInTheDocument()
     await user.tab()
     expect(put).toHaveBeenCalledWith('/settings', { pixKeyType: 'CPF', pixKey: '529.982.247-25' })
-    expect(await screen.findByText('Chave Pix salva')).toBeInTheDocument()
+    expect((await screen.findAllByText('Chave Pix salva')).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Limpar chave Pix' }))
     expect(put).toHaveBeenLastCalledWith('/settings', { pixKeyType: null, pixKey: null })

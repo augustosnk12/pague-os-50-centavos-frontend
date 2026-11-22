@@ -25,6 +25,8 @@ import { PageHeader } from '../../components/ui/PageHeader'
 import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
 import { NavRow } from '../../components/ui/ListRow'
 import { Segmented } from '../../components/ui/Segmented'
+import { PlanSection } from './PlanSection'
+import { usePlan } from '../../hooks/plan/usePlan'
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 const SIZES: { id: TextSize; label: string; px: number }[] = [
@@ -143,6 +145,7 @@ export function SettingsPage() {
   const { detail, setDetail, textSize, setTextSize } = usePreferences()
   const { showToast } = useToast()
   const settings = useSettings()
+  const { data: plan } = usePlan()
   const update = useUpdateSettings()
   const [calcOpen, setCalcOpen] = useState(false)
   const [dataOpen, setDataOpen] = useState(false)
@@ -171,6 +174,8 @@ export function SettingsPage() {
           </div>
         </div>
       )}
+
+      <PlanSection plan={plan} />
 
       {/* Recebimentos (S12, improvement 38): right under the account, as in the mock. */}
       <ListGroup style={{ marginTop: 10 }}>
@@ -273,6 +278,10 @@ export function SettingsPage() {
           />
         )}
         <NavRow icon="calc" title="Calculadora" onClick={() => setCalcOpen(true)} />
+        {/* Melhoria 63: só para o e-mail de ADMIN_EMAIL (a API barra os outros com 404). */}
+        {plan?.isAdmin && (
+          <NavRow icon="shield" title="Administração" sub="Planos e limites das contas · só para você" onClick={() => navigate('/admin')} onPointerEnter={() => preloadRoute('/admin')} />
+        )}
       </ListGroup>
 
       <SectionHeader variant="plain">Seus dados</SectionHeader>

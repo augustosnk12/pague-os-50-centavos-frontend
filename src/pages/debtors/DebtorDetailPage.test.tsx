@@ -118,11 +118,15 @@ describe('Perfil do devedor (S4)', () => {
     const menu = await screen.findByRole('dialog', { name: 'João Araújo' })
     const archive = within(menu).getByRole('button', { name: /Arquivar João/ })
     expect(archive).toHaveAttribute('aria-disabled', 'true')
-    expect(archive).toHaveTextContent(/Quite os R\$\s430,00 em aberto para arquivar/)
+    // One line in the menu; the tap says the full reason.
+    expect(archive).toHaveTextContent(/Quite os R\$\s430,00 antes$/)
     // Not a touch screen: copy the phone instead of calling.
     expect(within(menu).getByRole('button', { name: /Copiar telefone/ })).toBeInTheDocument()
     await user.click(archive)
     expect(patch).not.toHaveBeenCalled()
+    // The toast keeps the full reason (only the menu line is short). The text is also copied, a moment later,
+    // into the screen-reader live region, so it can be found twice.
+    expect((await screen.findAllByText(/Quite os R\$\s430,00 em aberto para arquivar/)).length).toBeGreaterThan(0)
   })
 
   it('all paid off: Arquivar works, shows the banner, "Reativar" brings back', async () => {
@@ -138,9 +142,55 @@ describe('Perfil do devedor (S4)', () => {
     await user.click(within(await screen.findByRole('dialog', { name: 'João Araújo' })).getByRole('button', { name: /Arquivar João/ }))
     expect(patch).toHaveBeenCalledWith('/debtors/d1/archive')
     expect(await screen.findByText('Arquivado · fora das listas e dos totais')).toBeInTheDocument()
-    expect(within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Reativar' }))
+    const newDebt = within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })
+    expect(newDebt).toHaveAttribute('aria-disabled', 'true')
+    // Tapping it explains (a disabled button would swallow the tap on phones) and offers "Reativar".
+    await user.click(newDebt)
+    expect(await screen.findByText('João está arquivado. Reative para criar uma dívida.')).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Reativar' })[0])
     expect(patch).toHaveBeenCalledWith('/debtors/d1/unarchive')
+  })
+
+  it('"Cobrar" without a phone: the sheet asks for it; "Salvar e abrir WhatsApp" saves it and opens WhatsApp', async () => {
+    debtor = { ...debtor, phone: null }
+    const put = vi.mocked(api.put)
+    put.mockReset().mockImplementation((_url: string, body?: unknown) => Promise.resolve({ data: { ...debtor, ...(body as object) } }))
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    const cobrar = await screen.findByRole('button', { name: /Cobrar/ })
+    expect(cobrar).not.toHaveAttribute('aria-disabled')
+    await user.click(cobrar)
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    const field = within(sheet).getByLabelText('Telefone de João')
+    expect(within(sheet).getByText(/Sem telefone no cadastro/)).toBeInTheDocument()
+    const go = within(sheet).getByRole('button', { name: /Salvar e abrir WhatsApp/ })
+
+    // Incomplete number: says so, keeps the sheet, saves nothing.
+    await user.type(field, '1191234')
+    await user.click(go)
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('Telefone incompleto')
+    expect(put).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+
+    await user.clear(field)
+    await user.type(field, '11912345678')
+    expect(field).toHaveValue('(11) 91234-5678')
+    await user.click(go)
+    expect(put).toHaveBeenCalledWith('/debtors/d1', { phone: '(11) 91234-5678' })
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/api\.whatsapp\.com\/send\?phone=5511912345678&text=/), '_blank', 'noopener,noreferrer')
+    expect(await screen.findByText('Telefone salvo no cadastro de João')).toBeInTheDocument()
+    open.mockRestore()
+  })
+
+  it('"Cobrar" with a phone WhatsApp cannot use: the sheet shows it to fix; nothing owed: the tap says why', async () => {
+    debtor = { ...debtor, phone: '123' }
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: /Cobrar/ }))
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    expect(within(sheet).getByText(/O telefone cadastrado \(123\) não serve para o WhatsApp/)).toBeInTheDocument()
+    expect(within(sheet).getByLabelText('Telefone de João')).toHaveValue('(12) 3')
   })
 
   it('tapping the name opens "Contato e anotações" with the indicators', async () => {

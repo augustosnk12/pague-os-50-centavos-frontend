@@ -99,6 +99,8 @@ export interface ArchiveState {
   archived: boolean
   /** Why archiving is not allowed now (owes something, or an active monthly debt). */
   blockedBy: string | null
+  /** The same reason, short enough for one line under "Arquivar" in the ⋯ menu. */
+  blockedShort?: string | null
 }
 
 export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onStatement, onPayments, paymentsCount = 0, onEdit, onArchive, onDelete, onCopied, onBlocked }: {
@@ -130,17 +132,17 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
         {phone && <Item icon={phone.icon} title={phone.title} sub={phone.sub} onClick={then(phone.run)} />}
         <Item icon="user" title="Ver contato e anotações" onClick={then(onInfo)} />
         {onPayments && <Item icon="history" title="Pagamentos" sub={paymentsCount === 1 ? '1 pagamento' : `${paymentsCount} pagamentos`} onClick={then(onPayments)} />}
-        <Item icon="receipt" title="Enviar extrato" sub="O que deve, numa imagem ou mensagem" onClick={then(onStatement)} />
+        <Item icon="receipt" title="Enviar extrato" sub="O que deve, em imagem ou texto" onClick={then(onStatement)} />
         <Item icon="edit" title="Editar cadastro" onClick={then(onEdit)} />
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />
         ) : archive.blockedBy ? (
-          <Item icon="archive" title={`Arquivar ${first}`} sub={archive.blockedBy} disabled onClick={() => onBlocked(archive.blockedBy!)} />
+          <Item icon="archive" title={`Arquivar ${first}`} sub={archive.blockedShort ?? archive.blockedBy} disabled onClick={() => onBlocked(archive.blockedBy!)} />
         ) : (
           <Item icon="archive" title={`Arquivar ${first}`} sub="Some das listas. Dá para reativar depois." onClick={then(() => onArchive(true))} />
         )}
         <div className="lt-acts-sep" />
-        <Item icon="trash" title={`Excluir ${first}`} sub="Apaga também as dívidas e pagamentos" danger onClick={then(onDelete)} />
+        <Item icon="trash" title={`Excluir ${first}`} sub="Apaga dívidas e pagamentos" danger onClick={then(onDelete)} />
       </div>
     </Modal>
   )

@@ -10,6 +10,11 @@ import { brCode } from '../../lib/pix'
 import { pixBlock, reminderItems, reminderText, reminderTotal } from '../../lib/reminder'
 import { whatsappLink } from '../../lib/whatsapp'
 import { fmtPhone } from '../../lib/format'
+import { maskPhone, phoneProblem } from '../../lib/phone'
+import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
+import { useToast } from '../../contexts/ToastContext'
+import { getApiError } from '../../lib/api'
+import { translateApiError } from '../../lib/utils'
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
 
@@ -42,6 +47,13 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
 
   const [text, setText] = useState('')
   const [withPix, setWithPix] = useState(false)
+  // No phone (or one WhatsApp can't use): it is typed right here and saved to the debtor.
+  const [phone, setPhone] = useState('')
+  const [phoneErr, setPhoneErr] = useState('')
+  const phoneRef = useRef<HTMLInputElement>(null)
+  const phoneId = useId()
+  const update = useUpdateDebtor(id)
+  const { showToast } = useToast()
   const ready = !!debtor && !!debts
   const noteId = useId()
   const pixHintId = useId()
@@ -51,6 +63,8 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
     if (!debtorId || !ready) return
     setText(items.length ? reminderText(firstName(debtor.name), items) : '')
     setWithPix(false)
+    setPhone(debtor.phone ? maskPhone(debtor.phone) : '')
+    setPhoneErr('')
   }, [debtorId, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggling Pix adds / removes only its block, keeping the user's edits.
@@ -61,8 +75,31 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
   }
 
   const name = debtor?.name ?? ''
-  const link = debtor ? whatsappLink(debtor.phone, text) : null
-  const blocked = !ready ? '' : !debtor.phone ? 'Cadastre o telefone para lembrar pelo WhatsApp.' : !link ? 'O telefone cadastrado não parece válido para o WhatsApp.' : !items.length ? 'Não há nada em aberto para cobrar.' : ''
+  const askPhone = ready && !whatsappLink(debtor.phone)
+  const link = !debtor ? null : askPhone ? whatsappLink(phone, text) : whatsappLink(debtor.phone, text)
+  const blocked = ready && !items.length ? 'Não há nada em aberto para cobrar.' : ''
+  const phoneIssue = (v: string) => (!v.trim() ? 'Informe o telefone com DDD' : phoneProblem(v) ?? (whatsappLink(v) ? '' : 'Este número não serve para o WhatsApp'))
+
+  const send = () => {
+    if (!items.length || !text.trim()) return
+    if (askPhone) {
+      const issue = phoneIssue(phone)
+      if (issue || !link) {
+        setPhoneErr(issue || 'Este número não serve para o WhatsApp')
+        phoneRef.current?.focus()
+        return
+      }
+      const who = firstName(name)
+      // Opened in the same tap (browsers block windows opened after waiting); the save runs alongside.
+      update.mutate({ phone: phone.trim() }, {
+        onSuccess: () => showToast(`Telefone salvo no cadastro de ${who}`, { icon: 'check' }),
+        onError: (e: unknown) => showToast(translateApiError(getApiError(e), `O telefone não foi salvo no cadastro de ${who}.`), { icon: 'alert' }),
+      })
+    }
+    if (!link) return
+    window.open(link, '_blank', 'noopener,noreferrer')
+    onClose()
+  }
 
   return (
     <Modal
@@ -81,15 +118,12 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
           type="button"
           className="lt-btn-lg"
           data-variant="wa"
-          disabled={!link || !items.length || !text.trim()}
-          aria-describedby={blocked ? noteId : undefined}
-          onClick={() => {
-            if (!link) return
-            window.open(link, '_blank', 'noopener,noreferrer')
-            onClose()
-          }}
+          disabled={!ready || !items.length || !text.trim()}
+          aria-disabled={(askPhone && !link) || undefined}
+          aria-describedby={blocked ? noteId : askPhone ? phoneId : undefined}
+          onClick={send}
         >
-          <Icon name="send" size={16} /> Abrir WhatsApp
+          <Icon name="send" size={16} /> {askPhone ? 'Salvar e abrir WhatsApp' : 'Abrir WhatsApp'}
         </button>
       }
     >
@@ -103,6 +137,30 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
         <div className="lt-remind-body">
           {blocked ? (
             <p id={noteId} className="lt-remind-blocked" role="status"><Icon name="alert" size={16} /> {blocked}</p>
+          ) : askPhone ? (
+            <div className="lt-remind-phone">
+              <label htmlFor={`${phoneId}-in`} className="lt-flabel">Telefone de {firstName(name)}</label>
+              <input
+                ref={phoneRef}
+                id={`${phoneId}-in`}
+                className="lt-remind-phone-in"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="(11) 98765-4321"
+                value={phone}
+                aria-invalid={!!phoneErr || undefined}
+                aria-describedby={phoneId}
+                onChange={(e) => {
+                  setPhone(maskPhone(e.target.value))
+                  if (phoneErr) setPhoneErr('')
+                }}
+                onBlur={() => phone.trim() && setPhoneErr(phoneIssue(phone))}
+              />
+              <p id={phoneId} className={phoneErr ? 'lt-field-error' : 'lt-remind-info'} role={phoneErr ? 'alert' : undefined}>
+                {phoneErr || (debtor.phone ? `O telefone cadastrado (${debtor.phone}) não serve para o WhatsApp. Corrija aqui; ele fica salvo no cadastro.` : 'Sem telefone no cadastro. Informe aqui: ele fica salvo para as próximas cobranças.')}
+              </p>
+            </div>
           ) : (
             <p className="lt-remind-info">
               Mensagem gerada com os valores atuais. Edite à vontade antes de enviar para <b>{fmtPhone(debtor.phone ?? '')}</b>.

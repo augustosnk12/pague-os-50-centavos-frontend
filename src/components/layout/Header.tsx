@@ -13,6 +13,7 @@ import { Avatar } from '../ui/Avatar'
 import { NAV } from '../../constants/nav'
 import { SupportSheet } from '../shared/SupportSheet'
 import { supportPix } from '../../lib/support'
+import { usePlan } from '../../hooks/plan/usePlan'
 
 /** Same breakpoint as `.lt-desktop-only` in index.css. */
 const DESKTOP_MIN = 880
@@ -21,6 +22,7 @@ const SCROLL_SLACK = 6
 
 function UserMenu({ onCalc }: { onCalc: () => void }) {
   const navigate = useNavigate()
+  const { data: plan } = usePlan()
   const [supportOpen, setSupportOpen] = useState(false)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -142,6 +144,11 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
           {item('settings', 'gear', 'Configurações', () => {
             close(false)
             navigate('/settings')
+          })}
+
+          {plan?.isAdmin && item('admin', 'shield', 'Administração', () => {
+            close(false)
+            navigate('/admin')
           })}
 
           {item('theme', theme === 'dark' ? 'sun' : 'moon', theme === 'dark' ? 'Tema claro' : 'Tema escuro', () => {

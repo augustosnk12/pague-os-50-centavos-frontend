@@ -155,6 +155,17 @@ const API_ERROR_MAP: Record<string, string> = {
   'Installment is already paid': 'Esta parcela já foi paga.',
   'Payment not found': 'Pagamento não encontrado.',
   'Debt has payments and cannot be deleted': 'Esta dívida tem pagamentos registrados e não pode ser excluída.',
+  // Planos e Administração (melhorias 62/63)
+  'Debtor limit reached': 'Você chegou ao limite de devedores.',
+  'Debt limit reached': 'Você chegou ao limite de dívidas.',
+  'Limit request already sent': 'Seu pedido já foi enviado. Dá para mandar de novo em 24 horas.',
+  'Limit requests are unavailable': 'Não foi possível enviar o pedido agora. Tente mais tarde.',
+  'Plan not found': 'Plano não encontrado.',
+  'Plan name already exists': 'Já existe um plano com esse nome.',
+  'There must be a default plan': 'Precisa existir um plano padrão. Marque outro plano como padrão.',
+  'The default plan cannot be deleted': 'O plano padrão não pode ser excluído.',
+  'Plan has accounts': 'Este plano tem contas. Mova-as para outro plano antes de excluir.',
+  'Lender not found': 'Conta não encontrada.',
 }
 
 export function translateApiError(msg: string | undefined | null, fallback = 'Ocorreu um erro. Tente novamente.'): string {

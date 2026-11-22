@@ -52,6 +52,12 @@ React 19 + Vite + TypeScript 5 strict, React Router v7, TanStack Query v5, Axios
 - Manifest has **no `theme_color`** on purpose: Chrome on Android paints the system navigation bar with it (one value for both themes); without it the bar follows the phone's light/dark mode. Ignore the plugin's "will not be able to be installed" warning. `background_color` = brand purple (Android splash).
 - Opening screen `#lt-splash` in `index.html`: shown only in `display-mode: standalone`, colored by the saved theme (inline script also sets `data-theme` + theme-color before first paint), removed by `main.tsx` after the first paint.
 
+## Plans and limits (improvements 62/63)
+
+- `GET /me/plan` via `usePlan()` (key `['debtors','me-plan']`, refreshed by every debtor/debt change). `PlanLimitsProvider` (in `AppLayout`) renders the "Limite atingido" sheet: call `blocked('debtors'|'debts')` before opening a create flow and `handleLimitError(e)` in `onError`.
+- Nothing shows while `enforced` is false (API flag `PLAN_LIMITS_ENABLED`). Notices only at the limit. The free (default) plan never shows plan names or that other plans exist (`isFreePlan` in `src/lib/planLimits.ts`); the admin e-mail never shows ("Pedir mais limite" is `POST /me/limit-request`).
+- `/admin` (`src/pages/admin`) only for `isAdmin` (the API checks `ADMIN_EMAIL` and answers 404 to everyone else). Same login as any account.
+
 ## Navigation structure
 
 - **Mobile (< 880px):** fixed `BottomTabs` — Painel | Devedores | [raised +] | Parcelas | Conta. "Conta" opens `AccountSheet` (theme + logout).

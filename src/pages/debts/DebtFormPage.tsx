@@ -23,6 +23,8 @@ import { scrollBehavior } from '../../lib/scroll'
 import { fmtList, fmtMoney } from '../../lib/format'
 import { defaultDue, isInstallmentType, recurringPreview, type RecurrenceEnd } from '../../lib/newDebt'
 import type { DebtType } from '../../types/debt'
+import { usePlanLimits } from '../../contexts/PlanLimitsContext'
+import { LimitBanner } from '../../components/shared/LimitBanner'
 
 const TYPES: { type: DebtType; label: string; sub: string; icon: string }[] = [
   { type: 'CASH', label: 'Dinheiro', sub: 'À vista', icon: 'banknote' },
@@ -58,6 +60,7 @@ export function DebtFormPage() {
   const { data: debtors = [] } = useDebtors()
   const { data: settings } = useSettings()
   const createDebt = useCreateDebt()
+  const limits = usePlanLimits()
   const createDebtor = useCreateDebtor()
 
   const [debtorId, setDebtorId] = useState(searchParams.get('debtorId') ?? '')
@@ -116,6 +119,8 @@ export function DebtFormPage() {
       return
     }
     if (createDebt.isPending || !debtor) return
+    // Melhoria 62: no limite de dívidas, abre a folha do limite.
+    if (limits.blocked('debts')) return
     createDebt.mutate(
       {
         debtorId: debtor.id,
@@ -145,7 +150,9 @@ export function DebtFormPage() {
           // The profile opens with the new debt expanded and in view.
           navigate(`/debtors/${debtor.id}?divida=${data.debt.id}`, { replace: true })
         },
-        onError: (e: unknown) => setErr(translateApiError(getApiError(e), 'Erro ao criar dívida.')),
+        onError: (e: unknown) => {
+          if (!limits.handleLimitError(e)) setErr(translateApiError(getApiError(e), 'Erro ao criar dívida.'))
+        },
       },
     )
   }
@@ -157,7 +164,13 @@ export function DebtFormPage() {
         setNewDebtor(null)
         showToast(`${firstName(d.name)} cadastrado`, { icon: 'check' })
       },
-      onError: (e: unknown) => showToast(translateApiError(getApiError(e), 'Erro ao cadastrar devedor.'), { icon: 'alert' }),
+      onError: (e: unknown) => {
+        if (limits.handleLimitError(e)) {
+          setNewDebtor(null)
+          return
+        }
+        showToast(translateApiError(getApiError(e), 'Erro ao cadastrar devedor.'), { icon: 'alert' })
+      },
     })
   }
 
@@ -165,13 +178,16 @@ export function DebtFormPage() {
   return (
     <main className="lt-page lt-nd">
       <PageHeader back={{ label: back.label, onClick: back.go }} title="Nova dívida" sub="Registre quanto a pessoa deve e gere as parcelas." />
+      <LimitBanner kinds={['debts']} />
 
       <div className="lt-nd-form">
         <DebtorPicker
           debtors={debtors}
           value={debtor}
           onChange={(d) => setDebtorId(d.id)}
-          onCreate={(name) => setNewDebtor(name)}
+          onCreate={(name) => {
+            if (!limits.blocked('debtors')) setNewDebtor(name)
+          }}
           invalid={!!showMissing && missing.field === 'nd-debtor'}
         />
 

@@ -12,7 +12,6 @@ import { Tabs } from '../../components/ui/Tabs'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
-import { whatsappLink } from '../../lib/whatsapp'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
 import { localToday } from '../../lib/date'
@@ -45,7 +44,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /**
  * Parcelas (S3, simplified by improvement 61 — proposal D): the period in a
  * chip next to the debtor filter; a frame with the period and, always in
- * sight, what is left to receive in it ("Detalhes" opens the breakdown);
+ * sight, what is left to receive in it (its arrow opens the breakdown);
  * 3 tabs (count only on Atrasadas); days without subtotals; lean rows.
  * Period, tab and debtor filter live in the URL.
  */
@@ -105,11 +104,11 @@ export function InstallmentsPage() {
   const isNow = isCurrentPeriod(period, anchor, today) && (period !== 'day' || anchor === today)
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
   useReopenPayment(setPayTarget)
-  // Swipe left = WhatsApp reminder, only for debtors with a phone WhatsApp accepts (improvement 27).
-  const reachable = useMemo(() => new Set(debtors.filter((d) => whatsappLink(d.phone)).map((d) => d.id)), [debtors])
+  // Swipe left = WhatsApp reminder (improvement 27). Without a phone the reminder
+  // sheet asks for it (and saves it), so every debtor can be reminded.
   const remindFor = (inst: InstallmentEnriched) => {
     const id = inst.debt?.debtor?.id ?? inst.debt?.debtorId
-    return id && reachable.has(id) ? () => setRemindId(id) : undefined
+    return id ? () => setRemindId(id) : undefined
   }
   const tabName = TABS.find((t) => t[0] === tab)?.[1] ?? ''
 
@@ -338,7 +337,7 @@ function PeriodMenu({ value, onChange }: { value: Period; onChange: (p: Period) 
 
 /**
  * Base of the frame, always in sight: "A receber · R$ X" of the period.
- * "Detalhes" opens the 3-colour bar, Recebido · Atrasado · A vencer and
+ * Its arrow opens the 3-colour bar, Recebido · Atrasado · A vencer and
  * "R$ Y previsto … · Z% recebido" (remembered on the device).
  */
 function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; where: string; open: boolean; onToggle: () => void }) {
@@ -353,11 +352,11 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
   ]
   return (
     <>
-      <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle} title={open ? 'Ocultar detalhes' : 'Ver detalhes'}>
         <span className="lt-ipd-k">A receber</span>
         <span className="lt-ipd-v">{fmtMoney(due / 100)}</span>
+        {/* Only the arrow: aria-expanded already says open/closed to screen readers. */}
         <span className="lt-ipd-info" aria-hidden="true">
-          {open ? 'Ocultar' : 'Detalhes'}
           <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
         </span>
       </button>
