@@ -1159,7 +1159,12 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
   background: var(--primary-weak); color: var(--primary); font: inherit; font-weight: 800; font-size: 0.84375rem;
 }
 .lt-batch-link:hover { border-style: solid; }
-.lt-batch-link-n { font-size: 0.71875rem; font-weight: 700; color: var(--text-muted); }
+/* One line on phones: the label never wraps (ellipsis if ever needed); the count is a small badge. */
+.lt-batch-link > svg { flex-shrink: 0; }
+.lt-batch-link { gap: 8px; padding-inline: 10px; }
+@media (max-width: 359px) { .lt-batch-link > svg:last-child { display: none; } }
+.lt-batch-link-t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-batch-link-n { flex-shrink: 0; min-width: 22px; padding: 2px 7px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--surface); color: var(--primary); font-size: 0.71875rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .lt-pay-more { align-self: center; padding-top: 2px; font-size: 0.78125rem; }
 
 /* ===== Nova dívida (S8) ===== */
@@ -1514,3 +1519,33 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-remind-phone-in:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-weak); }
 .lt-remind-phone-in[aria-invalid="true"] { border-color: var(--overdue); }
 .lt-remind-phone .lt-field-error, .lt-remind-phone .lt-remind-info { margin: 0; }
+
+/* ===== "Nova versão disponível" (PWA) ===== */
+.lt-update {
+  position: fixed; z-index: 300; top: calc(10px + env(safe-area-inset-top)); left: 12px; right: 12px;
+  margin: 0 auto; max-width: 440px; box-sizing: border-box;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; padding: 12px 12px 12px 14px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.18));
+  animation: ltUpdateIn var(--dur, 220ms) var(--ease-out, ease-out);
+}
+.lt-update-ic { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); }
+.lt-update-txt { flex: 1 1 180px; min-width: 0; }
+.lt-update-t { font-weight: 800; font-size: 0.9375rem; line-height: 1.3; }
+.lt-update-s { margin-top: 2px; font-weight: 600; font-size: 0.78125rem; line-height: 1.4; color: var(--text-muted); }
+.lt-update-acts { display: flex; gap: 6px; margin-left: auto; }
+.lt-update-acts button { min-height: 40px; padding: 0 14px; border-radius: var(--r-sm); border: 1px solid transparent; font: inherit; font-weight: 800; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+.lt-update-later { background: transparent; color: var(--text-muted); }
+.lt-update-later:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+.lt-update-later:disabled { opacity: .5; cursor: default; }
+.lt-update-go { background: var(--primary); color: var(--on-primary); }
+.lt-update-go:hover:not([aria-disabled="true"]) { background: var(--primary-hover); }
+.lt-update-go[aria-disabled="true"] { cursor: progress; opacity: .8; }
+/* Narrow phones: the buttons go under the text, splitting the width. */
+@media (max-width: 380px) {
+  .lt-update-acts { flex-basis: 100%; }
+  .lt-update-acts button { flex: 1; }
+}
+/* Translate only (never opacity from 0: it freezes in throttled tabs). */
+@keyframes ltUpdateIn { from { transform: translateY(-12px); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .lt-update { animation: none; } }

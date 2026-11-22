@@ -429,10 +429,10 @@ function DebtorProfile({ id }: { id: string }) {
           open.length ? (
             <div className="lt-dsecs">
               {openTotal > 1 && !archived && (
-                <button type="button" className="lt-batch-link" onClick={() => setBatchOpen(true)}>
+                <button type="button" className="lt-batch-link" onClick={() => setBatchOpen(true)} aria-label={`Receber várias de uma vez, ${openTotal} parcelas em aberto`}>
                   <Icon name="layers" size={16} />
-                  <span style={{ flex: 1 }}>Receber várias de uma vez</span>
-                  <span className="lt-batch-link-n">{openTotal} em aberto</span>
+                  <span className="lt-batch-link-t">Receber várias de uma vez</span>
+                  <span className="lt-batch-link-n" title={`${openTotal} parcelas em aberto`}>{openTotal}</span>
                   <Icon name="chevronRight" size={16} />
                 </button>
               )}
