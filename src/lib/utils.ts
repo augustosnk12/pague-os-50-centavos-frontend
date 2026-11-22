@@ -130,6 +130,7 @@ export function avatarHue(name: string): string {
 
 const API_ERROR_MAP: Record<string, string> = {
   'Invalid email': 'E-mail inválido.',
+  'Too many requests. Please try again later.': 'Muitas tentativas. Tente mais tarde.',
   'Account not found': 'Conta não encontrada.',
   'Account not confirmed': 'Conta ainda não confirmada. Verifique seu e-mail.',
   'Email already registered': 'Este e-mail já está cadastrado.',
