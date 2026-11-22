@@ -175,16 +175,12 @@ function DebtorProfile({ id }: { id: string }) {
         ? `Encerre a recorrência de ${activeMonthly.description || 'dívida mensal'} para arquivar`
         : null
   const rel = getReliabilityOption(debtor.reliability)
-  // Why "Cobrar" can't open now. The button stays tappable (aria-disabled, not
-  // disabled): a disabled button swallows the tap and its title never shows on
-  // phones, so the tap explains instead — and offers to add the phone.
-  const remindBlock = !debtor.phone
-    ? { msg: `Sem telefone cadastrado. Adicione o de ${first} para cobrar no WhatsApp.`, fix: 'Adicionar telefone' }
-    : !whatsappLink(debtor.phone)
-      ? { msg: 'O telefone cadastrado não parece válido para o WhatsApp.', fix: 'Corrigir telefone' }
-      : numbers.owed <= 0
-        ? { msg: `${first} não deve nada agora: não há o que cobrar.`, fix: null }
-        : null
+  // "Cobrar" only stops when there is nothing to charge. Without a phone (or with
+  // one WhatsApp can't use) it still opens the sheet, which asks for the number
+  // and saves it. The button stays tappable (aria-disabled, not disabled): a
+  // disabled button swallows the tap and its title never shows on phones.
+  const remindBlock = numbers.owed <= 0 ? { msg: `${first} não deve nada agora: não há o que cobrar.`, fix: null } : null
+  const noPhone = !whatsappLink(debtor.phone)
   const openTotal = open.reduce((n, d) => n + openInstallments(d).length, 0)
 
   const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
@@ -385,11 +381,10 @@ function DebtorProfile({ id }: { id: string }) {
           className="lt-btn-lg"
           data-variant="wa"
           aria-disabled={!!remindBlock || undefined}
-          title={remindBlock?.msg ?? 'Cobrar no WhatsApp'}
+          title={remindBlock?.msg ?? (noPhone ? 'Cobrar no WhatsApp (informe o telefone)' : 'Cobrar no WhatsApp')}
           onClick={() => {
             if (!remindBlock) return setRemindId(debtor.id)
-            const { msg, fix } = remindBlock
-            showToast(msg, { icon: 'alert', ...(fix ? { action: { label: fix, onClick: () => setEditOpen(true) } } : {}) })
+            showToast(remindBlock.msg, { icon: 'alert' })
           }}
         >
           <Icon name="whatsapp" size={16} /> Cobrar

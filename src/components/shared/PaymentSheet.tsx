@@ -17,7 +17,6 @@ import { amountWidth, formatCents, parseCurrencyDigits } from '../../lib/currenc
 import { localToday } from '../../lib/date'
 import { fmtList, fmtMoney, fmtTitle } from '../../lib/format'
 import { daysUntil, installmentPosition, remainingCents } from '../../lib/installmentTag'
-import { whatsappLink } from '../../lib/whatsapp'
 import { RemindSheet } from './RemindSheet'
 import { ReceiptSheet } from './ReceiptSheet'
 import { BatchSheet } from './BatchSheet'
@@ -127,8 +126,9 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
     onClose()
     navigate(to)
   }
-  // WhatsApp reminder (S5): for an overdue installment of someone with a valid phone.
-  const canRemind = overdue && !!whatsappLink(debtorFull?.phone)
+  // WhatsApp reminder (S5): for an overdue installment. Without a phone the
+  // reminder sheet asks for it (and saves it) instead of hiding the button.
+  const canRemind = overdue && !!debtorFull
 
   const setAmount = (raw: string) => {
     const digits = parseCurrencyDigits(raw)

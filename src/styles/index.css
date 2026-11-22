@@ -1433,3 +1433,8 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 /* The QR stays on white in the dark theme too (scanners need the contrast). */
 .lt-qr-box { width: 200px; height: 200px; display: grid; place-items: center; border-radius: var(--r-md); background: #fff; color: #555; }
 .lt-coffee-code { display: block; max-width: 100%; margin-top: 10px; font-size: 0.65625rem; color: var(--text-muted); word-break: break-all; user-select: all; }
+.lt-remind-phone { display: flex; flex-direction: column; gap: 6px; }
+.lt-remind-phone-in { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface); color: var(--text); font: inherit; font-size: 1rem; font-weight: 700; }
+.lt-remind-phone-in:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-weak); }
+.lt-remind-phone-in[aria-invalid="true"] { border-color: var(--overdue); }
+.lt-remind-phone .lt-field-error, .lt-remind-phone .lt-remind-info { margin: 0; }

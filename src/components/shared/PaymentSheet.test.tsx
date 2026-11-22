@@ -102,13 +102,28 @@ describe('PaymentSheet (S2)', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Valor recebido' })).toHaveValue('250,00')
   })
 
-  it('WhatsApp reminder only for an overdue installment of someone with a phone', async () => {
+  it('WhatsApp reminder for an overdue installment', async () => {
     renderSheet(target())
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Lembrar João no WhatsApp' }))
     // Opens the reminder sheet on top of the payment sheet (S5).
     const remind = await screen.findByRole('dialog', { name: 'Lembrar João' })
     expect(((await within(remind).findByRole('textbox', { name: 'Mensagem' })) as HTMLTextAreaElement).value).toContain('Oi, João!')
+  })
+
+  it('overdue, no phone: the WhatsApp button still shows and the reminder asks for the number', async () => {
+    mocked.get.mockImplementation((url: string) => {
+      if (url === '/debtors/d1') return Promise.resolve({ data: { id: 'd1', name: 'João Araújo', phone: null, notes: null } })
+      if (url === '/debtors/d1/debts') return Promise.resolve({ data: [{ id: 'debt1', description: 'Notebook', installments: [installment()] }] })
+      if (url === '/settings') return Promise.resolve({ data: { pixKey: null, pixKeyType: null } })
+      return Promise.reject(new Error(`unexpected ${url}`))
+    })
+    renderSheet(target())
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Lembrar João no WhatsApp' }))
+    const remind = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    expect(await within(remind).findByLabelText('Telefone de João')).toBeInTheDocument()
+    expect(within(remind).getByRole('button', { name: 'Salvar e abrir WhatsApp' })).toBeInTheDocument()
   })
 
   it('no WhatsApp when the installment is not overdue', async () => {
