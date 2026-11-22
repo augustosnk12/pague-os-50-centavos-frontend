@@ -30,10 +30,6 @@ export function SessionSheet() {
     return () => onSessionExpired(null)
   }, [])
 
-  useEffect(() => {
-    if (step === 'code') input.current?.focus()
-  }, [step])
-
   const send = async () => {
     setBusy(true)
     setErr('')

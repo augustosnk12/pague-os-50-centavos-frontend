@@ -223,7 +223,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
         )}
 
         <div id="df-name">
-          <Input label="Nome" value={v.name} onChange={(x) => set('name', x)} placeholder="Maria Souza" required maxLength={100} autoComplete="off" error={errors.name} autoFocus={!editing} />
+          <Input label="Nome" value={v.name} onChange={(x) => set('name', x)} placeholder="Maria Souza" required maxLength={100} autoComplete="off" error={errors.name} />
         </div>
         <div id="df-phone">
           <Input

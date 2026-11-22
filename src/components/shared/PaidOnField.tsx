@@ -40,7 +40,6 @@ export function PaidOnField({ today, onChange }: PaidOnFieldProps) {
         {mode === 'other' ? (
           <DateInput
             compact
-            autoFocus
             ariaLabel="Outra data do pagamento"
             value={other}
             max={today}

@@ -66,7 +66,7 @@ export function SupportSheet({ open, onClose }: { open: boolean; onClose: () => 
             <label className="lt-coffee-other">
               <span className="lt-sr-only">Outro valor</span>
               <span aria-hidden="true">R$</span>
-              <input value={formatCents(cents)} onChange={(e) => setCents(parseCurrencyDigits(e.target.value))} inputMode="numeric" placeholder="0,00" autoFocus />
+              <input value={formatCents(cents)} onChange={(e) => setCents(parseCurrencyDigits(e.target.value))} inputMode="numeric" placeholder="0,00" />
             </label>
           )}
         </div>

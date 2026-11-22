@@ -291,7 +291,7 @@ export function DebtFormPage() {
               <Icon name="plus" size={16} /> Descrição
             </button>
           ) : (
-            <Input label="Descrição" value={desc} onChange={setDesc} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} autoFocus={descOpen && !desc} />
+            <Input label="Descrição" value={desc} onChange={setDesc} placeholder="Empréstimo de junho" hint="Opcional" maxLength={120} />
           )}
         </div>
 

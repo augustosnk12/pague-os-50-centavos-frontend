@@ -44,7 +44,7 @@ export function RegisterPicker({ open, onClose }: RegisterPickerProps) {
 
   return (
     <>
-      <Modal open={open} onClose={close} title="Registrar pagamento" initialFocus="dialog">
+      <Modal open={open} onClose={close} title="Registrar pagamento">
         <div className="lt-search-field">
           <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou dívida…" aria-label="Buscar parcela por nome ou dívida" />

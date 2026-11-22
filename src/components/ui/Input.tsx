@@ -12,7 +12,6 @@ interface InputProps {
   error?: string
   prefix?: string
   textarea?: boolean
-  autoFocus?: boolean
   inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | 'none'
   style?: CSSProperties
   className?: string
@@ -36,7 +35,6 @@ export function Input({
   error,
   prefix,
   textarea,
-  autoFocus,
   inputMode,
   style,
   className,
@@ -114,7 +112,6 @@ export function Input({
             inputMode={inputMode}
             value={value}
             placeholder={placeholder}
-            autoFocus={autoFocus}
             name={name}
             disabled={disabled}
             onChange={(e) => onChange(e.target.value)}

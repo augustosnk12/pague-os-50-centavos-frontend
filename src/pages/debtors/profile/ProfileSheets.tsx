@@ -362,7 +362,6 @@ export function RecurrenceEndSheet({ debt, busy, onClose, onSave }: {
                 onChange={(e) => setMonths(e.target.value.replace(/\D/g, '').slice(0, 3))}
                 inputMode="numeric"
                 aria-label="Número de cobranças no total"
-                autoFocus
               />
               <span>cobranças no total</span>
             </label>

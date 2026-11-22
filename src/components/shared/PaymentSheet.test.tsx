@@ -163,9 +163,10 @@ describe('PaymentSheet (S2)', () => {
     const field = within(dates).getByRole('textbox', { name: 'Outra data do pagamento' })
     expect(field).toHaveValue('07/11/2026')
     expect(field).not.toHaveAttribute('type', 'date')
-    // First the field, ready to type over (no calendar yet).
-    await waitFor(() => expect(field).toHaveFocus())
+    // No autofocus (the phone keyboard stays closed) and no calendar yet.
+    expect(field).not.toHaveFocus()
     expect(screen.queryByRole('dialog', { name: /Calendário/ })).toBeNull()
+    await user.clear(field)
     await user.keyboard('05112026')
     expect(field).toHaveValue('05/11/2026')
     expect(dates).toHaveTextContent('qui, 05 nov')
