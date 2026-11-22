@@ -1494,3 +1494,9 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-adm-switch .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: transform var(--dur-fast) var(--ease-std); }
 .lt-adm-switch[aria-checked="true"] .sw { background: var(--primary); }
 .lt-adm-switch[aria-checked="true"] .sw::after { transform: translateX(16px); }
+.lt-adm-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.lt-adm-pager > span { flex: 1; text-align: center; min-width: 140px; font-variant-numeric: tabular-nums; }
+.lt-adm-pager .lt-chip { display: inline-flex; align-items: center; gap: 4px; }
+.lt-adm-pager .lt-chip:disabled { opacity: .45; cursor: default; }
+/* The previous page stays while the next loads (static dim, no fade-in). */
+.lt-adm-page[data-loading] { opacity: .6; }

@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, type LenderPlanPayload, type PlanPayload } from '../../api/plan.api'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { adminApi, type LenderPlanPayload, type LenderQuery, type PlanPayload } from '../../api/plan.api'
 import { PLAN_KEY } from '../plan/usePlan'
 
 // Administração (melhoria 63). Only reached by the ADMIN_EMAIL account.
@@ -8,8 +8,18 @@ export function useAdminPlans(enabled: boolean) {
   return useQuery({ queryKey: ['admin', 'plans'], queryFn: () => adminApi.plans().then((r) => r.data), enabled })
 }
 
-export function useAdminLenders(enabled: boolean) {
-  return useQuery({ queryKey: ['admin', 'lenders'], queryFn: () => adminApi.lenders({}).then((r) => r.data), enabled })
+/** One page of accounts; the previous page stays on screen while the next one loads. */
+export function useAdminLenders(query: LenderQuery, enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'lenders', query],
+    queryFn: () => adminApi.lenders(query).then((r) => r.data),
+    placeholderData: keepPreviousData,
+    enabled,
+  })
+}
+
+export function useAdminStats(enabled: boolean) {
+  return useQuery({ queryKey: ['admin', 'stats'], queryFn: () => adminApi.stats().then((r) => r.data), enabled })
 }
 
 function useAdminInvalidate() {

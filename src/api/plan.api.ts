@@ -49,6 +49,31 @@ export interface AdminLender {
   debts: UsageItem
 }
 
+/** full = at a limit; near = 80%+ of one; requested = asked for more; adjusted = own limit. */
+export type LenderStatus = 'full' | 'near' | 'requested' | 'adjusted'
+
+export interface LenderPage {
+  items: AdminLender[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface LenderStats {
+  lenders: number
+  full: number
+  near: number
+  requested: number
+}
+
+export interface LenderQuery {
+  q?: string
+  planId?: string
+  status?: LenderStatus
+  page?: number
+  pageSize?: number
+}
+
 export interface PlanPayload {
   name: string
   maxDebtors: number
@@ -75,6 +100,8 @@ export const adminApi = {
   createPlan: (data: PlanPayload) => api.post<Plan>('/admin/plans', data),
   updatePlan: (id: string, data: Partial<PlanPayload>) => api.patch<Plan>(`/admin/plans/${id}`, data),
   deletePlan: (id: string) => api.delete(`/admin/plans/${id}`),
-  lenders: (params: { q?: string; planId?: string }) => api.get<AdminLender[]>('/admin/lenders', { params }),
+  /** One page: requests first, then at/near the limit, then newest. */
+  lenders: (params: LenderQuery) => api.get<LenderPage>('/admin/lenders', { params }),
+  stats: () => api.get<LenderStats>('/admin/stats'),
   updateLender: (id: string, data: LenderPlanPayload) => api.patch<AdminLender>(`/admin/lenders/${id}`, data),
 }

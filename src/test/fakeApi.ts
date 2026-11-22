@@ -80,10 +80,14 @@ export function fakeGet(url: string): unknown {
     { id: 'plan_free', name: 'Grátis', maxDebtors: 10, maxDebts: 50, isDefault: true, showUsage: false, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', lenders: 1 },
     { id: 'plan_pro', name: 'Pro', maxDebtors: 50, maxDebts: 1000, isDefault: false, showUsage: true, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', lenders: 0 },
   ]
-  if (url === '/admin/lenders') return [
-    { id: 'lender-1', email: 'augusto@email.com', name: 'Augusto', createdAt: '2026-06-01T00:00:00.000Z', planId: null, maxDebtors: null, maxDebts: null,
-      limitRequestedAt: null, plan: fixtures.plan.plan, debtors: fixtures.plan.debtors, debts: fixtures.plan.debts },
-  ]
+  if (url === '/admin/stats') return { lenders: 1, full: 0, near: 0, requested: 0 }
+  if (url === '/admin/lenders') return {
+    items: [
+      { id: 'lender-1', email: 'augusto@email.com', name: 'Augusto', createdAt: '2026-06-01T00:00:00.000Z', planId: null, maxDebtors: null, maxDebts: null,
+        limitRequestedAt: null, plan: fixtures.plan.plan, debtors: fixtures.plan.debtors, debts: fixtures.plan.debts },
+    ],
+    total: 1, page: 1, pageSize: 20,
+  }
   if (url === '/search') return fixtures.search
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors

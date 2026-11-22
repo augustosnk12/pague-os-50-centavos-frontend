@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp } from './renderApp'
 import { fakeGet, fixtures } from './fakeApi'
@@ -120,12 +120,49 @@ describe('Administração (melhoria 63)', () => {
     expect(await screen.findByRole('button', { name: 'Administração' })).toBeInTheDocument()
   })
 
-  it('tela do admin', async () => {
+  it('tela do admin: abas Contas (padrão) e Planos; a aba fica na URL', async () => {
     plan = free({ isAdmin: true })
+    const user = userEvent.setup()
     renderApp('/admin')
     expect(await screen.findByRole('heading', { level: 1, name: 'Administração' })).toBeInTheDocument()
+    const tabs = screen.getByRole('tablist', { name: 'Administração' })
+    expect(within(tabs).getByRole('tab', { name: /Contas/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('button', { name: /^Augusto, augusto@email\.com, plano Grátis/ })).toBeInTheDocument()
+    expect(screen.getByText(/1–1 de 1/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Plano Grátis/ })).not.toBeInTheDocument()
+
+    await user.click(within(tabs).getByRole('tab', { name: /Planos/ }))
     expect(await screen.findByRole('button', { name: /^Plano Grátis: 10 devedores, 50 dívidas, 1 conta, padrão/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Plano Pro: 50 devedores, 1000 dívidas/ })).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: /^Augusto, augusto@email\.com, plano Grátis/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Augusto/ })).not.toBeInTheDocument()
+  })
+
+  it('contas paginadas: Próxima/Anterior pedem a página à API; filtro e busca voltam para a 1', async () => {
+    plan = free({ isAdmin: true })
+    const page = (p: number) => ({
+      items: Array.from({ length: p === 3 ? 5 : 20 }, (_, i) => ({
+        id: `l${p}-${i}`, email: `conta${p}-${i}@email.com`, name: `Conta ${p}-${i}`, createdAt: '2026-06-01T00:00:00.000Z',
+        planId: null, maxDebtors: null, maxDebts: null, limitRequestedAt: null, plan: fixtures.plan.plan, debtors: fixtures.plan.debtors, debts: fixtures.plan.debts,
+      })),
+      total: 45, page: p, pageSize: 20,
+    })
+    get.mockImplementation((url: string, cfg?: { params?: { page?: number } }) =>
+      Promise.resolve({ data: url === '/me/plan' ? plan : url === '/admin/lenders' ? page(cfg?.params?.page ?? 1) : fakeGet(url) }))
+    const user = userEvent.setup()
+    renderApp('/admin')
+    expect(await screen.findByText(/1–20 de 45 · página 1 de 3/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Próxima página' }))
+    expect(await screen.findByText(/21–40 de 45 · página 2 de 3/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Conta 2-0,/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Próxima página' }))
+    expect(await screen.findByText(/41–45 de 45 · página 3 de 3/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Próxima página' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Pediram mais' }))
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/admin/lenders', { params: { status: 'requested', page: 1, pageSize: 20 } }))
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar conta' }), 'ana')
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/admin/lenders', { params: { q: 'ana', status: 'requested', page: 1, pageSize: 20 } }))
   })
 })
