@@ -140,7 +140,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
           <Item icon="archive" title={`Arquivar ${first}`} sub="Some das listas. Dá para reativar depois." onClick={then(() => onArchive(true))} />
         )}
         <div className="lt-acts-sep" />
-        <Item icon="trash" title={`Excluir ${first}`} sub="Apaga também as dívidas e pagamentos" danger onClick={then(onDelete)} />
+        <Item icon="trash" title={`Excluir ${first}`} sub="Apaga dívidas e pagamentos" danger onClick={then(onDelete)} />
       </div>
     </Modal>
   )
