@@ -1058,6 +1058,10 @@ button.lt-wa-mini { cursor: pointer; padding: 0; }
 }
 .lt-prof-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
 .lt-prof-acts .lt-btn-lg { min-height: 46px; }
+/* "Cobrar" / "Nova dívida": one line on phones, even with "Gigante" text. */
+.lt-prof-acts .lt-btn-lg { white-space: nowrap; padding: 0 10px; gap: 6px; min-width: 0; }
+.lt-prof-acts .lt-btn-lg > svg { flex-shrink: 0; }
+@media (max-width: 359px) { .lt-prof-acts .lt-btn-lg > svg { display: none; } }
 .lt-prof-note { margin: 10px 2px 0; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: center; }
 
 /* Each open debt as a card (improvement 12). */
