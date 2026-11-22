@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { UpdateCard } from './UpdateCard'
 
 /** Checks for a new version every hour while the app stays open. */
 const CHECK_EVERY_MS = 60 * 60 * 1000
@@ -9,6 +11,7 @@ const CHECK_EVERY_MS = 60 * 60 * 1000
  * middle of a payment. "Depois" hides it; it comes back on the next visit.
  */
 export function UpdatePrompt() {
+  const [updating, setUpdating] = useState(false)
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -20,61 +23,14 @@ export function UpdatePrompt() {
 
   if (!needRefresh) return null
   return (
-    <div
-      role="status"
-      style={{
-        position: 'fixed',
-        top: 'calc(10px + env(safe-area-inset-top))',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 300,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        maxWidth: 'calc(100vw - 24px)',
-        padding: '6px 6px 6px 16px',
-        borderRadius: 999,
-        background: 'var(--text)',
-        color: 'var(--bg)',
-        boxShadow: '0 8px 24px rgb(0 0 0 / 0.18)',
-        fontSize: '0.875rem',
-        fontWeight: 700,
+    <UpdateCard
+      updating={updating}
+      onUpdate={() => {
+        setUpdating(true)
+        // Activates the waiting worker and reloads the page.
+        void updateServiceWorker(true).catch(() => setUpdating(false))
       }}
-    >
-      <span>Nova versão disponível</span>
-      <button
-        type="button"
-        onClick={() => void updateServiceWorker(true)}
-        style={{
-          border: 0,
-          borderRadius: 999,
-          padding: '8px 14px',
-          minHeight: 36,
-          background: 'var(--primary)',
-          color: '#fff',
-          font: 'inherit',
-          cursor: 'pointer',
-        }}
-      >
-        Atualizar
-      </button>
-      <button
-        type="button"
-        onClick={() => setNeedRefresh(false)}
-        style={{
-          border: 0,
-          borderRadius: 999,
-          padding: '8px 10px',
-          minHeight: 36,
-          background: 'transparent',
-          color: 'inherit',
-          font: 'inherit',
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        Depois
-      </button>
-    </div>
+      onLater={() => setNeedRefresh(false)}
+    />
   )
 }
