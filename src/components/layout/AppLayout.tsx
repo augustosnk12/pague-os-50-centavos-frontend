@@ -9,6 +9,7 @@ import { useRouteAnnouncer } from '../../hooks/useRouteAnnouncer'
 import { OfflineBanner } from './OfflineBanner'
 import { SessionSheet } from './SessionSheet'
 import { useShortcuts } from '../../hooks/useShortcuts'
+import { PlanLimitsProvider } from '../../contexts/PlanLimitsContext'
 
 // Loaded on first use: it brings the payment sheet, which most visits never open.
 const RegisterPicker = lazy(() => import('../shared/RegisterPicker').then((m) => ({ default: m.RegisterPicker })))
@@ -48,7 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const openCalc = () => setCalcOpen(true)
 
   return (
-    <>
+    <PlanLimitsProvider>
       {/* First Tab stop: jump over the header and navigation (WCAG 2.4.1). */}
       <a href="#conteudo" className="lt-skip-link">Pular para o conteúdo</a>
       <OfflineBanner />
@@ -66,6 +67,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div id="conteudo" tabIndex={-1} style={{ outline: 'none' }}>
         {children}
       </div>
-    </>
+    </PlanLimitsProvider>
   )
 }

@@ -2,6 +2,7 @@ import type { Debtor } from '../types/debtor'
 import type { InstallmentEnriched } from '../types/installment'
 import type { DashboardOverview } from '../types/dashboard'
 import type { PaymentsSummary, ReportPayment } from '../api/payments.api'
+import type { MyPlan } from '../api/plan.api'
 
 /**
  * Minimal in-memory stand-in for the API used by smoke tests. It answers the
@@ -46,6 +47,15 @@ export const fixtures = {
     counts: { overdue: 2, today: 0, next7: 1 },
   } satisfies DashboardOverview,
   summary: { debtors: 1, debts: 1, installments: 1, payments: 0 },
+  /** GET /me/plan: Grátis, inside the limits (nothing about limits shows). */
+  plan: {
+    plan: { id: 'plan_free', name: 'Grátis', isDefault: true, showUsage: false },
+    debtors: { used: 1, limit: 10, full: false },
+    debts: { used: 1, limit: 50, full: false },
+    limitRequestedAt: null,
+    enforced: true,
+    isAdmin: false,
+  } as MyPlan,
   payments: [
     { id: 'p1', amount: '250.00', paidAt: '2026-11-03T12:00:00.000Z', batchId: null, batchKind: null, installmentId: 'i0', installmentNumber: 1,
       installmentsCount: 3, debtId: 'debt1', debtDescription: 'Notebook', debtRecurrence: null, debtorId: 'd1', debtorName: 'João Araújo' },
@@ -65,6 +75,15 @@ fixtures.overview.attention.next7.push(fixtures.installments[0])
 export function fakeGet(url: string): unknown {
   if (url === '/dashboard/overview') return fixtures.overview
   if (url === '/me/summary') return fixtures.summary
+  if (url === '/me/plan') return fixtures.plan
+  if (url === '/admin/plans') return [
+    { id: 'plan_free', name: 'Grátis', maxDebtors: 10, maxDebts: 50, isDefault: true, showUsage: false, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', lenders: 1 },
+    { id: 'plan_pro', name: 'Pro', maxDebtors: 50, maxDebts: 1000, isDefault: false, showUsage: true, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', lenders: 0 },
+  ]
+  if (url === '/admin/lenders') return [
+    { id: 'lender-1', email: 'augusto@email.com', name: 'Augusto', createdAt: '2026-06-01T00:00:00.000Z', planId: null, maxDebtors: null, maxDebts: null,
+      limitRequestedAt: null, plan: fixtures.plan.plan, debtors: fixtures.plan.debtors, debts: fixtures.plan.debts },
+  ]
   if (url === '/search') return fixtures.search
   if (url === '/installments') return fixtures.installments
   if (url === '/debtors') return fixtures.debtors

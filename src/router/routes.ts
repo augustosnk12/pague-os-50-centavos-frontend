@@ -26,6 +26,7 @@ export const pages = {
   installments: page(() => import('../pages/installments/InstallmentsPage'), (m) => m.InstallmentsPage),
   settings: page(() => import('../pages/settings/SettingsPage'), (m) => m.SettingsPage),
   receivables: page(() => import('../pages/payments/ReceivablesPage'), (m) => m.ReceivablesPage),
+  admin: page(() => import('../pages/admin/AdminPage'), (m) => m.AdminPage),
 }
 
 const byPath: Record<string, Loader> = {
@@ -35,6 +36,7 @@ const byPath: Record<string, Loader> = {
   '/debts/new': pages.debtForm.preload,
   '/settings': pages.settings.preload,
   '/payments': pages.receivables.preload,
+  '/admin': pages.admin.preload,
 }
 
 /** Start downloading the page behind a link (no-op for unknown paths). */

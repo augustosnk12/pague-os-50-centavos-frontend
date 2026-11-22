@@ -7,6 +7,7 @@ import { SupportSheet } from '../shared/SupportSheet'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { supportPix } from '../../lib/support'
+import { usePlan } from '../../hooks/plan/usePlan'
 
 interface AccountSheetProps {
   open: boolean
@@ -24,6 +25,7 @@ export function AccountSheet({ open, onClose, onCalc }: AccountSheetProps) {
   const { lender, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [supportOpen, setSupportOpen] = useState(false)
+  const { data: plan } = usePlan()
   const then = (fn: () => void) => () => {
     onClose()
     fn()
@@ -54,6 +56,7 @@ export function AccountSheet({ open, onClose, onCalc }: AccountSheetProps) {
         <div className="lt-acts">
           <AccountItem icon="trend" title="Recebimentos" onClick={then(() => navigate('/payments'))} />
           <AccountItem icon="gear" title="Configurações" onClick={then(() => navigate('/settings'))} />
+          {plan?.isAdmin && <AccountItem icon="shield" title="Administração" onClick={then(() => navigate('/admin'))} />}
           {/* Keeps the sheet open: the change is seen right away. */}
           <AccountItem icon={theme === 'dark' ? 'sun' : 'moon'} title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'} onClick={toggleTheme} />
           <AccountItem icon="calc" title="Calculadora" onClick={then(onCalc)} />

@@ -24,6 +24,8 @@ import { DebtorForm, type DebtorFormPayload } from '../../components/shared/Debt
 import { RELIABILITY_OPTIONS, getReliabilityOption } from '../../constants/reliability'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
 import { usePreferences } from '../../contexts/PreferencesContext'
+import { usePlanLimits } from '../../contexts/PlanLimitsContext'
+import { LimitBanner } from '../../components/shared/LimitBanner'
 
 /** Accent- and case-insensitive ("joao" finds "João", "c" finds "ç"). */
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -44,6 +46,11 @@ export function DebtorsPage() {
   const { data: archivedAll = [] } = useArchivedDebtors()
   const [showArchived, setShowArchived] = useState(false)
   const createDebtor = useCreateDebtor()
+  const limits = usePlanLimits()
+  // Melhoria 62: no limite, "Adicionar" abre a folha do limite em vez do formulário.
+  const openForm = () => {
+    if (!limits.blocked('debtors')) setFormOpen(true)
+  }
   // Debts by description come from the API (improvement 21).
   const { data: found, active: searching } = useSearch(q)
   const debtHits = searching ? found?.debts ?? [] : []
@@ -130,6 +137,10 @@ export function DebtorsPage() {
         showToast('Devedor adicionado')
       },
       onError: (e: unknown) => {
+        if (limits.handleLimitError(e)) {
+          setFormOpen(false)
+          return
+        }
         const msg = getApiError(e)
         showToast(translateApiError(msg, 'Erro ao criar devedor.'), { icon: 'alert' })
       },
@@ -200,11 +211,12 @@ export function DebtorsPage() {
         title="Devedores"
         sub={`${debtors.length} ${debtors.length === 1 ? 'pessoa' : 'pessoas'}`}
         action={
-          <Button size="md" icon="plus" onClick={() => setFormOpen(true)}>
+          <Button size="md" icon="plus" onClick={openForm}>
             Adicionar
           </Button>
         }
       />
+      <LimitBanner kinds={['debtors']} />
 
       {/* Search: people by name and debts by description (improvement 21) */}
       <div ref={fieldBox} style={{ marginBottom: 16 }}>
@@ -256,7 +268,7 @@ export function DebtorsPage() {
           icon="users"
           title={q || reliabilityFilter ? 'Nada encontrado' : 'Nenhum devedor ainda'}
           sub={q || reliabilityFilter ? 'Tente outro nome, dívida ou filtro.' : 'Adicione a primeira pessoa que te deve.'}
-          action={!q && !reliabilityFilter && <Button icon="plus" onClick={() => setFormOpen(true)}>Adicionar devedor</Button>}
+          action={!q && !reliabilityFilter && <Button icon="plus" onClick={openForm}>Adicionar devedor</Button>}
         />
       ) : (
         <>

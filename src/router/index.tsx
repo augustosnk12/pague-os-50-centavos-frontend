@@ -38,6 +38,7 @@ const {
   installments: { Component: InstallmentsPage },
   settings: { Component: SettingsPage },
   receivables: { Component: ReceivablesPage },
+  admin: { Component: AdminPage },
 } = pages
 
 export function AppRouter() {
@@ -60,6 +61,7 @@ export function AppRouter() {
             <Route path="/installments" element={<InstallmentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/payments" element={<ReceivablesPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>
 
