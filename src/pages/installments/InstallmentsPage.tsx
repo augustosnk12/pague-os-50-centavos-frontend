@@ -12,7 +12,6 @@ import { Tabs } from '../../components/ui/Tabs'
 import { InstallmentLine } from '../../components/shared/InstallmentLine'
 import { PaymentSheet } from '../../components/shared/PaymentSheet'
 import { RemindSheet } from '../../components/shared/RemindSheet'
-import { whatsappLink } from '../../lib/whatsapp'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
 import { localToday } from '../../lib/date'
@@ -105,11 +104,11 @@ export function InstallmentsPage() {
   const isNow = isCurrentPeriod(period, anchor, today) && (period !== 'day' || anchor === today)
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
   useReopenPayment(setPayTarget)
-  // Swipe left = WhatsApp reminder, only for debtors with a phone WhatsApp accepts (improvement 27).
-  const reachable = useMemo(() => new Set(debtors.filter((d) => whatsappLink(d.phone)).map((d) => d.id)), [debtors])
+  // Swipe left = WhatsApp reminder (improvement 27). Without a phone the reminder
+  // sheet asks for it (and saves it), so every debtor can be reminded.
   const remindFor = (inst: InstallmentEnriched) => {
     const id = inst.debt?.debtor?.id ?? inst.debt?.debtorId
-    return id && reachable.has(id) ? () => setRemindId(id) : undefined
+    return id ? () => setRemindId(id) : undefined
   }
   const tabName = TABS.find((t) => t[0] === tab)?.[1] ?? ''
 

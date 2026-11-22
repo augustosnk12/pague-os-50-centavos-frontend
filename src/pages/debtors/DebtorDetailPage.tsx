@@ -175,7 +175,12 @@ function DebtorProfile({ id }: { id: string }) {
         ? `Encerre a recorrência de ${activeMonthly.description || 'dívida mensal'} para arquivar`
         : null
   const rel = getReliabilityOption(debtor.reliability)
-  const canRemind = !!whatsappLink(debtor.phone) && numbers.owed > 0
+  // "Cobrar" only stops when there is nothing to charge. Without a phone (or with
+  // one WhatsApp can't use) it still opens the sheet, which asks for the number
+  // and saves it. The button stays tappable (aria-disabled, not disabled): a
+  // disabled button swallows the tap and its title never shows on phones.
+  const remindBlock = numbers.owed <= 0 ? { msg: `${first} não deve nada agora: não há o que cobrar.`, fix: null } : null
+  const noPhone = !whatsappLink(debtor.phone)
   const openTotal = open.reduce((n, d) => n + openInstallments(d).length, 0)
 
   const fail = (fallback: string) => (e: unknown) => showToast(translateApiError(getApiError(e), fallback), { icon: 'alert' })
@@ -375,9 +380,12 @@ function DebtorProfile({ id }: { id: string }) {
           type="button"
           className="lt-btn-lg"
           data-variant="wa"
-          disabled={!canRemind}
-          title={!debtor.phone ? 'Sem telefone cadastrado' : numbers.owed === 0 ? 'Nada a cobrar' : 'Cobrar no WhatsApp'}
-          onClick={() => setRemindId(debtor.id)}
+          aria-disabled={!!remindBlock || undefined}
+          title={remindBlock?.msg ?? (noPhone ? 'Cobrar no WhatsApp (informe o telefone)' : 'Cobrar no WhatsApp')}
+          onClick={() => {
+            if (!remindBlock) return setRemindId(debtor.id)
+            showToast(remindBlock.msg, { icon: 'alert' })
+          }}
         >
           <Icon name="whatsapp" size={16} /> Cobrar
         </button>
@@ -385,9 +393,15 @@ function DebtorProfile({ id }: { id: string }) {
           type="button"
           className="lt-btn-lg"
           data-variant="secondary"
-          disabled={archived}
+          aria-disabled={archived || undefined}
           title={archived ? 'Reative para criar uma dívida' : undefined}
-          onClick={() => navigate(`/debts/new?debtorId=${debtor.id}`)}
+          onClick={() => {
+            if (!archived) return navigate(`/debts/new?debtorId=${debtor.id}`)
+            showToast(`${first} está ${gendered(first, 'arquivad')}. Reative para criar uma dívida.`, {
+              icon: 'alert',
+              action: { label: 'Reativar', onClick: () => setArchived(false) },
+            })
+          }}
         >
           <Icon name="plus" size={16} /> Nova dívida
         </button>

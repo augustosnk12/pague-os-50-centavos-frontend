@@ -773,7 +773,7 @@ a.lt-pay-desc:hover { color: var(--primary); text-decoration-color: currentColor
 .lt-switch-row[aria-checked="true"] .lt-switch span { transform: translateX(18px); }
 
 .lt-btn-lg[data-variant="wa"] { background: var(--wa); color: var(--surface); }
-.lt-btn-lg[data-variant="wa"]:hover:not(:disabled) { background: color-mix(in oklch, var(--wa) 88%, black); }
+.lt-btn-lg[data-variant="wa"]:hover:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in oklch, var(--wa) 88%, black); }
 button.lt-wa-mini { cursor: pointer; padding: 0; }
 
 /* Swipe left to "Cobrar" (overdue rows with a phone). */
@@ -1509,3 +1509,8 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-adm-pg:disabled { color: var(--text-faint); opacity: .5; cursor: default; }
 /* The previous page stays while the next loads (static dim, no fade-in). */
 .lt-adm-page[data-loading] { opacity: .6; }
+.lt-remind-phone { display: flex; flex-direction: column; gap: 6px; }
+.lt-remind-phone-in { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface); color: var(--text); font: inherit; font-size: 1rem; font-weight: 700; }
+.lt-remind-phone-in:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-weak); }
+.lt-remind-phone-in[aria-invalid="true"] { border-color: var(--overdue); }
+.lt-remind-phone .lt-field-error, .lt-remind-phone .lt-remind-info { margin: 0; }

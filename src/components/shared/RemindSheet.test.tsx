@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '../../contexts/AuthContext'
+import { ToastProvider } from '../../contexts/ToastContext'
 import { MemoryRouter } from 'react-router-dom'
 import { RemindSheet } from './RemindSheet'
 import { api } from '../../lib/axios'
@@ -10,6 +11,7 @@ import { setLenderInStorage, setToken } from '../../lib/cookies'
 
 vi.mock('../../lib/axios', () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
 const get = vi.mocked(api.get)
+const put = vi.mocked(api.put)
 
 const inst = (id: string, number: number, due: string, amount = '100.00', paidAmount = '0.00') => ({
   id, number, amount, paidAmount, dueDate: `${due}T00:00:00.000Z`, paidAt: null, status: 'PENDING', debtId: 'x',
@@ -23,7 +25,9 @@ function renderSheet(onClose = vi.fn()) {
     <MemoryRouter>
     <QueryClientProvider client={qc}>
       <AuthProvider>
-        <RemindSheet debtorId="d1" onClose={onClose} />
+        <ToastProvider>
+          <RemindSheet debtorId="d1" onClose={onClose} />
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
     </MemoryRouter>,
@@ -87,11 +91,36 @@ describe('RemindSheet (S5)', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('without a phone the button is disabled and says why', async () => {
+  it('without a phone: asks for it right there, saves it to the debtor and opens WhatsApp in the same tap', async () => {
     debtor = { ...debtor, phone: null }
+    put.mockReset().mockResolvedValue({ data: { ...debtor, phone: '(11) 91234-5678' } })
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const onClose = renderSheet()
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar Ana' })
+    const go = await within(sheet).findByRole('button', { name: 'Salvar e abrir WhatsApp' })
+    expect(go).toBeEnabled()
+    // Empty: the tap says what is missing (no silent disabled button).
+    await userEvent.click(go)
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('Informe o telefone com DDD')
+    expect(open).not.toHaveBeenCalled()
+    await userEvent.type(within(sheet).getByLabelText('Telefone de Ana'), '11912345678')
+    await userEvent.click(go)
+    expect(put).toHaveBeenCalledWith('/debtors/d1', { phone: '(11) 91234-5678' })
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/api\.whatsapp\.com\/send\?phone=5511912345678&text=Oi%2C%20Ana!/), '_blank', 'noopener,noreferrer')
+    expect(onClose).toHaveBeenCalled()
+    open.mockRestore()
+  })
+
+  it('nothing open: the button stays off and says why', async () => {
+    get.mockImplementation((url: string) => {
+      if (url === '/debtors/d1') return Promise.resolve({ data: debtor })
+      if (url === '/debtors/d1/debts') return Promise.resolve({ data: [] })
+      if (url === '/settings') return Promise.resolve({ data: { pixKey: null, pixKeyType: null } })
+      return Promise.reject(new Error(url))
+    })
     renderSheet()
     const sheet = await screen.findByRole('dialog', { name: 'Lembrar Ana' })
     await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Abrir WhatsApp' })).toBeDisabled())
-    expect(within(sheet).getByRole('button', { name: 'Abrir WhatsApp' })).toHaveAccessibleDescription('Cadastre o telefone para lembrar pelo WhatsApp.')
+    expect(within(sheet).getByRole('button', { name: 'Abrir WhatsApp' })).toHaveAccessibleDescription('Não há nada em aberto para cobrar.')
   })
 })

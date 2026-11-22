@@ -138,9 +138,55 @@ describe('Perfil do devedor (S4)', () => {
     await user.click(within(await screen.findByRole('dialog', { name: 'João Araújo' })).getByRole('button', { name: /Arquivar João/ }))
     expect(patch).toHaveBeenCalledWith('/debtors/d1/archive')
     expect(await screen.findByText('Arquivado · fora das listas e dos totais')).toBeInTheDocument()
-    expect(within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Reativar' }))
+    const newDebt = within(document.querySelector('.lt-prof-acts') as HTMLElement).getByRole('button', { name: /Nova dívida/ })
+    expect(newDebt).toHaveAttribute('aria-disabled', 'true')
+    // Tapping it explains (a disabled button would swallow the tap on phones) and offers "Reativar".
+    await user.click(newDebt)
+    expect(await screen.findByText('João está arquivado. Reative para criar uma dívida.')).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Reativar' })[0])
     expect(patch).toHaveBeenCalledWith('/debtors/d1/unarchive')
+  })
+
+  it('"Cobrar" without a phone: the sheet asks for it; "Salvar e abrir WhatsApp" saves it and opens WhatsApp', async () => {
+    debtor = { ...debtor, phone: null }
+    const put = vi.mocked(api.put)
+    put.mockReset().mockImplementation((_url: string, body?: unknown) => Promise.resolve({ data: { ...debtor, ...(body as object) } }))
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    const cobrar = await screen.findByRole('button', { name: /Cobrar/ })
+    expect(cobrar).not.toHaveAttribute('aria-disabled')
+    await user.click(cobrar)
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    const field = within(sheet).getByLabelText('Telefone de João')
+    expect(within(sheet).getByText(/Sem telefone no cadastro/)).toBeInTheDocument()
+    const go = within(sheet).getByRole('button', { name: /Salvar e abrir WhatsApp/ })
+
+    // Incomplete number: says so, keeps the sheet, saves nothing.
+    await user.type(field, '1191234')
+    await user.click(go)
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('Telefone incompleto')
+    expect(put).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+
+    await user.clear(field)
+    await user.type(field, '11912345678')
+    expect(field).toHaveValue('(11) 91234-5678')
+    await user.click(go)
+    expect(put).toHaveBeenCalledWith('/debtors/d1', { phone: '(11) 91234-5678' })
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/api\.whatsapp\.com\/send\?phone=5511912345678&text=/), '_blank', 'noopener,noreferrer')
+    expect(await screen.findByText('Telefone salvo no cadastro de João')).toBeInTheDocument()
+    open.mockRestore()
+  })
+
+  it('"Cobrar" with a phone WhatsApp cannot use: the sheet shows it to fix; nothing owed: the tap says why', async () => {
+    debtor = { ...debtor, phone: '123' }
+    const user = userEvent.setup()
+    renderApp('/debtors/d1')
+    await user.click(await screen.findByRole('button', { name: /Cobrar/ }))
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar João' })
+    expect(within(sheet).getByText(/O telefone cadastrado \(123\) não serve para o WhatsApp/)).toBeInTheDocument()
+    expect(within(sheet).getByLabelText('Telefone de João')).toHaveValue('(12) 3')
   })
 
   it('tapping the name opens "Contato e anotações" with the indicators', async () => {
