@@ -30,25 +30,25 @@ function Harness({ onClose = vi.fn() }: { onClose?: () => void }) {
 const settle = () => waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: MODAL_EXIT_MS + 2000 })
 
 describe('Modal (accessible dialog)', () => {
-  it('is a labelled modal dialog and moves focus to the first field', async () => {
+  it('is a labelled modal dialog and focuses the dialog itself, no field (no autofocus)', async () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Abrir' }))
     const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
     expect(dialog).toHaveAttribute('aria-modal', 'true')
-    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Valor' })).toHaveFocus())
+    await waitFor(() => expect(dialog).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: 'Valor' })).not.toHaveFocus()
   })
 
-  it('initialFocus="dialog": focuses the dialog itself, no field; Tab still stays inside', async () => {
+  it('initialFocus="content": focuses the first field; Tab still stays inside', async () => {
     const user = userEvent.setup()
     render(
-      <Modal open title="Registrar pagamento" onClose={vi.fn()} initialFocus="dialog" footer={<button>Salvar</button>}>
+      <Modal open title="Registrar pagamento" onClose={vi.fn()} initialFocus="content" footer={<button>Salvar</button>}>
         <input aria-label="Valor" />
       </Modal>,
     )
     const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
-    await waitFor(() => expect(dialog).toHaveFocus())
-    expect(screen.getByRole('textbox', { name: 'Valor' })).not.toHaveFocus()
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Valor' })).toHaveFocus())
     await user.tab()
     expect(dialog).toContainElement(document.activeElement as HTMLElement)
   })
@@ -57,7 +57,9 @@ describe('Modal (accessible dialog)', () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Abrir' }))
-    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Valor' })).toHaveFocus())
+    const dialog = await screen.findByRole('dialog', { name: 'Registrar pagamento' })
+    await waitFor(() => expect(dialog).toHaveFocus())
+    await user.click(screen.getByRole('textbox', { name: 'Valor' }))
     await user.tab() // → Salvar
     expect(screen.getByRole('button', { name: 'Salvar' })).toHaveFocus()
     await user.tab() // wraps → Fechar
@@ -169,10 +171,10 @@ describe('Modal: one sheet opening another', () => {
     render(<Chain />)
     await user.click(screen.getByRole('button', { name: 'Mais ações' }))
     await user.click(await screen.findByRole('button', { name: 'Excluir' }))
-    const input = await screen.findByRole('textbox', { name: 'Nome' })
-    await waitFor(() => expect(input).toHaveFocus())
+    const confirm = await screen.findByRole('dialog', { name: 'Confirmar' })
+    await waitFor(() => expect(confirm).toHaveFocus())
     // The menu finishes its exit animation and unmounts.
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).toBeNull(), { timeout: MODAL_EXIT_MS + 2000 })
-    expect(input).toHaveFocus()
+    expect(confirm).toHaveFocus()
   })
 })

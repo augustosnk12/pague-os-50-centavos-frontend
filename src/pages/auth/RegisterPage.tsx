@@ -75,7 +75,6 @@ export function RegisterPage() {
           maxLength={100}
           aria-invalid={err?.field === 'name' || undefined}
           aria-describedby={err?.field === 'name' ? nameErr : undefined}
-          autoFocus
         />
         <div id={nameErr} className="lt-auth-err" role="alert">
           {err?.field === 'name' && <><Icon name="alert" size={16} /> {err.msg}</>}
