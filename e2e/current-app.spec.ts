@@ -343,9 +343,9 @@ test('payment sheet (S2): context, "Ontem", and "Desfazer" really removes the pa
 
   // "Outra": DD/MM/AAAA field + the app's calendar (not the browser's).
   await sheet.getByRole('button', { name: 'Outra' }).click()
-  // First the field, ready to type; the calendar comes from the trailing icon.
+  // A DD/MM/AAAA field, not focused by itself (no phone keyboard); the calendar comes from the trailing icon.
   const other = sheet.getByRole('textbox', { name: 'Outra data do pagamento' })
-  await expect(other).toBeFocused()
+  await expect(other).not.toBeFocused()
   await expect(other).toHaveValue(/^\d{2}\/\d{2}\/\d{4}$/)
   await expect(page.getByRole('dialog', { name: /Calendário/ })).toHaveCount(0)
   await sheet.getByRole('button', { name: 'Abrir calendário' }).click()
