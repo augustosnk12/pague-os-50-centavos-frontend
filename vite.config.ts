@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { version } from './package.json'
+import { prerender, previewRoutes } from './vite-prerender'
 
 /**
  * Preload the Latin Manrope file (improvement 43): the browser starts fetching
@@ -32,7 +33,7 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
  * Installable app + offline read-only mode (issue #5).
- * - The app files are precached; any route opens index.html (SPA).
+ * - The app files are precached; any app route opens app.html (SPA).
  * - API GETs: network first, falling back to the last answer saved, so the
  *   app shows the latest data offline. /auth/* is never cached, and Workbox
  *   only caches GET (changes are blocked offline by src/lib/axios.ts).
@@ -79,7 +80,9 @@ function pwa(apiUrl: string, disable: boolean) {
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,woff2,svg}', 'favicon-*.png', 'icon-192.png'],
-      navigateFallback: '/index.html',
+      // App screens open the empty shell; "/" and the calculator are precached
+      // as their own ready HTML (vite-prerender.ts), matched before this.
+      navigateFallback: '/app.html',
       cleanupOutdatedCaches: true,
       runtimeCaching: api
         ? [
@@ -110,7 +113,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(version),
   },
-  plugins: [react(), preloadFont(), appVersion(), pwa(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '', mode === 'test')],
+  plugins: [react(), preloadFont(), appVersion(), prerender(), previewRoutes(), pwa(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '', mode === 'test')],
   server: {
     // Test output must not reload the app being used in the browser.
     watch: { ignored: ['**/playwright-report/**', '**/test-results/**', '**/dist/**'] },

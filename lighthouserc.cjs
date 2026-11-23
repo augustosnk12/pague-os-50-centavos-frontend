@@ -1,6 +1,6 @@
 /**
  * Lighthouse CI (improvement 43). Measures the production build served by
- * `vite preview` on the public screens — the landing ("/") and Entrar —
+ * `vite preview` on the public screens — the landing ("/"), the calculator and Entrar —
  * which carry the whole first-load cost (bundle, font, layout). Logged-in
  * screens are measured in real use by web-vitals (POST /vitals).
  *
@@ -13,7 +13,7 @@ module.exports = {
     collect: {
       startServerCommand: 'npx vite preview --port 4173 --strictPort',
       startServerReadyPattern: 'Local',
-      url: ['http://localhost:4173/', 'http://localhost:4173/login'],
+      url: ['http://localhost:4173/', 'http://localhost:4173/calculadora-de-parcelas', 'http://localhost:4173/login'],
       numberOfRuns: 3,
       settings: {
         // Chrome on the CI runner has no sandbox user namespace.

@@ -1,5 +1,24 @@
 {
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/calculadora-de-parcelas", "destination": "/calculadora-de-parcelas.html" },
+    { "source": "/login", "destination": "/app.html" },
+    { "source": "/register", "destination": "/app.html" },
+    { "source": "/auth/verify", "destination": "/app.html" },
+    { "source": "/auth/callback", "destination": "/app.html" },
+    { "source": "/dashboard", "destination": "/app.html" },
+    { "source": "/debtors", "destination": "/app.html" },
+    { "source": "/debtors/:id", "destination": "/app.html" },
+    { "source": "/debts/new", "destination": "/app.html" },
+    { "source": "/installments", "destination": "/app.html" },
+    { "source": "/settings", "destination": "/app.html" },
+    { "source": "/payments", "destination": "/app.html" },
+    { "source": "/admin", "destination": "/app.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(login|register|auth/.*|dashboard|debtors|debtors/.*|debts/.*|installments|settings|payments|admin|app\\.html)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    }
   ]
 }

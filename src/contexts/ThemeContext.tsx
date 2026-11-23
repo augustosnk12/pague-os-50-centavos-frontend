@@ -11,8 +11,9 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // No localStorage while the build writes the public pages (vite-prerender.ts).
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('lt-theme') as Theme) ?? 'light'
+    return typeof localStorage === 'undefined' ? 'light' : ((localStorage.getItem('lt-theme') as Theme) ?? 'light')
   })
 
   useEffect(() => {

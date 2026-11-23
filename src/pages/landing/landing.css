@@ -251,7 +251,41 @@ label.lp-field > span:first-child { font-size: 0.875rem; font-weight: 700; }
 .lp-foot { padding-block: 40px 56px; color: var(--text-muted); font-size: 0.875rem; }
 .lp-foot .lp-wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
+/* Visually hidden, still read by screen readers. */
+.lp-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.lp-faq-more { margin-top: 20px; color: var(--text-muted); }
+.lp-faq-more a, .lp-calc-help a { color: var(--primary); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Calculadora de parcelas (public page). */
+.lp-calc { padding-block: 24px 64px; }
+.lp-calc-intro { max-width: 720px; }
+.lp-calc-intro h1 { font-size: clamp(2.25rem, 5.4vw, 3.5rem); line-height: 1.05; margin-top: 14px; }
+.lp-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-top: 36px; }
+.lp-calc-grid > * { min-width: 0; }
+.lp-money { display: flex; align-items: center; gap: 8px; min-height: 46px; padding-inline: 14px; border-radius: var(--r-md); border: 1.5px solid var(--border-input); background: var(--surface); }
+.lp-money:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+.lp-money span { font-weight: 800; color: var(--text-muted); }
+.lp-field .lp-money input { border: none; box-shadow: none; padding-inline: 0; min-height: 42px; font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.lp-calc-sum { border-radius: var(--r-lg); padding: 22px; color: #fff; background: linear-gradient(140deg, var(--hero-from), var(--lp-hero-to)); }
+.lp-calc-sum small { font-size: 0.875rem; font-weight: 700; opacity: 0.92; }
+.lp-calc-sum .big { font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-top: 2px; }
+.lp-calc-sum .row { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 0.9375rem; }
+.lp-calc-note { margin-top: 10px; font-size: 0.8125rem; color: var(--text-muted); }
+.lp-calc-rows { list-style: none; margin: 14px 0 0; padding: 6px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); max-height: 420px; overflow-y: auto; }
+.lp-calc-rows li { display: flex; align-items: center; gap: 12px; padding: 9px 16px; }
+.lp-calc-rows li + li { border-top: 1px solid var(--border); }
+.lp-calc-rows .n { width: 28px; height: 28px; border-radius: var(--r-sm); display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); border: 1px solid var(--border); font-weight: 800; font-size: 0.75rem; }
+.lp-calc-rows .d { flex: 1; color: var(--text-muted); font-weight: 600; }
+.lp-calc-empty { display: flex; align-items: center; gap: 8px; padding: 22px; border-radius: var(--r-lg); border: 1px dashed var(--border-strong); color: var(--text-muted); }
+.lp-calc-help h2 { font-size: clamp(1.75rem, 3.6vw, 2.25rem); }
+.lp-calc-help .lp-trust { margin-top: 28px; }
+
+/* 404 */
+.lp-404 { padding-block: 48px 96px; max-width: 720px; }
+.lp-404 h1 { font-size: clamp(2.25rem, 5.4vw, 3.5rem); line-height: 1.05; margin-top: 14px; }
+
 @media (max-width: 880px) {
+  .lp-calc-grid { grid-template-columns: 1fr; gap: 24px; }
   .lp-hero { grid-template-columns: 1fr; gap: 40px; padding-top: 16px; }
   .lp-feature, .lp-feature[data-flip] { grid-template-columns: 1fr; gap: 28px; margin-top: 56px; }
   .lp-feature[data-flip] .lp-copy { order: 0; }

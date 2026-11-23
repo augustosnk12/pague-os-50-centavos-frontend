@@ -4,6 +4,7 @@ import { PrivateRoute } from './PrivateRoute'
 import { AppLayout } from '../components/layout/AppLayout'
 import { pages } from './routes'
 import { getToken } from '../lib/cookies'
+import { PUBLIC_PAGES } from '../seo/site'
 
 /** Shown for the instant a page's code is still downloading. */
 function PageLoading() {
@@ -27,6 +28,8 @@ function Home() {
 
 const {
   landing: { Component: LandingPage },
+  calculator: { Component: CalculatorPage },
+  notFound: { Component: NotFoundPage },
   login: { Component: LoginPage },
   register: { Component: RegisterPage },
   verify: { Component: VerifyPage },
@@ -46,6 +49,7 @@ export function AppRouter() {
     <Suspense fallback={<PageLoading />}>
       <Routes>
         {/* Public */}
+        <Route path={PUBLIC_PAGES.calculator.path} element={<CalculatorPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/verify" element={<VerifyPage />} />
@@ -65,9 +69,9 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        {/* Default redirect */}
         <Route path="/" element={<Home />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Unknown address: a real "not found" (the server answers 404, see vercel.json). */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )
