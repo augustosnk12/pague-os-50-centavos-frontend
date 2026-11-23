@@ -52,6 +52,14 @@ React 19 + Vite + TypeScript 5 strict, React Router v7, TanStack Query v5, Axios
 - Manifest has **no `theme_color`** on purpose: Chrome on Android paints the system navigation bar with it (one value for both themes); without it the bar follows the phone's light/dark mode. Ignore the plugin's "will not be able to be installed" warning. `background_color` = brand purple (Android splash).
 - Opening screen `#lt-splash` in `index.html`: shown only in `display-mode: standalone`, colored by the saved theme (inline script also sets `data-theme` + theme-color before first paint), removed by `main.tsx` after the first paint.
 
+## SEO and public pages (issue #7)
+
+- Public: `/` (landing), `/calculadora-de-parcelas`, 404. Built as ready HTML by `vite-prerender.ts` (Vite plugin, renders `src/prerender.tsx` through a throwaway SSR server in `generateBundle`), each with its page CSS + modulepreload, `<head>` tags from `src/seo/head.ts` and `<div id="root" data-page="…">`. The build renders the same `<App>` (`src/App.tsx`) as `main.tsx`, which fetches that page's code and **hydrates** it (`hydrateRoot`): the HTML stays on screen (Lighthouse LCP on `/` went 4.8 s → 1.7 s vs. redrawing). `routes.ts` renders already-loaded pages without `lazy`.
+- Public pages run at build time and must hydrate with no mismatch: no `window`/`localStorage`/`document` during render (effects only); a value only the browser knows (theme, today, signed in) goes through `useClientValue(inBrowser, atBuild)` (`src/hooks/useClientValue.ts`; build's day = `__BUILD_DAY__`). Anything rendered only in the browser at the top of `<App>` goes in its `browserOnly` slot. A mismatch shows as React error #418 in the console: check with a `--mode development` build.
+- App screens are served `app.html` (noindex); `vercel.json` has explicit rewrites, no catch-all → unknown URLs get `404.html` with 404. New app route → add to `APP_ROUTES` in `src/seo/site.ts` **and** `vercel.json` (`src/seo/seo.test.ts` checks both against the router). SW `navigateFallback` is `/app.html`.
+- `VITE_SITE_URL` (public address) enables canonical, og:url/og:image and `sitemap.xml`. `public/og-image.jpg` from `scripts/og-image.mjs`.
+- Titles of public pages: `PUBLIC_PAGES` in `src/seo/site.ts` + `usePageMeta`. FAQ text in `src/pages/landing/faq.ts` (also the FAQPage JSON-LD).
+
 ## Plans and limits (improvements 62/63)
 
 - `GET /me/plan` via `usePlan()` (key `['debtors','me-plan']`, refreshed by every debtor/debt change). `PlanLimitsProvider` (in `AppLayout`) renders the "Limite atingido" sheet: call `blocked('debtors'|'debts')` before opening a create flow and `handleLimitError(e)` in `onError`.
@@ -91,7 +99,7 @@ CallbackPage → stores JWT + lender → navigate /dashboard
 | Add a nav route | `src/constants/nav.ts` + `src/router/index.tsx` |
 | Add an icon | `src/components/ui/Icon.tsx` → `ICONS` map |
 | Change installment status logic | `src/lib/utils.ts` → `deriveInstStatus` |
-| Add a new page | `src/pages/`, register in `src/router/index.tsx` |
+| Add a new page | `src/pages/`, register in `src/router/index.tsx` (+ `src/seo/site.ts` and `vercel.json`) |
 | Add a new API hook | `src/hooks/`, call `src/api/` |
 
 ## Prototype

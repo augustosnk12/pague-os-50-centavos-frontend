@@ -1,9 +1,11 @@
 import { Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { PrivateRoute } from './PrivateRoute'
+import { useClientValue } from '../hooks/useClientValue'
 import { AppLayout } from '../components/layout/AppLayout'
 import { pages } from './routes'
 import { getToken } from '../lib/cookies'
+import { PUBLIC_PAGES } from '../seo/site'
 
 /** Shown for the instant a page's code is still downloading. */
 function PageLoading() {
@@ -20,13 +22,20 @@ function AppShell() {
   )
 }
 
-/** "/": the landing for visitors; signed-in people go straight to the Painel. */
+/**
+ * "/": the landing for visitors; signed-in people go straight to the Painel
+ * (index.html already sends them before the page shows; while React hydrates
+ * the landing's ready HTML it must render the landing, as the build did).
+ */
 function Home() {
-  return getToken() ? <Navigate to="/dashboard" replace /> : <LandingPage />
+  const signedIn = useClientValue(() => !!getToken(), false)
+  return signedIn ? <Navigate to="/dashboard" replace /> : <LandingPage />
 }
 
 const {
   landing: { Component: LandingPage },
+  calculator: { Component: CalculatorPage },
+  notFound: { Component: NotFoundPage },
   login: { Component: LoginPage },
   register: { Component: RegisterPage },
   verify: { Component: VerifyPage },
@@ -46,6 +55,7 @@ export function AppRouter() {
     <Suspense fallback={<PageLoading />}>
       <Routes>
         {/* Public */}
+        <Route path={PUBLIC_PAGES.calculator.path} element={<CalculatorPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/verify" element={<VerifyPage />} />
@@ -65,9 +75,9 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        {/* Default redirect */}
         <Route path="/" element={<Home />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Unknown address: a real "not found" (the server answers 404, see vercel.json). */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )

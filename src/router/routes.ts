@@ -1,4 +1,4 @@
-import { lazy, type ComponentType } from 'react'
+import { createElement, lazy, useState, type ComponentType } from 'react'
 
 /**
  * Pages are split per route (improvement 43): the first screen downloads only
@@ -9,12 +9,27 @@ type Loader = () => Promise<{ default: ComponentType }>
 
 function page<M>(load: () => Promise<M>, pick: (m: M) => ComponentType): { Component: ComponentType; preload: Loader } {
   let promise: Promise<{ default: ComponentType }> | undefined
-  const preload: Loader = () => (promise ??= load().then((m) => ({ default: pick(m) })))
-  return { Component: lazy(preload), preload }
+  let loaded: ComponentType | undefined
+  const preload: Loader = () =>
+    (promise ??= load().then((m) => {
+      loaded = pick(m)
+      return { default: loaded }
+    }))
+  const Lazy = lazy(preload)
+  // Code already here (e.g. fetched by main.tsx for a ready-HTML page): render
+  // it directly, since lazy() would still show the loading frame once. Chosen
+  // once per mount, so a page never switches between the two and remounts.
+  function Component(props: object) {
+    const [Page] = useState<ComponentType>(() => loaded ?? Lazy)
+    return createElement(Page, props)
+  }
+  return { Component, preload }
 }
 
 export const pages = {
   landing: page(() => import('../pages/landing/LandingPage'), (m) => m.LandingPage),
+  calculator: page(() => import('../pages/landing/CalculatorPage'), (m) => m.CalculatorPage),
+  notFound: page(() => import('../pages/landing/NotFoundPage'), (m) => m.NotFoundPage),
   login: page(() => import('../pages/auth/LoginPage'), (m) => m.LoginPage),
   register: page(() => import('../pages/auth/RegisterPage'), (m) => m.RegisterPage),
   verify: page(() => import('../pages/auth/VerifyPage'), (m) => m.VerifyPage),
@@ -30,6 +45,8 @@ export const pages = {
 }
 
 const byPath: Record<string, Loader> = {
+  '/': pages.landing.preload,
+  '/calculadora-de-parcelas': pages.calculator.preload,
   '/dashboard': pages.dashboard.preload,
   '/debtors': pages.debtors.preload,
   '/installments': pages.installments.preload,
@@ -42,4 +59,17 @@ const byPath: Record<string, Loader> = {
 /** Start downloading the page behind a link (no-op for unknown paths). */
 export function preloadRoute(path: string): void {
   void byPath[path]?.()
+}
+
+/** Public pages the build writes as ready HTML (vite-prerender.ts). */
+export const PRERENDERED = ['landing', 'calculator', 'notFound'] as const
+export type PrerenderedPage = (typeof PRERENDERED)[number]
+
+/**
+ * Code of the page built as ready HTML (<div id="root" data-page="…">), so
+ * main.tsx can fetch it before hydrating: the page then renders right away
+ * (no `lazy`, no "loading" frame), as it did at build time.
+ */
+export function prerenderedPage(name: string | undefined): Loader | undefined {
+  return (PRERENDERED as readonly string[]).includes(name ?? '') ? pages[name as PrerenderedPage].preload : undefined
 }

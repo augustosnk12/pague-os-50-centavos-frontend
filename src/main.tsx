@@ -1,14 +1,7 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClient } from './lib/queryClient'
-import { ThemeProvider } from './contexts/ThemeContext'
-import { AuthProvider } from './contexts/AuthContext'
-import { ToastProvider } from './contexts/ToastContext'
-import { PreferencesProvider } from './contexts/PreferencesContext'
-import { AppRouter } from './router'
-import { IconSprite } from './components/ui/Icon'
+import { App } from './App'
+import { prerenderedPage } from './router/routes'
 import { UpdatePrompt } from './components/layout/UpdatePrompt'
 import './styles/index.css'
 import { startVitals } from './lib/vitals'
@@ -16,25 +9,16 @@ import { startVitals } from './lib/vitals'
 // Real-use performance (improvement 43): production builds only.
 if (import.meta.env.PROD) startVitals(import.meta.env.VITE_API_URL, __APP_VERSION__)
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <IconSprite />
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <PreferencesProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <AppRouter />
-              <UpdatePrompt />
-            </ToastProvider>
-          </AuthProvider>
-          </PreferencesProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </StrictMode>,
-)
+const root = document.getElementById('root')!
+
+const app = <App router={(tree) => <BrowserRouter>{tree}</BrowserRouter>} browserOnly={<UpdatePrompt />} />
+
+// Public pages come as ready HTML (issue #7, vite-prerender.ts). Fetch that
+// page's code first, then hydrate: React keeps the HTML on screen instead of
+// drawing it again. Without the code (e.g. offline), draw from scratch.
+const ready = prerenderedPage(root.dataset.page)
+if (ready) ready().then(() => hydrateRoot(root, app), () => createRoot(root).render(app))
+else createRoot(root).render(app)
 
 // Opening screen of the installed app (index.html): leaves once the app has
 // painted, fading out (never fading in, see CLAUDE.md "Animations").

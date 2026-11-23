@@ -91,9 +91,27 @@ describe('routes (smoke)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /olá, augusto/i })).toBeInTheDocument()
   })
 
-  it('unknown routes redirect to the dashboard', async () => {
+  it('unknown routes show "Página não encontrada" (the server answers 404), with a way back to the Painel', async () => {
     renderApp('/nao-existe')
-    expect(await screen.findByRole('heading', { level: 1, name: /olá, augusto/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Página não encontrada' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ir para o Painel' })).toHaveAttribute('href', '/dashboard')
+  })
+
+  it('/calculadora-de-parcelas is open without signing in: splits like the app, with optional interest', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    renderApp('/calculadora-de-parcelas', { loggedIn: false })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Calculadora de parcelas' })).toBeInTheDocument()
+    expect(document.title).toMatch(/^Calculadora de parcelas/)
+    fireEvent.change(screen.getByLabelText('Valor total'), { target: { value: '100,00' } })
+    fireEvent.change(screen.getByLabelText('Número de parcelas'), { target: { value: '3' } })
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/R\$\s33,34$/),
+      expect.stringMatching(/R\$\s33,33$/),
+      expect.stringMatching(/R\$\s33,33$/),
+    ])
+    fireEvent.change(screen.getByLabelText(/juros ao mês/i), { target: { value: '2' } })
+    expect(screen.getByText(/juros/i, { selector: 'span' })).toHaveTextContent(/^Juros R\$\s4,04$/)
+    expect(screen.getByRole('link', { name: 'Criar conta grátis' })).toHaveAttribute('href', '/register')
   })
 
   it('dashboard greets the lender', async () => {
@@ -153,6 +171,8 @@ describe('axe on every screen (improvement 43: axe in the unit tests)', () => {
 
   const SCREENS: [string, RegExp | string, boolean?][] = [
     ['/', /emprestou\? anota/i, false],
+    ['/calculadora-de-parcelas', 'Calculadora de parcelas', false],
+    ['/nao-existe', 'Página não encontrada', false],
     ['/login', 'Entrar', false],
     ['/dashboard', /olá, augusto/i],
     ['/debtors', 'Devedores'],

@@ -1,14 +1,15 @@
 import { useRef, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Logo } from '../../components/layout/Logo'
 import { Icon } from '../../components/ui/Icon'
 import { pixBlock, reminderText } from '../../lib/reminder'
 import { brCode } from '../../lib/pix'
-import { useTheme } from '../../contexts/ThemeContext'
+import { PUBLIC_PAGES } from '../../seo/site'
+import { usePageMeta } from '../../seo/usePageMeta'
+import { FAQ } from './faq'
+import { PublicFooter, PublicHeader } from './PublicShell'
 import { ContactForm } from './ContactForm'
 import { CountUp } from './CountUp'
 import { useLandingMotion, useSeen } from './useLandingMotion'
-import './landing.css'
 
 /*
  * Landing (prototype/landing.html), adjusted to the app as it is today:
@@ -89,45 +90,24 @@ const MORE: { icon: string; title: string; text: string }[] = [
 ]
 
 export function LandingPage() {
-  const { theme, toggleTheme } = useTheme()
+  usePageMeta(PUBLIC_PAGES.landing)
   const root = useRef<HTMLDivElement>(null)
   const motion = useLandingMotion(root)
   return (
     <div className="lp" ref={root} data-motion={motion || undefined}>
-      <header className="lp-wrap lp-top">
-        <Link to="/" className="lp-brand" aria-label="Pague os 50 centavos, início">
-          <Logo size={34} />
-        </Link>
-        <nav aria-label="Landing">
-          <a className="lp-btn lp-hide-sm" data-v="ghost" href="#como-funciona">Como funciona</a>
-          <a className="lp-btn lp-hide-sm" data-v="ghost" href="#duvidas">Dúvidas</a>
-          {/* Same theme as the app (ThemeContext): the choice carries over after signing in. */}
-          <button
-            type="button"
-            className="lp-btn lp-theme"
-            data-v="ghost"
-            aria-pressed={theme === 'dark'}
-            aria-label="Tema escuro"
-            title={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-            onClick={toggleTheme}
-          >
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
-          </button>
-          <Link className="lp-btn" data-v="outline" to="/login">Entrar</Link>
-        </nav>
-      </header>
+      <PublicHeader home />
 
       <main id="conteudo">
         <div className="lp-wrap lp-hero">
           <div>
-            <span className="lp-eyebrow" data-reveal style={d(0)}>Controle de quem te deve</span>
+            <span className="lp-eyebrow" data-reveal style={d(0)}>Controle de dívidas e parcelas</span>
             <h1 data-reveal style={d(1)}>
               <span className="q">Emprestou?</span> Anota.<br />
               <span className="q">Venceu?</span> Cobra.<br />
               Até os <span className="coin">50 centavos.</span>
             </h1>
             <p className="lp-lede" data-reveal style={d(2)}>
-              Registre o que você emprestou, divida em parcelas e veja num só lugar quem pagou, quem está atrasado e quanto ainda falta receber no mês.
+              Registre o que você emprestou para amigos e família, divida em parcelas e veja num só lugar quem pagou, quem está atrasado e quanto ainda falta receber no mês. Na hora de cobrar, a mensagem do WhatsApp sai pronta.
             </p>
             <div className="lp-cta" data-reveal style={d(3)}>
               <Link className="lp-btn" data-v="primary" data-size="lg" to="/register">Criar minha conta</Link>
@@ -213,7 +193,7 @@ export function LandingPage() {
 
             <div className="lp-feature">
               <div className="lp-copy" data-reveal>
-                <h3>Lembrete no WhatsApp, com Pix copia e cola</h3>
+                <h3>Cobre quem te deve pelo WhatsApp, com Pix copia e cola</h3>
                 <p>Um toque monta uma mensagem educada com as parcelas em aberto, o total e, se você quiser, o código Pix com o valor exato.</p>
                 <ul className="lp-checks">
                   <Check>Você revisa e edita o texto antes de enviar</Check>
@@ -318,28 +298,16 @@ export function LandingPage() {
           <div className="lp-wrap">
             <div className="lp-sec-head" data-reveal><h2 id="lp-fq">Dúvidas</h2></div>
             <div className="lp-faq">
-              <details open data-reveal style={d(0)}>
-                <summary>A pessoa que me deve precisa instalar algo?</summary>
-                <p>Não. Só você usa o app. O devedor recebe, se você quiser, uma mensagem normal de WhatsApp com o valor e o Pix.</p>
-              </details>
-              <details data-reveal style={d(1)}>
-                <summary>O app faz cobrança automática ou mexe no meu banco?</summary>
-                <p>Não. Ele não se conecta a banco nenhum e não envia nada sozinho. É um controle: você registra o que recebeu e decide quando lembrar alguém.</p>
-              </details>
-              <details data-reveal style={d(2)}>
-                <summary>E se a pessoa pagar só uma parte?</summary>
-                <p>Registre o valor recebido. A parcela fica como parcial e o app mostra quanto ainda falta. Se pagou várias de uma vez, registre tudo junto.</p>
-              </details>
-              <details data-reveal style={d(3)}>
-                <summary>Quanto custa?</summary>
-                <p>Nada. O app é gratuito e sem anúncios. Se ele te ajudar, dá para apoiar o projeto com um café, pelo próprio app.</p>
-              </details>
-              <details data-reveal style={d(4)}>
-                <summary>Funciona no celular?</summary>
-                <p>Sim. O app foi pensado primeiro para o celular, e no computador ganha uma navegação no topo e atalhos de teclado.</p>
-              </details>
+              {FAQ.map(({ q, a }, i) => (
+                <details key={q} open={i === 0} data-reveal style={d(i)}>
+                  <summary>{q}</summary>
+                  <p>{a}</p>
+                </details>
+              ))}
             </div>
-
+            <p className="lp-faq-more" data-reveal>
+              Quer só simular um parcelamento? Use a <Link to={PUBLIC_PAGES.calculator.path}>calculadora de parcelas</Link>, sem cadastro.
+            </p>
           </div>
         </section>
 
@@ -364,13 +332,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="lp-foot">
-        <div className="lp-wrap">
-          <span>Pague os 50 centavos · 2026</span>
-          <a className="lp-foot-link" href="#contato">Contato</a>
-          <span>Feito no Brasil, em reais.</span>
-        </div>
-      </footer>
+      <PublicFooter home />
     </div>
   )
 }

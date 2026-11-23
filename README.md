@@ -64,6 +64,7 @@ npm run dev                  # http://localhost:5173
 | Variável | Uso |
 |---|---|
 | `VITE_API_URL` | Endereço da API |
+| `VITE_SITE_URL` | Endereço público do site (ex.: `https://seu-dominio.com.br`), para `canonical`, prévia do link (`og:image`) e `sitemap.xml`. Sem ele o build avisa e deixa essas tags de fora |
 | `VITE_SUPPORT_PIX` | Chave Pix do "Apoie o projeto" (opcional; vazia = o item não aparece). Na Vercel, cadastrar como tipo **"Config"** (a Vercel não aceita `VITE_` como segredo) |
 
 ## Testes e verificações
@@ -116,5 +117,9 @@ Convenções para quem for mexer no código: [`CLAUDE.md`](./CLAUDE.md).
 
 ## Deploy (Vercel)
 
-- `vercel.json` manda todas as rotas para o `index.html` (SPA).
+- **Páginas públicas prontas (SEO)**: o build escreve a landing (`index.html`), a calculadora (`calculadora-de-parcelas.html`) e o `404.html` já com o conteúdo, título, descrição, Open Graph e JSON-LD (`vite-prerender.ts`, a partir de `src/prerender.tsx`), além de `robots.txt` e `sitemap.xml`.
+- `vercel.json` manda as telas do app para o `app.html` (sem conteúdo pronto, com `X-Robots-Tag: noindex`). Endereço que não existe responde **404** (não há mais rewrite para tudo). Rota nova no app → incluir em `src/seo/site.ts` (`APP_ROUTES`) e no `vercel.json` (o teste `src/seo/seo.test.ts` confere).
+- `npm run preview` responde igual à Vercel.
+- Imagem da prévia do link: `public/og-image.jpg` (`node scripts/og-image.mjs` para refazer).
+- Depois do primeiro deploy com o domínio: cadastrar no **Google Search Console** e no **Bing Webmaster Tools** e enviar o `sitemap.xml`.
 - Publique **a API antes** quando o front depender de uma rota nova.
