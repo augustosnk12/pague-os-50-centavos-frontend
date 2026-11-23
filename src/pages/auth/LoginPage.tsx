@@ -161,7 +161,6 @@ export function LoginPage() {
           maxLength={254}
           aria-invalid={!!err || undefined}
           aria-describedby={err ? errId : undefined}
-          autoFocus
         />
         <div id={errId} className="lt-auth-err" role="alert">
           {err && <><Icon name="alert" size={16} /> {err}</>}

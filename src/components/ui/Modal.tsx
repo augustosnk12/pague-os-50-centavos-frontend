@@ -14,10 +14,9 @@ interface ModalProps {
    */
   head?: (titleId: string, close: () => void) => ReactNode
   /**
-   * Where focus lands on open. 'content' (default): the first field or control.
-   * 'dialog': the dialog itself — no field focused, so the phone keyboard stays
-   * closed when typing is optional (e.g. the payment sheet, where the amount is
-   * already filled in).
+   * Where focus lands on open. 'dialog' (default): the dialog itself — no field
+   * is focused, so the phone keyboard stays closed until the person taps one.
+   * 'content': the first field or control.
    */
   initialFocus?: 'content' | 'dialog'
 }
@@ -63,7 +62,7 @@ const focusables = (root: HTMLElement) =>
  * returns to the element that opened it. Background is inert. Enters by
  * translating (never from opacity 0) and leaves with a short animation.
  */
-export function Modal({ open, onClose, title, children, footer, head, initialFocus = 'content' }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, head, initialFocus = 'dialog' }: ModalProps) {
   const titleId = useId()
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
@@ -109,8 +108,8 @@ export function Modal({ open, onClose, title, children, footer, head, initialFoc
     document.addEventListener('keydown', onEsc)
     document.body.style.overflow = 'hidden'
 
-    // Initial focus: keep an element that already took it (e.g. an autofocused
-    // field), otherwise the first field/control of the content, otherwise the dialog.
+    // Initial focus: keep an element that already took it, otherwise the dialog
+    // itself ('content': the first field/control of the content).
     requestAnimationFrame(() => {
       const dialog = dialogRef.current
       if (!dialog || dialog.contains(document.activeElement)) return

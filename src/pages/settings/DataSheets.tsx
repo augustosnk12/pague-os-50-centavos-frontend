@@ -120,7 +120,6 @@ export function DeleteAccountSheet({ open, onClose, onDownloadFirst, onDeleted }
     try {
       await meApi.deleteCode()
       setStep('code')
-      requestAnimationFrame(() => input.current?.focus())
     } catch {
       setErr('Não foi possível enviar o código agora. Tente de novo em instantes.')
     } finally {

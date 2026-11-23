@@ -41,7 +41,6 @@ export function CheckEmail({ email, type, onResend, onOtherEmail }: CheckEmailPr
   // The e-mail was just sent: the resend countdown starts now.
   useEffect(() => {
     start()
-    input.current?.focus()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (value: string) => {

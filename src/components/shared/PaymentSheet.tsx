@@ -242,8 +242,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
       open={!!target}
       onClose={onClose}
       title={name}
-      // Most payments are the full amount (already filled in): do not open the phone keyboard.
-      initialFocus="dialog"
       head={(titleId, close) => (
         <div className="lt-pay-head">
           <Avatar name={name} size={36} hue={t.debtor.avatarHue} emoji={t.debtor.avatarEmoji} />
@@ -346,7 +344,6 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                 {dateMode === 'other' ? (
                   <DateInput
                     compact
-                    autoFocus
                     ariaLabel="Outra data do pagamento"
                     value={otherDate}
                     onChange={setOtherDate}
