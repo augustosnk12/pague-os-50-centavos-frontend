@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Toast, type ToastData } from '../components/ui/Toast'
+import { useClientValue } from '../hooks/useClientValue'
 import { TOAST_MS, TOAST_WITH_ACTION_MS, TOAST_LEAVE_MS as LEAVE_MS } from '../lib/timing'
 
 interface ToastContextValue {
@@ -26,6 +27,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     el.setAttribute('data-modal-keep', '')
     return el
   })
+  // Not in the ready HTML of the public pages (vite-prerender.ts): the region
+  // joins once React has taken over the page, so hydration matches.
+  const inBrowser = useClientValue(() => true, false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const remaining = useRef(0)
@@ -94,7 +98,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {region &&
+      {region && inBrowser &&
         createPortal(
           <>
             <div role="status" aria-live="polite" aria-atomic="true" className="lt-sr-only">

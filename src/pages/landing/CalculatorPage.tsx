@@ -4,6 +4,7 @@ import { Icon } from '../../components/ui/Icon'
 import { DateInput } from '../../components/ui/DateInput'
 import { formatCents, parseCurrencyDigits } from '../../lib/currency'
 import { localToday } from '../../lib/date'
+import { useClientValue } from '../../hooks/useClientValue'
 import { fmtBR, fmtMoney } from '../../lib/format'
 import { addMonths } from '../../lib/newDebt'
 import { calcInstallments, MAX_INSTALLMENTS, MAX_RATE, parseRate } from '../../lib/installmentCalc'
@@ -24,7 +25,11 @@ export function CalculatorPage() {
   const [cents, setCents] = useState('120000')
   const [count, setCount] = useState('6')
   const [rate, setRate] = useState('')
-  const [first, setFirst] = useState(() => addMonths(localToday(), 1))
+  // Until the person picks a date: a month from today (the build's day in the
+  // ready HTML, today's once React takes over).
+  const [picked, setFirst] = useState<string | null>(null)
+  const today = useClientValue(localToday, __BUILD_DAY__)
+  const first = picked ?? addMonths(today, 1)
 
   const n = Number(count)
   const ratePct = parseRate(rate)

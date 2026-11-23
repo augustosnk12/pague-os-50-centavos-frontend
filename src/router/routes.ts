@@ -67,8 +67,8 @@ export type PrerenderedPage = (typeof PRERENDERED)[number]
 
 /**
  * Code of the page built as ready HTML (<div id="root" data-page="…">), so
- * main.tsx can fetch it before the first render: React then swaps the ready
- * HTML for the same page, with no blank "loading" frame in between.
+ * main.tsx can fetch it before hydrating: the page then renders right away
+ * (no `lazy`, no "loading" frame), as it did at build time.
  */
 export function prerenderedPage(name: string | undefined): Loader | undefined {
   return (PRERENDERED as readonly string[]).includes(name ?? '') ? pages[name as PrerenderedPage].preload : undefined

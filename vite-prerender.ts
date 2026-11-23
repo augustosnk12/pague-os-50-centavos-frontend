@@ -113,7 +113,7 @@ export function prerender(): Plugin {
         ssr: { noExternal: ['react-router-dom', 'react-router'], resolve: { conditions: ['module-sync', 'module', 'node'] } },
       })
       try {
-        const { render } = (await server.ssrLoadModule('/src/prerender.tsx')) as { render: (page: PageName, path: string) => string }
+        const { render } = (await server.ssrLoadModule('/src/prerender.tsx')) as { render: (page: PageName, path: string) => Promise<string> }
 
         const withHead = (title: string, head: string, top = '') => {
           let html = top ? replaceOnce(template, '<head>', `<head>\n    ${top}`, '<head>') : template
@@ -130,7 +130,7 @@ export function prerender(): Plugin {
           ]
           const tags = out.name === 'notFound' ? `<meta name="description" content="${esc(out.page.description)}" />` : headTags(out.page, site)
           let html = withHead(out.page.title, [out.head, tags, ...links].filter(Boolean).join('\n    '))
-          html = replaceOnce(html, '<div id="root"></div>', `<div id="root" data-page="${out.name}">${render(out.name, out.page.path)}</div>`, '<div id="root">')
+          html = replaceOnce(html, '<div id="root"></div>', `<div id="root" data-page="${out.name}">${await render(out.name, out.page.path)}</div>`, '<div id="root">')
           if (out.file === 'index.html') index.source = html
           else this.emitFile({ type: 'asset', fileName: out.file, source: html })
         }

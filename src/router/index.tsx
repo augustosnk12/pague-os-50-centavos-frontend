@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { PrivateRoute } from './PrivateRoute'
+import { useClientValue } from '../hooks/useClientValue'
 import { AppLayout } from '../components/layout/AppLayout'
 import { pages } from './routes'
 import { getToken } from '../lib/cookies'
@@ -21,9 +22,14 @@ function AppShell() {
   )
 }
 
-/** "/": the landing for visitors; signed-in people go straight to the Painel. */
+/**
+ * "/": the landing for visitors; signed-in people go straight to the Painel
+ * (index.html already sends them before the page shows; while React hydrates
+ * the landing's ready HTML it must render the landing, as the build did).
+ */
 function Home() {
-  return getToken() ? <Navigate to="/dashboard" replace /> : <LandingPage />
+  const signedIn = useClientValue(() => !!getToken(), false)
+  return signedIn ? <Navigate to="/dashboard" replace /> : <LandingPage />
 }
 
 const {

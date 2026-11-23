@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { getToken } from '../../lib/cookies'
+import { useClientValue } from '../../hooks/useClientValue'
 import { PUBLIC_PAGES, SITE_NAME } from '../../seo/site'
 import { usePageMeta } from '../../seo/usePageMeta'
 import { PublicFooter, PublicHeader } from './PublicShell'
@@ -12,7 +13,7 @@ const META = { title: `Página não encontrada | ${SITE_NAME}`, description: 'Es
  */
 export function NotFoundPage() {
   usePageMeta(META)
-  const signedIn = !!getToken()
+  const signedIn = useClientValue(() => !!getToken(), false)
   return (
     <div className="lp">
       <PublicHeader />

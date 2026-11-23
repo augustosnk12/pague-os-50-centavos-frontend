@@ -112,6 +112,8 @@ function appVersion(): Plugin {
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(version),
+    // Day of the build (YYYY-MM-DD): the date the ready HTML of the public pages was made with.
+    __BUILD_DAY__: JSON.stringify(new Date().toISOString().slice(0, 10)),
   },
   plugins: [react(), preloadFont(), appVersion(), prerender(), previewRoutes(), pwa(loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL ?? '', mode === 'test')],
   server: {
