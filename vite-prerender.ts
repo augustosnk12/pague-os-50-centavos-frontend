@@ -107,6 +107,10 @@ export function prerender(): Plugin {
         appType: 'custom',
         server: { middlewareMode: true, hmr: false, ws: false },
         optimizeDeps: { noDiscovery: true, include: [] },
+        // React Router is bundled by Vite from its ESM build ("module-sync"
+        // export condition), not loaded by Node: left to Node, Vite reads its
+        // CommonJS build and, on Node ≥ 22, `import { StaticRouter }` fails.
+        ssr: { noExternal: ['react-router-dom', 'react-router'], resolve: { conditions: ['module-sync', 'module', 'node'] } },
       })
       try {
         const { render } = (await server.ssrLoadModule('/src/prerender.tsx')) as { render: (page: PageName, path: string) => string }
