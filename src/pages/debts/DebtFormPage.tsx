@@ -25,6 +25,10 @@ import { defaultDue, isInstallmentType, recurringPreview, type RecurrenceEnd } f
 import type { DebtType } from '../../types/debt'
 import { usePlanLimits } from '../../contexts/PlanLimitsContext'
 import { LimitBanner } from '../../components/shared/LimitBanner'
+import { SplitShares, SplitWho } from '../../components/shared/SplitPeople'
+import { useDeleteSplit, useSplitDebt } from '../../hooks/debts/useSplitDebt'
+import { useAuth } from '../../contexts/AuthContext'
+import { checkSplit, equalShares, type SplitMode } from '../../lib/split'
 
 const TYPES: { type: DebtType; label: string; sub: string; icon: string }[] = [
   { type: 'CASH', label: 'Dinheiro', sub: 'À vista', icon: 'banknote' },
@@ -62,6 +66,9 @@ export function DebtFormPage() {
   const createDebt = useCreateDebt()
   const limits = usePlanLimits()
   const createDebtor = useCreateDebtor()
+  const splitDebt = useSplitDebt()
+  const deleteSplit = useDeleteSplit()
+  const { lender } = useAuth()
 
   const [debtorId, setDebtorId] = useState(searchParams.get('debtorId') ?? '')
   const [type, setType] = useState<DebtType>('PIX')
@@ -76,6 +83,13 @@ export function DebtFormPage() {
   const [recUntil, setRecUntil] = useState('')
   const [tried, setTried] = useState(false)
   const [newDebtor, setNewDebtor] = useState<string | null>(null)
+  // Item 66: split with more people. "Cadastrar" there adds the new person to the split.
+  const [split, setSplit] = useState(false)
+  const [withIds, setWithIds] = useState<string[]>([])
+  const [withMe, setWithMe] = useState(true)
+  const [mode, setMode] = useState<SplitMode>('equal')
+  const [custom, setCustom] = useState<Record<string, string>>({})
+  const [newFor, setNewFor] = useState<'main' | 'split'>('main')
   const [err, setErr] = useState('')
 
   const debtor = debtors.find((d) => d.id === debtorId) ?? null
@@ -86,22 +100,29 @@ export function DebtFormPage() {
   const amount = parseInt(cents || '0', 10)
   const n = inst ? Math.max(1, parseInt(count, 10) || 1) : 1
   const months = parseInt(recN, 10) || 0
-  const preview = amount > 0 && due && !isRec ? genInstallments(amount / 100, n, `${due}T00:00:00.000Z`) : []
+  const ids = debtor ? [debtor.id, ...withIds.filter((id) => id !== debtor.id)] : []
+  const splitting = split && ids.length > 1
+  const check = checkSplit({ totalCents: amount, ids, withMe, mode, custom, installments: isRec ? 1 : n })
+  const preview = amount > 0 && due && !isRec && !splitting ? genInstallments(amount / 100, n, `${due}T00:00:00.000Z`) : []
   const recDates = isRec && due ? recurringPreview(due, recEnd, months, recUntil) : []
   const dueDay = due ? Number(due.slice(8, 10)) : 0
   const defaultDay = type === 'CREDIT_CARD' ? settings?.defaultCardDueDay : type === 'PIX_INSTALLMENT' ? settings?.defaultPixInstallmentDueDay : null
 
   const missing: Missing = !debtor
     ? { field: 'nd-debtor', text: 'Escolha para quem é a dívida' }
-    : !(amount > 0)
-      ? { field: 'nd-amount', text: isRec ? 'Informe o valor por mês' : 'Informe o valor' }
-      : isRec && recEnd === 'count' && !(months > 0)
-        ? { field: 'nd-recn', text: 'Informe por quantos meses' }
-        : isRec && recEnd === 'date' && !(recUntil && recUntil >= due)
-          ? { field: 'nd-recu', text: recUntil ? 'A última cobrança deve ser depois do primeiro vencimento' : 'Informe a data da última cobrança' }
-          : !due
-            ? { field: 'nd-due', text: 'Informe o vencimento' }
-            : null
+    : split && !splitting
+      ? { field: 'nd-split', text: 'Escolha com quem dividir' }
+      : !(amount > 0)
+        ? { field: 'nd-amount', text: isRec ? 'Informe o valor por mês' : 'Informe o valor' }
+        : isRec && recEnd === 'count' && !(months > 0)
+          ? { field: 'nd-recn', text: 'Informe por quantos meses' }
+          : isRec && recEnd === 'date' && !(recUntil && recUntil >= due)
+            ? { field: 'nd-recu', text: recUntil ? 'A última cobrança deve ser depois do primeiro vencimento' : 'Informe a data da última cobrança' }
+            : !due
+              ? { field: 'nd-due', text: 'Informe o vencimento' }
+              : splitting && check.problem
+                ? { field: 'nd-shares', text: 'Confira a parte de cada pessoa' }
+                : null
 
   const focusField = (field: string) => {
     const box = document.getElementById(field)
@@ -111,6 +132,10 @@ export function DebtFormPage() {
   }
 
 
+  const recurrence = isRec
+    ? { type: 'MONTHLY' as const, occurrences: recEnd === 'count' ? months : null, endsAt: recEnd === 'date' ? `${recUntil}T00:00:00.000Z` : null }
+    : null
+
   const submit = () => {
     setErr('')
     if (missing) {
@@ -118,9 +143,10 @@ export function DebtFormPage() {
       focusField(missing.field)
       return
     }
-    if (createDebt.isPending || !debtor) return
+    if (createDebt.isPending || splitDebt.isPending || !debtor) return
     // Melhoria 62: no limite de dívidas, abre a folha do limite.
     if (limits.blocked('debts')) return
+    if (splitting) return submitSplit()
     createDebt.mutate(
       {
         debtorId: debtor.id,
@@ -129,16 +155,7 @@ export function DebtFormPage() {
         numberOfInstallments: n,
         firstDueDate: `${due}T00:00:00.000Z`,
         description: desc.trim() || null,
-        ...(isRec
-          ? {
-              recurrence: {
-                type: 'MONTHLY' as const,
-                occurrences: recEnd === 'count' ? months : null,
-                endsAt: recEnd === 'date' ? `${recUntil}T00:00:00.000Z` : null,
-              },
-              today,
-            }
-          : {}),
+        ...(recurrence ? { recurrence, today } : {}),
       },
       {
         onSuccess: (data) => {
@@ -157,10 +174,56 @@ export function DebtFormPage() {
     )
   }
 
+  /** Item 66: one debt per person, all or nothing; "Desfazer" removes them all. */
+  const submitSplit = () => {
+    const names = (list: { debtorId: string }[]) => list.map((x) => firstName(debtors.find((d) => d.id === x.debtorId)?.name ?? '')).join(', ')
+    splitDebt.mutate(
+      {
+        type,
+        description: desc.trim() || undefined,
+        numberOfInstallments: n,
+        firstDueDate: `${due}T00:00:00.000Z`,
+        recurrence,
+        shares: check.shares.map((x) => ({ debtorId: x.id, amount: x.cents / 100 })),
+        today,
+      },
+      {
+        onSuccess: (data) => {
+          const made = data.debts.map((x) => x.debt)
+          made.forEach((d) => rememberDebtor(d.debtorId))
+          showToast(`${made.length} dívidas${isRec ? ' recorrentes' : ''} criadas · ${names(made)}`, {
+            status: 'PENDING',
+            icon: 'check',
+            action: {
+              label: 'Desfazer',
+              // The form is gone by then: a promise (mutate's callbacks do not run after unmount).
+              onClick: () =>
+                deleteSplit
+                  .mutateAsync(data.splitId)
+                  .then(() => showToast('Divisão desfeita', { icon: 'check' }))
+                  .catch((e: unknown) => showToast(translateApiError(getApiError(e), 'Não foi possível desfazer a divisão.'), { icon: 'alert' })),
+            },
+          })
+          back.go()
+        },
+        onError: (e: unknown) => {
+          if (!limits.handleLimitError(e)) setErr(translateApiError(getApiError(e), 'Erro ao criar as dívidas.'))
+        },
+      },
+    )
+  }
+
+  const pickMode = (m: SplitMode) => {
+    // "Valores diferentes" starts from the equal parts.
+    if (m === 'custom') setCustom(Object.fromEntries(equalShares(amount, ids, withMe).map((x) => [x.id, custom[x.id] || String(x.cents || '')])))
+    setMode(m)
+  }
+
   const saveDebtor = (data: DebtorFormPayload) => {
     createDebtor.mutate(data, {
       onSuccess: (d) => {
-        setDebtorId(d.id)
+        if (newFor === 'split') setWithIds((w) => (w.includes(d.id) ? w : [...w, d.id]))
+        else setDebtorId(d.id)
         setNewDebtor(null)
         showToast(`${firstName(d.name)} cadastrado`, { icon: 'check' })
       },
@@ -184,12 +247,38 @@ export function DebtFormPage() {
         <DebtorPicker
           debtors={debtors}
           value={debtor}
-          onChange={(d) => setDebtorId(d.id)}
+          onChange={(d) => {
+            setDebtorId(d.id)
+            setWithIds((w) => w.filter((id) => id !== d.id))
+          }}
           onCreate={(name) => {
-            if (!limits.blocked('debtors')) setNewDebtor(name)
+            if (limits.blocked('debtors')) return
+            setNewFor('main')
+            setNewDebtor(name)
           }}
           invalid={!!showMissing && missing.field === 'nd-debtor'}
         />
+
+        {debtor && (
+          <SplitWho
+            debtors={debtors}
+            main={debtor}
+            withIds={ids.slice(1)}
+            withMe={withMe}
+            meName={lender?.name ?? ''}
+            on={split}
+            invalid={!!showMissing && missing.field === 'nd-split'}
+            onToggle={() => setSplit((v) => !v)}
+            onAdd={(id) => setWithIds((w) => (w.includes(id) ? w : [...w, id]))}
+            onRemove={(id) => setWithIds((w) => w.filter((x) => x !== id))}
+            onToggleMe={() => setWithMe((v) => !v)}
+            onCreate={(name) => {
+              if (limits.blocked('debtors')) return
+              setNewFor('split')
+              setNewDebtor(name)
+            }}
+          />
+        )}
 
         <div className="lt-field">
           <div className="lt-flabel" id="nd-type-l">Tipo</div>
@@ -216,7 +305,7 @@ export function DebtFormPage() {
         <div className="lt-nd-row" data-two={inst || undefined}>
           <div id="nd-amount">
             <Input
-              label={isRec ? 'Valor por mês' : 'Valor total'}
+              label={splitting ? (isRec ? 'Valor total por mês' : 'Valor total da conta') : isRec ? 'Valor por mês' : 'Valor total'}
               value={formatCents(cents)}
               onChange={(v) => setCents(parseCurrencyDigits(v))}
               placeholder="0,00"
@@ -295,7 +384,7 @@ export function DebtFormPage() {
           )}
         </div>
 
-        {isRec && amount > 0 && (
+        {isRec && amount > 0 && !splitting && (
           <Detail>
             <section className="lt-nd-pv" aria-label="Prévia das cobranças">
               <div className="lt-nd-pv-h">
@@ -335,6 +424,24 @@ export function DebtFormPage() {
           </Detail>
         )}
 
+        {splitting && (
+          <SplitShares
+            debtors={debtors}
+            ids={ids}
+            withMe={withMe}
+            meName={lender?.name ?? ''}
+            mode={mode}
+            onMode={pickMode}
+            custom={custom}
+            onCustom={(id, c) => setCustom((m) => ({ ...m, [id]: c }))}
+            totalCents={amount}
+            installments={isRec ? 1 : n}
+            monthly={isRec}
+            check={check}
+            invalid={!!showMissing && missing.field === 'nd-shares'}
+          />
+        )}
+
         {err && <div className="lt-field-error" role="alert">{err}</div>}
 
         <div className="lt-nd-foot">
@@ -347,9 +454,9 @@ export function DebtFormPage() {
           </div>
           <div className="lt-nd-btns">
             <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back.go}>Cancelar</button>
-            <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || undefined} onClick={submit}>
+            <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || splitDebt.isPending || undefined} onClick={submit}>
               <Icon name="check" size={16} />
-              {createDebt.isPending ? 'Criando…' : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}
+              {createDebt.isPending || splitDebt.isPending ? 'Criando…' : splitting ? `Criar ${ids.length} dívidas${isRec ? ' recorrentes' : ''}` : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}
             </button>
           </div>
         </div>

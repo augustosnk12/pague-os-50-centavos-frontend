@@ -25,9 +25,31 @@ export interface CreateDebtResponse {
   installments: Installment[]
 }
 
+/** POST /debts/split (item 66, API R7): one debt per person, all or nothing. */
+export interface CreateSplitPayload {
+  description?: string
+  type: DebtType
+  numberOfInstallments: number
+  firstDueDate: string
+  recurrence?: { type: 'MONTHLY'; occurrences: number | null; endsAt: string | null } | null
+  /** Each person's part in reais (the amount per month when recurring). */
+  shares: { debtorId: string; amount: number }[]
+  today?: string
+}
+
+export interface CreateSplitResponse {
+  splitId: string
+  debts: CreateDebtResponse[]
+}
+
 export const debtsApi = {
   get: (id: string) =>
     api.get<Debt>(`/debts/${id}`),
+
+  split: (data: CreateSplitPayload) => api.post<CreateSplitResponse>('/debts/split', data),
+
+  /** "Desfazer" of a split: all its debts, or none if any has a payment (422). */
+  deleteSplit: (splitId: string) => api.delete<{ deleted: number }>(`/debts/split/${splitId}`),
 
   create: (data: CreateDebtPayload) =>
     api.post<CreateDebtResponse>('/debts', data),

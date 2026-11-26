@@ -155,6 +155,14 @@ const API_ERROR_MAP: Record<string, string> = {
   'Installment is already paid': 'Esta parcela já foi paga.',
   'Payment not found': 'Pagamento não encontrado.',
   'Debt has payments and cannot be deleted': 'Esta dívida tem pagamentos registrados e não pode ser excluída.',
+  // Dividir uma conta (item 66)
+  'A split needs at least 2 people': 'Escolha ao menos 2 pessoas para dividir.',
+  'A split can have at most 20 people': 'Dá para dividir com até 20 pessoas.',
+  'Each person can appear only once': 'Cada pessoa só pode aparecer uma vez.',
+  'A part is too small for the number of installments': 'Uma das partes é pequena demais para o número de parcelas.',
+  'Only debtors can be in a split': 'Só devedores podem entrar na divisão.',
+  'Split not found': 'Essas dívidas já não existem.',
+  'Split has payments': 'Alguém da divisão já tem pagamento registrado. Exclua as dívidas uma a uma no perfil.',
   // Planos e Administração (melhorias 62/63)
   'Debtor limit reached': 'Você chegou ao limite de devedores.',
   'Debt limit reached': 'Você chegou ao limite de dívidas.',

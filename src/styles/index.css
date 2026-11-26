@@ -233,8 +233,11 @@ html[data-hide-values] .lt-amt { filter: blur(7px); user-select: none; }
 /* Responsive chrome */
 .lt-desktop-nav { display: none !important; }
 .lt-desktop-only { display: none !important; }
+/* Height the bottom tabs (with the raised +) take on phones; sticky footers sit above it. */
+:root { --tabs-h: calc(80px + env(safe-area-inset-bottom)); }
 @media (min-width: 880px) {
   .lt-desktop-nav { display: flex !important; }
+  :root { --tabs-h: 0px; }
   .lt-desktop-only { display: inline-flex !important; }
   .lt-bottom-tabs { display: none !important; }
   .lt-mobile-only { display: none !important; }
@@ -1585,3 +1588,49 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 /* Translate only (never opacity from 0: it freezes in throttled tabs). */
 @keyframes ltUpdateIn { from { transform: translateY(-12px); } to { transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .lt-update { animation: none; } }
+
+/* Item 66: Dividir uma conta (Nova dívida). */
+.lt-split { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 4px; }
+.lt-split[data-invalid] { border-color: var(--overdue); }
+.lt-split-in { padding: 4px 10px 10px; }
+.lt-split-how { padding: 12px 14px; }
+.lt-split-cap { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin: 6px 0 8px; min-width: 0; }
+.lt-split-k { font-size: 0.75rem; font-weight: 700; color: var(--text-faint); line-height: 1.35; overflow-wrap: anywhere; }
+.lt-split-cap > :first-child { color: var(--text); font-size: 0.84375rem; font-weight: 800; margin: 0; }
+.lt-split-cap > .lt-split-k { font-weight: 600; }
+.lt-split-cap > .lt-split-k[data-invalid] { font-weight: 700; }
+.lt-split-k[data-invalid] { color: var(--overdue); }
+.lt-split-toks { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.lt-split-tok { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 4px 3px 3px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-size: 0.8125rem; font-weight: 800; }
+.lt-split-tok[data-fixed], .lt-split-tok[data-you] { padding-right: 10px; }
+.lt-split-tok[data-you] { border-style: dashed; background: transparent; }
+.lt-split-tok-k { font-size: 0.6875rem; font-weight: 700; color: var(--text-faint); }
+.lt-split-x, .lt-split-clear { display: grid; place-items: center; flex: none; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; }
+.lt-split-x { width: 24px; height: 24px; }
+.lt-split-clear { width: 28px; height: 28px; background: var(--surface-2); }
+.lt-split-x:hover, .lt-split-clear:hover { background: var(--border); color: var(--text); }
+.lt-split-search { margin-top: 2px; }
+.lt-split-res { margin: 6px 0 0; padding: 4px; list-style: none; border: 1px solid var(--border); border-radius: var(--r-md); }
+.lt-split-add { font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
+.lt-split-sug { margin: 10px 2px 6px; font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
+.lt-split-me-sw { margin-top: 12px; }
+.lt-split-list { margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
+.lt-split-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+.lt-split-row[data-me] { color: var(--text-muted); }
+.lt-split-name { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lt-split-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; text-align: right; }
+.lt-split-how-t { font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
+.lt-split-in-box { display: inline-flex; align-items: center; gap: 6px; max-width: 136px; padding: 6px 10px; border-radius: var(--r-md); border: 1.5px solid var(--border-input); background: var(--surface); font-weight: 700; color: var(--text-muted); }
+.lt-split-in-box:focus-within { border-color: var(--primary); }
+.lt-split-in-box[data-invalid] { border-color: var(--overdue); }
+.lt-split-in-box input { width: 100%; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: 0.9375rem; color: var(--text); text-align: right; }
+.lt-split-sum { margin: 10px 0 0; padding: 9px 11px; border-radius: var(--r-md); background: var(--surface-2); font-size: 0.8125rem; font-weight: 700; line-height: 1.5; }
+.lt-split-sum[data-bad] { background: var(--overdue-weak); color: var(--overdue); }
+/* Item 66: everyone to pick from (recognition, not recall). */
+.lt-split-res { max-height: 352px; overflow-y: auto; overscroll-behavior: contain; }
+.lt-split-opt[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+.lt-split-box { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border-input); background: var(--surface); color: var(--surface); }
+.lt-split-opt[aria-checked="true"] { background: var(--primary-weak); }
+.lt-split-opt[aria-checked="true"] .lt-split-box { background: var(--primary); border-color: var(--primary); }
+.lt-split-empty { padding: 4px 2px 2px; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
+.lt-split-empty p { margin: 0 0 6px; }
