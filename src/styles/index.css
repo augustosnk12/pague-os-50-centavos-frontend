@@ -1442,6 +1442,14 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-rep-v { font-size: 0.8125rem; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; min-width: 5.4em; }
 .lt-rep-more { margin: 8px 0 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
 .lt-rep-sum { text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); }
+/* Previsão (improvement 69). */
+.lt-rep-note { margin: 10px 0 0; font-size: 0.75rem; font-weight: 700; color: var(--text-faint); }
+.lt-fc-late {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--overdue-weak, color-mix(in oklch, var(--overdue) 12%, transparent)); color: var(--overdue); font-size: 0.8125rem; font-weight: 700;
+}
+.lt-fc-late > span { flex: 1; min-width: 0; }
+.lt-fc-late a { color: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; padding: 6px 2px; }
 .lt-rep-sum[data-bad] { color: var(--overdue); }
 
 /* Apoie o projeto (51). */

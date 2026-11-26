@@ -159,6 +159,15 @@ describe('routes (smoke)', () => {
     expect(screen.getByRole('button', { name: /comprovante: joão araújo, notebook/i })).toBeInTheDocument()
   })
 
+  it('recebimentos ?ver=a-receber shows the forecast (improvement 69), without Export', async () => {
+    renderApp('/payments?ver=a-receber')
+    expect(await screen.findByRole('region', { name: 'Previsto nos próximos 6 meses' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'A receber' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('list', { name: 'Previsto por mês' }).querySelectorAll('li')).toHaveLength(6)
+    expect(screen.queryByRole('button', { name: /Exportar planilha/ })).toBeNull()
+    expect(await axeViolations()).toEqual([])
+  })
+
   it('new debt form renders', async () => {
     renderApp('/debts/new')
     expect((await screen.findAllByText(/nova (dívida|cobrança)/i)).length).toBeGreaterThan(0)

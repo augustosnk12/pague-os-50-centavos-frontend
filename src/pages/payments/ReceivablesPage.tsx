@@ -1,10 +1,15 @@
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/ui/Icon'
 import { Amount } from '../../components/ui/Amount'
 import { Segmented } from '../../components/ui/Segmented'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useBack } from '../../hooks/useBack'
 import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
+import { LinkRow, RowText } from '../../components/ui/ListRow'
+import { Avatar } from '../../components/ui/Avatar'
+import { useForecast } from '../../hooks/payments/useForecast'
+import { useValuesHidden } from '../../contexts/PreferencesContext'
 import { PaymentRow } from '../../components/shared/PaymentRow'
 import { Money } from '../../components/ui/Money'
 import { Modal } from '../../components/ui/Modal'
@@ -31,6 +36,74 @@ import {
 } from '../../lib/receivables'
 
 const SHOWN = 8
+const parcelas = (n: number) => `${n} parcela${n === 1 ? '' : 's'}`
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+/** Recebido · A receber (improvement 69), kept in the URL (?ver=a-receber). */
+type View = 'paid' | 'open'
+
+/**
+ * "A receber" (improvement 69): the next 6 months, one bar per month (monthly
+ * recurring debts included, also the months not created yet), the overdue total
+ * on a line of its own and who else is going to pay.
+ */
+function ForecastView({ today }: { today: string }) {
+  const f = useForecast(today)
+  const hidden = useValuesHidden()
+  const year = Number(today.slice(0, 4))
+  if (f.failed) return <ErrorState onRetry={f.retry} retrying={f.retrying} />
+  const d = f.data
+  if (!d) return <div className="lt-skel" style={{ height: 260, borderRadius: 'var(--r-lg)' }} aria-busy="true" />
+  const max = Math.max(1, ...d.months.map((m) => m.cents))
+  const spoken = (c: number) => (hidden ? 'valor oculto' : fmtMoney(c / 100))
+  const until = (due: string) => `até ${MES[Number(due.slice(5, 7)) - 1]}${Number(due.slice(0, 4)) !== year ? ` ${due.slice(2, 4)}` : ''}`
+  return (
+    <>
+      <section className="lt-set-card lt-rep-card" aria-label="Previsto nos próximos 6 meses">
+        <div className="lt-rep-k">Previsto</div>
+        <div style={{ margin: '2px 0' }}><Money value={d.totalCents / 100} size={26} /></div>
+        <div className="lt-rep-n">
+          {parcelas(d.count)} · média de <Amount value={d.totalCents / 100 / d.months.length} /> por mês
+        </div>
+        <ul className="lt-rep-bars" aria-label="Previsto por mês">
+          {d.months.map((m) => (
+            <li key={m.month} className="lt-rep-row">
+              <span className="lt-rep-m">{monthLabel(m.month, year)}</span>
+              <span className="lt-rep-bar" aria-hidden="true"><span style={{ width: `${(m.cents / max) * 100}%` }} /></span>
+              <Amount className="lt-rep-v" value={m.cents / 100} />
+            </li>
+          ))}
+        </ul>
+        {d.recurringCents > 0 && (
+          <p className="lt-rep-note">Inclui <Amount value={d.recurringCents / 100} /> de mensalidades, contando as que ainda vão ser geradas.</p>
+        )}
+        {f.overdue && f.overdue.cents > 0 && (
+          <div className="lt-fc-late">
+            <Icon name="alert" size={16} />
+            <span>Fora da conta: <b><Amount value={f.overdue.cents / 100} /></b> em atraso · {parcelas(f.overdue.count)}</span>
+            <Link to="/installments?aba=atrasadas" aria-label={`Ver as ${parcelas(f.overdue.count)} em atraso`}>Ver</Link>
+          </div>
+        )}
+      </section>
+
+      <SectionHeader variant="plain">Quem mais vai te pagar</SectionHeader>
+      {d.people.length ? (
+        <ListGroup label="Quem mais vai te pagar">
+          {d.people.slice(0, 6).map((p) => (
+            <LinkRow key={p.id} to={`/debtors/${p.id}`} label={`${p.name}, ${parcelas(p.count)} ${until(p.last)}, ${spoken(p.cents)}`}>
+              <span aria-hidden="true"><Avatar name={p.name} size={36} hue={p.avatarHue} emoji={p.avatarEmoji} /></span>
+              <RowText title={p.name} sub={`${parcelas(p.count)} · ${until(p.last)}`} />
+              <span aria-hidden="true"><Money value={p.cents / 100} size={14.5} /></span>
+              <Icon name="chevronRight" size={16} />
+            </LinkRow>
+          ))}
+        </ListGroup>
+      ) : (
+        <EmptyState icon="check" title="Nada previsto" sub="Nenhuma parcela em aberto nos próximos 6 meses." />
+      )}
+    </>
+  )
+}
 const plural = (n: number) => `${n} pagamento${n === 1 ? '' : 's'}`
 
 /** The four period buttons + the two dates of "Período" (screen and export sheet). */
@@ -125,7 +198,20 @@ export function ReceivablesPage() {
   const [exportOpen, setExportOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
-  const bounds = periodBounds(period, today)
+  const [params, setParams] = useSearchParams()
+  const view: View = params.get('ver') === 'a-receber' ? 'open' : 'paid'
+  const setView = (v: View) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p)
+        if (v === 'open') next.set('ver', 'a-receber')
+        else next.delete('ver')
+        return next
+      },
+      { replace: true },
+    )
+
+  const bounds = view === 'paid' ? periodBounds(period, today) : null
   const summary = usePaymentsSummary(bounds, today)
   const recent = useRecentPayments(bounds, SHOWN)
   const s = bounds ? summary.data : undefined
@@ -141,17 +227,22 @@ export function ReceivablesPage() {
       <PageHeader
         back={{ label: back.label, onClick: back.go }}
         title="Recebimentos"
-        sub={periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}
+        sub={view === 'open' ? 'Próximos 6 meses · o que ainda vai entrar' : periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}
         keepSub
         action={
-          <Button variant="secondary" size="sm" icon="export" onClick={() => setExportOpen(true)}>
-            <span aria-hidden="true">Exportar</span>
-            <span className="lt-sr-only">Exportar planilha (CSV) do período</span>
-          </Button>
+          view === 'paid' ? (
+            <Button variant="secondary" size="sm" icon="export" onClick={() => setExportOpen(true)}>
+              <span aria-hidden="true">Exportar</span>
+              <span className="lt-sr-only">Exportar planilha (CSV) do período</span>
+            </Button>
+          ) : undefined
         }
       />
 
-      <PeriodPicker value={period} onChange={setPeriod} today={today} idPrefix="rep" />
+      <Segmented label="O que ver" value={view} options={[{ value: 'paid', label: 'Recebido' }, { value: 'open', label: 'A receber' }]} onChange={setView} />
+
+      {view === 'open' && <ForecastView today={today} />}
+      {view === 'paid' && <PeriodPicker value={period} onChange={setPeriod} today={today} idPrefix="rep" />}
 
       {!bounds ? null : failed ? (
         <ErrorState
