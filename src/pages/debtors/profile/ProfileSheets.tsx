@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Modal } from '../../../components/ui/Modal'
 import { Icon } from '../../../components/ui/Icon'
+import { Amount } from '../../../components/ui/Amount'
 import { PaidOnField } from '../../../components/shared/PaidOnField'
 import { getReliabilityOption } from '../../../constants/reliability'
 import { formatAddress } from '../../../lib/utils'
@@ -84,7 +85,7 @@ export function DebtorInfoSheet({ open, onClose, debtor, numbers, onEdit, onCopi
         {address && <div className="lt-info-line" data-muted><Icon name="home" size={16} /><span>{address}</span></div>}
         {!debtor.phone && !debtor.email && !address && !debtor.notes && <p className="lt-info-empty">Nenhum dado de contato cadastrado.</p>}
         <dl className="lt-stats3">
-          <div><dt>Já recebido</dt><dd style={{ color: 'var(--paid)' }}>{fmtMoney(numbers.received / 100)}</dd></div>
+          <div><dt>Já recebido</dt><dd style={{ color: 'var(--paid)' }}><Amount value={numbers.received / 100} /></dd></div>
           <div><dt>Pontualidade</dt><dd>{numbers.onTime == null ? '—' : `${Math.round(numbers.onTime * 100)}%`}</dd></div>
           <div><dt>Parcelas pagas</dt><dd>{numbers.paidCount}/{numbers.count}</dd></div>
         </dl>
@@ -210,7 +211,7 @@ export function DebtActionsSheet({ debt, debtorName, onClose, onPayoff, onPayoff
         <div className="lt-remind-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 id={id} className="lt-remind-title">{title}</h2>
-            <div className="lt-act-s">{debtorName} · {left > 0 ? `restam ${fmtMoney(left / 100)}` : 'quitada'}</div>
+            <div className="lt-act-s">{debtorName} · {left > 0 ? <>restam <Amount value={left / 100} /></> : 'quitada'}</div>
           </div>
           <button type="button" className="lt-icon-close" aria-label="Fechar" onClick={close}><Icon name="x" size={20} /></button>
         </div>
@@ -255,7 +256,7 @@ export function PayoffSheet({ debt, debtorName, today, busy, onClose, onConfirm 
     >
       <div className="lt-pay-body">
         <div className="lt-amt-box">
-          <div className="lt-payoff-v">{fmtMoney(left / 100)}</div>
+          <div className="lt-payoff-v"><Amount value={left / 100} /></div>
           <div className="lt-paid-before">
             {openN} {openN === 1 ? 'parcela em aberto' : 'parcelas em aberto'} de {debtorName} {openN === 1 ? 'será marcada como paga' : 'serão marcadas como pagas'}
           </div>
@@ -457,7 +458,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
           {!archive.archived && (
             <div className="lt-del-arch">
               <div className="lt-del-arch-t"><Icon name="archive" size={16} /> Prefere arquivar?</div>
-              <div className="lt-del-arch-s">Some das listas e mantém o histórico de {fmtMoney(received / 100)} recebidos. Dá para reativar.</div>
+              <div className="lt-del-arch-s">Some das listas e mantém o histórico de <Amount value={received / 100} /> recebidos. Dá para reativar.</div>
               {archive.blockedBy ? (
                 <div className="lt-del-arch-why">{archive.blockedBy}</div>
               ) : (

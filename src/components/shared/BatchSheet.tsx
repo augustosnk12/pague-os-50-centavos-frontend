@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
+import { Amount } from '../ui/Amount'
 import { IconButton } from '../ui/IconButton'
 import { PaidOnField } from './PaidOnField'
 import { ReceiptSheet } from './ReceiptSheet'
@@ -178,7 +179,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
             <span className="lt-bt-s" data-late={c.late || undefined}>{due}</span>
           </span>
           <span className="lt-bt-right">
-            <span className="lt-bt-v">{fmtMoney(c.left / 100)}</span>
+            <Amount className="lt-bt-v" value={c.left / 100} />
             <span className="lt-bt-tag">{tag}</span>
           </span>
         </button>
@@ -262,10 +263,10 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
               <div className="lt-amt-chips">
                 {edited && amount !== selTotal ? (
                   <button type="button" className="lt-chip" onClick={() => setEdited(false)}>
-                    Usar o total das marcadas {fmtMoney(selTotal / 100)}
+                    Usar o total das marcadas <Amount value={selTotal / 100} />
                   </button>
                 ) : (
-                  selected.size > 0 && <span className="lt-bt-k">Total das marcadas: {fmtMoney(selTotal / 100)}</span>
+                  selected.size > 0 && <span className="lt-bt-k">Total das marcadas: <Amount value={selTotal / 100} /></span>
                 )}
               </div>
               <div id="lt-bt-sum" className="lt-bt-sum" role="status" style={{ color: summaryColor }}>{summary}</div>

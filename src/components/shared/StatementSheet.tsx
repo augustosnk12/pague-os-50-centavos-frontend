@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Icon } from '../ui/Icon'
+import { Amount } from '../ui/Amount'
 import { Money } from '../ui/Money'
 import { Segmented } from '../ui/Segmented'
 import { StatusBadge } from '../ui/StatusBadge'
@@ -152,21 +153,21 @@ export function StatementSheet({ debtorId, onClose }: StatementSheetProps) {
                 <div className="lt-rcpt-amt"><Money value={s.totalCents / 100} size={30} /></div>
                 <div className="lt-rcpt-date">em aberto{untilSuffix(s)}</div>
                 {s.lateCents > 0 && (
-                  <div className="lt-stmt-late"><StatusBadge tone="overdue" icon="alert">{money(s.lateCents)} em atraso</StatusBadge></div>
+                  <div className="lt-stmt-late"><StatusBadge tone="overdue" icon="alert"><Amount value={s.lateCents / 100} /> em atraso</StatusBadge></div>
                 )}
                 <div className="lt-rcpt-cut" aria-hidden="true" />
                 {s.debts.map((d) => (
                   <section key={d.id} className="lt-stmt-debt" aria-label={`${d.title}, ${money(d.leftCents)}`}>
-                    <div className="lt-stmt-debt-h"><span className="lt-ellipsis">{d.title}</span><span>{money(d.leftCents)}</span></div>
+                    <div className="lt-stmt-debt-h"><span className="lt-ellipsis">{d.title}</span><Amount value={d.leftCents / 100} /></div>
                     {d.rows.slice(0, MAX_ROWS).map((r) => (
                       <div key={`${r.label}-${r.dueDate}`} className="lt-stmt-row" data-late={r.late || undefined}>
                         <span className="lt-stmt-d">{rowText(r)}</span>
-                        <span>{money(r.cents)}</span>
+                        <Amount value={r.cents / 100} />
                       </div>
                     ))}
                     {d.rows.length > MAX_ROWS && (
                       <div className="lt-stmt-more">
-                        + {d.rows.length - MAX_ROWS} parcela{d.rows.length - MAX_ROWS > 1 ? 's' : ''} · {money(d.rows.slice(MAX_ROWS).reduce((t, r) => t + r.cents, 0))}
+                        + {d.rows.length - MAX_ROWS} parcela{d.rows.length - MAX_ROWS > 1 ? 's' : ''} · <Amount value={d.rows.slice(MAX_ROWS).reduce((t, r) => t + r.cents, 0) / 100} />
                       </div>
                     )}
                   </section>
@@ -179,7 +180,7 @@ export function StatementSheet({ debtorId, onClose }: StatementSheetProps) {
               <div className="lt-stmt-hist"><Icon name="check" size={12} strokeWidth={3} /> {historyLine(s)}</div>
             )}
             {pix && pixCode ? (
-              <div className="lt-stmt-pix">Pix copia e cola · {money(pix.cents)} ({pix.what})<code>{pixCode.slice(0, 46)}…</code></div>
+              <div className="lt-stmt-pix">Pix copia e cola · <Amount value={pix.cents / 100} /> ({pix.what})<code>{pixCode.slice(0, 46)}…</code></div>
             ) : (
               pix && <div className="lt-stmt-more" style={{ marginTop: 10 }}>Com a chave Pix em Configurações, o extrato leva o Pix copia e cola.</div>
             )}

@@ -6,6 +6,7 @@ import { Modal } from '../ui/Modal'
 import { DateInput } from '../ui/DateInput'
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
+import { Amount } from '../ui/Amount'
 import { IconButton } from '../ui/IconButton'
 import { Money } from '../ui/Money'
 import { Detail } from '../../contexts/PreferencesContext'
@@ -200,7 +201,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
         <button type="button" className="lt-hist-toggle" aria-expanded={histOpen} onClick={() => setHistOpen((o) => !o)}>
           <Icon name="clock" size={16} />
           <span style={{ flex: 1, textAlign: 'left' }}>
-            {payments.length} {payments.length === 1 ? 'pagamento anterior' : 'pagamentos anteriores'} · {fmtMoney(paidCents / 100)}
+            {payments.length} {payments.length === 1 ? 'pagamento anterior' : 'pagamentos anteriores'} · <Amount value={paidCents / 100} />
           </span>
           <Icon name="chevronDown" size={16} style={{ transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
         </button>
@@ -301,7 +302,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               <Icon name="check" size={20} strokeWidth={2.8} />
               <div>
                 <div style={{ fontWeight: 800 }}>Parcela quitada</div>
-                <div style={{ fontWeight: 700, fontSize: '0.75rem' }}>{fmtMoney(inst.amount)}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.75rem' }}><Amount value={inst.amount} /></div>
               </div>
             </div>
             {history}
@@ -324,11 +325,11 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
               {amount > 0 && !willPayOff ? (
                 <div className="lt-partial-note">
                   <Icon name="clock" size={16} />
-                  <span>Pagamento parcial · restam <b>{fmtMoney((left - amount) / 100)}</b></span>
+                  <span>Pagamento parcial · restam <b><Amount value={(left - amount) / 100} /></b></span>
                 </div>
               ) : paidCents > 0 ? (
                 <Detail>
-                  <div className="lt-paid-before">Já pago {fmtMoney(paidCents / 100)} de {fmtMoney(inst.amount)}</div>
+                  <div className="lt-paid-before">Já pago <Amount value={paidCents / 100} /> de <Amount value={inst.amount} /></div>
                 </Detail>
               ) : null}
             </div>

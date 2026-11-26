@@ -4,6 +4,7 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Avatar } from '../../components/ui/Avatar'
 import { Icon } from '../../components/ui/Icon'
+import { Amount } from '../../components/ui/Amount'
 import { Modal } from '../../components/ui/Modal'
 import { IconButton } from '../../components/ui/IconButton'
 import { Money } from '../../components/ui/Money'
@@ -331,13 +332,13 @@ function DebtorProfile({ id }: { id: string }) {
   const summary =
     numbers.owed === 0 ? (
       <span style={{ color: 'var(--paid)' }}>
-        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? `Tudo quitado · ${fmtMoney(numbers.received / 100)} recebidos` : 'Sem dívidas'}
+        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? <>Tudo quitado · <Amount value={numbers.received / 100} /> recebidos</> : 'Sem dívidas'}
       </span>
     ) : (
       <>
-        Deve <b>{fmtMoney(numbers.owed / 100)}</b>
+        Deve <b><Amount value={numbers.owed / 100} /></b>
         {numbers.late > 0 ? (
-          <span style={{ color: 'var(--overdue)' }}> · {numbers.late >= numbers.owed ? 'tudo em atraso' : `${fmtMoney(numbers.late / 100)} em atraso`}</span>
+          <span style={{ color: 'var(--overdue)' }}> · {numbers.late >= numbers.owed ? 'tudo em atraso' : <><Amount value={numbers.late / 100} /> em atraso</>}</span>
         ) : numbers.next ? (
           <> · próxima {fmtList(numbers.next)}</>
         ) : null}

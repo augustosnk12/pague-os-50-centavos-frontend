@@ -167,7 +167,8 @@ describe('Parcelas (S3)', () => {
     expect(total).toHaveAttribute('aria-expanded', 'true')
     // Only the arrow: no "Detalhes" / "Ocultar" text.
     expect(total).not.toHaveTextContent(/Detalhes|Ocultar/)
-    expect(screen.getByText(/R\$\s400,00 previsto neste mês · 25% recebido/)).toBeInTheDocument()
+    // The amount is its own element (<Amount>, improvement 71): match the line as a whole.
+    expect(document.querySelector('.lt-ipd-exp')).toHaveTextContent(/R\$\s400,00 previsto neste mês · 25% recebido/)
     expect(screen.getByText('Recebido').closest('div')).toHaveTextContent(/R\$\s100,00/)
     await user.click(total)
     expect(total).toHaveAttribute('aria-expanded', 'false')

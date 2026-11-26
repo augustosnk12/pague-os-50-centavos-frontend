@@ -8,15 +8,18 @@ export type TextSize = 'm' | 'l' | 'xl'
 interface Preferences {
   detail: DetailLevel
   textSize: TextSize
+  /** Improvement 71: blur every amount (html[data-hide-values]); per device. */
+  hideValues: boolean
 }
 
 interface PreferencesValue extends Preferences {
   setDetail: (d: DetailLevel) => void
   setTextSize: (s: TextSize) => void
+  setHideValues: (on: boolean) => void
 }
 
 const KEY = 'pague50_prefs'
-const DEFAULTS: Preferences = { detail: 'full', textSize: 'm' }
+const DEFAULTS: Preferences = { detail: 'full', textSize: 'm', hideValues: false }
 
 /** Per device (like the theme), by decision in the plan; robust to bad storage. */
 function load(): Preferences {
@@ -25,6 +28,7 @@ function load(): Preferences {
     return {
       detail: raw.detail === 'lean' ? 'lean' : 'full',
       textSize: raw.textSize === 'l' || raw.textSize === 'xl' ? raw.textSize : 'm',
+      hideValues: raw.hideValues === true,
     }
   } catch {
     return DEFAULTS
@@ -45,6 +49,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     const html = document.documentElement
     if (prefs.textSize === 'm') html.removeAttribute('data-fz')
     else html.setAttribute('data-fz', prefs.textSize)
+    if (prefs.hideValues) html.setAttribute('data-hide-values', '')
+    else html.removeAttribute('data-hide-values')
   }, [prefs])
 
   return (
@@ -53,11 +59,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         ...prefs,
         setDetail: (detail) => setPrefs((p) => ({ ...p, detail })),
         setTextSize: (textSize) => setPrefs((p) => ({ ...p, textSize })),
+        setHideValues: (hideValues) => setPrefs((p) => ({ ...p, hideValues })),
       }}
     >
       {children}
     </PreferencesContext.Provider>
   )
+}
+
+/** True while amounts are hidden (71). Safe outside the provider (public pages): false. */
+export function useValuesHidden(): boolean {
+  return useContext(PreferencesContext)?.hideValues ?? false
 }
 
 export function usePreferences(): PreferencesValue {

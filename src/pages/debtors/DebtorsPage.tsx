@@ -14,6 +14,7 @@ import { fmtMoney } from '../../lib/format'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { Icon } from '../../components/ui/Icon'
+import { Amount } from '../../components/ui/Amount'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -315,7 +316,7 @@ export function DebtorsPage() {
                     <LinkRow key={d.id} to={`/debtors/${d.debtorId}?divida=${d.id}`} label={`${d.description || 'Dívida'}, de ${d.debtorName}, ${left ? `restam ${fmtMoney(d.remaining)}` : 'quitada'}`}>
                       <span className="lt-sr-debt" aria-hidden="true"><Icon name="layers" size={16} /></span>
                       <RowText title={d.description || 'Dívida'} sub={d.debtorName} />
-                      <span className="lt-debt-hit-v" aria-hidden="true" style={{ color: left ? undefined : 'var(--paid)' }}>{left ? fmtMoney(d.remaining) : 'Quitada'}</span>
+                      <span className="lt-debt-hit-v" aria-hidden="true" style={{ color: left ? undefined : 'var(--paid)' }}>{left ? <Amount value={d.remaining} /> : 'Quitada'}</span>
                       <Icon name="chevronRight" size={16} />
                     </LinkRow>
                   )

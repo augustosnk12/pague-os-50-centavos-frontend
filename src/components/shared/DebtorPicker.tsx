@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
+import { Amount } from '../ui/Amount'
 import { localToday } from '../../lib/date'
-import { fmtMoney } from '../../lib/format'
 import { profileNumbers } from '../../lib/debtorProfile'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { byRecent } from '../../lib/recentDebtors'
@@ -23,7 +23,7 @@ function Balance({ id }: { id: string }) {
     <span className="lt-dp-bal">
       {n.owed > 0 ? (
         <>
-          Já deve {fmtMoney(n.owed / 100)}
+          Já deve <Amount value={n.owed / 100} />
           {late > 0 && <span style={{ color: 'var(--overdue)' }}> · {late} em atraso</span>}
         </>
       ) : (

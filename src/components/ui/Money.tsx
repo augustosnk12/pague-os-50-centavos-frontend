@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { moneyParts } from '../../lib/utils'
+import { Amount } from './Amount'
 
 interface MoneyProps {
   value: number | string
@@ -13,7 +14,7 @@ interface MoneyProps {
 export function Money({ value, size = 28, weight = 800, muted, color, style }: MoneyProps) {
   const p = moneyParts(value)
   return (
-    <span
+    <Amount
       style={{
         color: color ?? (muted ? 'var(--text-muted)' : 'var(--text)'),
         fontWeight: weight,
@@ -26,9 +27,11 @@ export function Money({ value, size = 28, weight = 800, muted, color, style }: M
       }}
     >
       {/* No opacity: "R$" and cents must keep the 4.5:1 contrast of the amount (improvement 20). */}
-      <span style={{ fontSize: `${(size * 0.6) / 16}rem`, fontWeight: 700 }}>{p.symbol}</span>
-      <span style={{ fontSize: `${size / 16}rem` }}>{p.int}</span>
-      <span style={{ fontSize: `${(size * 0.55) / 16}rem`, fontWeight: 700 }}>,{p.dec}</span>
-    </span>
+      <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+        <span style={{ fontSize: `${(size * 0.6) / 16}rem`, fontWeight: 700 }}>{p.symbol}</span>
+        <span style={{ fontSize: `${size / 16}rem` }}>{p.int}</span>
+        <span style={{ fontSize: `${(size * 0.55) / 16}rem`, fontWeight: 700 }}>,{p.dec}</span>
+      </span>
+    </Amount>
   )
 }

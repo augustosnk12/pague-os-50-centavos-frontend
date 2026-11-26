@@ -5,6 +5,7 @@ import { useReopenPayment } from '../../hooks/useReopenPayment'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
+import { Amount } from '../../components/ui/Amount'
 import { IconButton } from '../../components/ui/IconButton'
 import { Avatar } from '../../components/ui/Avatar'
 import { ListGroup } from '../../components/ui/ListGroup'
@@ -16,7 +17,6 @@ import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useInstallmentsPeriod } from '../../hooks/installments/useInstallmentsPeriod'
 import { localToday } from '../../lib/date'
 import { scrollBehavior } from '../../lib/scroll'
-import { fmtMoney } from '../../lib/format'
 import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import {
   buildView, dayLabel, dayLabelLong, dayOf, isCurrentPeriod, isOverdue, isPaid, periodLabel, readUrlState, relativeLabel,
@@ -354,7 +354,7 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
     <>
       <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle} title={open ? 'Ocultar detalhes' : 'Ver detalhes'}>
         <span className="lt-ipd-k">A receber</span>
-        <span className="lt-ipd-v">{fmtMoney(due / 100)}</span>
+        <Amount className="lt-ipd-v" value={due / 100} />
         {/* Only the arrow: aria-expanded already says open/closed to screen readers. */}
         <span className="lt-ipd-info" aria-hidden="true">
           <Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease-std)' }} />
@@ -369,11 +369,11 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
             {legend.map(([k, v, c]) => (
               <div key={k}>
                 <dt><span className="lt-dot" style={{ background: c }} />{k}</dt>
-                <dd data-zero={v === 0 || undefined}>{fmtMoney(v / 100)}</dd>
+                <dd data-zero={v === 0 || undefined}><Amount value={v / 100} /></dd>
               </div>
             ))}
           </dl>
-          <div className="lt-ipd-exp">{fmtMoney(expected / 100)} previsto {where}{expected ? ` · ${pct}% recebido` : ''}</div>
+          <div className="lt-ipd-exp"><Amount value={expected / 100} /> previsto {where}{expected ? ` · ${pct}% recebido` : ''}</div>
         </div>
       )}
     </>

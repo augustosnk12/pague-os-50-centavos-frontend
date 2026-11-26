@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Icon } from '../../components/ui/Icon'
+import { Amount } from '../../components/ui/Amount'
 import { Money } from '../../components/ui/Money'
 import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -18,6 +19,7 @@ import { localToday } from '../../lib/date'
 import { fmtMoney, fmtSentence } from '../../lib/format'
 import { GettingStarted } from './GettingStarted'
 import { LimitBanner } from '../../components/shared/LimitBanner'
+import { HideValuesButton } from '../../components/shared/HideValuesButton'
 import type { DashboardOverview } from '../../types/dashboard'
 import type { InstallmentEnriched } from '../../types/installment'
 
@@ -93,6 +95,7 @@ function Hero({ o }: { o: DashboardOverview }) {
 
   return (
     <section className="lt-hero lt-anim-up" aria-labelledby="hero-k">
+      <HideValuesButton variant="hero" />
       <h2 id="hero-k" className="lt-hero-k">A receber em {month}</h2>
       <div className="lt-hero-value">
         <Money value={o.month.remaining} size={38} color="#fff" />
@@ -107,7 +110,7 @@ function Hero({ o }: { o: DashboardOverview }) {
         </span>
         <span className="lt-hm-row" aria-hidden="true" data-lean={detail === 'lean' || undefined}>
           <span>
-            <b>{fmtMoney(o.month.received)}</b> recebido de {fmtMoney(o.month.expected)}
+            <b><Amount value={o.month.received} /></b> recebido de <Amount value={o.month.expected} />
           </span>
           <span className="lt-hm-pct">
             {pct}% <Icon name="chevronRight" size={16} />
@@ -119,7 +122,7 @@ function Hero({ o }: { o: DashboardOverview }) {
           <Link to="/installments?aba=atrasadas" className="lt-late-pill">
             <Icon name="alert" size={16} />
             <span>
-              {fmtMoney(o.overdue.amount)} em atraso
+              <Amount value={o.overdue.amount} /> em atraso
               {prev > 0 && ` · ${prev} de meses anteriores`}
             </span>
             <Icon name="chevronRight" size={16} />

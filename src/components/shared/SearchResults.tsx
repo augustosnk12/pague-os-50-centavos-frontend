@@ -1,10 +1,10 @@
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
+import { Amount } from '../ui/Amount'
 import { StatusBadge } from '../ui/StatusBadge'
-import { fmtMoney } from '../../lib/format'
 import type { SearchHit } from '../../lib/searchHits'
 
-const owes = (v: string) => (Number(v) > 0 ? `deve ${fmtMoney(v)}` : 'sem saldo')
+const owes = (v: string) => (Number(v) > 0 ? <>deve <Amount value={v} /></> : 'sem saldo')
 
 interface SearchResultsProps {
   hits: SearchHit[]
@@ -54,7 +54,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
           <span className="lt-sr-main">
             <span className="lt-sr-t">{h.hit.description || 'Dívida'}</span>
             <span className="lt-sr-s">
-              {h.hit.debtorName} · {Number(h.hit.remaining) > 0 ? `restam ${fmtMoney(h.hit.remaining)}` : 'quitada'}
+              {h.hit.debtorName} · {Number(h.hit.remaining) > 0 ? <>restam <Amount value={h.hit.remaining} /></> : 'quitada'}
             </span>
           </span>
         </>

@@ -1,11 +1,11 @@
 import { useRef } from 'react'
 import { Icon } from '../../../components/ui/Icon'
+import { Amount } from '../../../components/ui/Amount'
 import { IconButton } from '../../../components/ui/IconButton'
 import { ListGroup } from '../../../components/ui/ListGroup'
 import { InstallmentLine } from '../../../components/shared/InstallmentLine'
 import { Detail } from '../../../contexts/PreferencesContext'
 import { DEBT_TYPE_META } from '../../../lib/utils'
-import { fmtMoney } from '../../../lib/format'
 import { debtLate, debtLeft, enrich, leftOf, openInstallments, recurrenceEndLabel } from '../../../lib/debtorProfile'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
@@ -80,7 +80,7 @@ export function DebtSection({ debt, debtor, today, lean, expanded, onToggle, onO
           </Detail>
         </div>
         <div className="lt-dsec-left">
-          <div className="lt-dsec-v">{fmtMoney(left / 100)}</div>
+          <div className="lt-dsec-v"><Amount value={left / 100} /></div>
           <Detail><div className="lt-dsec-k">restam</div></Detail>
         </div>
         {sticky && (

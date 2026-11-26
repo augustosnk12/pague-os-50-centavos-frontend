@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '../../components/ui/Icon'
+import { Amount } from '../../components/ui/Amount'
 import { Segmented } from '../../components/ui/Segmented'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useBack } from '../../hooks/useBack'
@@ -172,7 +173,7 @@ export function ReceivablesPage() {
             <div style={{ margin: '2px 0' }}><Money value={s.total} size={26} /></div>
             <div className="lt-rep-n">
               {plural(s.count)}
-              {months.length > 1 ? ` · média de ${fmtMoney(s.averagePerMonth)} por mês` : ''}
+              {months.length > 1 ? <> · média de <Amount value={s.averagePerMonth} /> por mês</> : ''}
             </div>
             {months.length > 1 && (
               <ul className="lt-rep-bars" aria-label="Recebido por mês">
@@ -180,7 +181,7 @@ export function ReceivablesPage() {
                   <li key={m.month} className="lt-rep-row">
                     <span className="lt-rep-m">{monthLabel(m.month, year)}</span>
                     <span className="lt-rep-bar" aria-hidden="true"><span style={{ width: `${(Number(m.total) / max) * 100}%` }} /></span>
-                    <span className="lt-rep-v">{fmtMoney(m.total)}</span>
+                    <Amount className="lt-rep-v" value={m.total} />
                   </li>
                 ))}
               </ul>

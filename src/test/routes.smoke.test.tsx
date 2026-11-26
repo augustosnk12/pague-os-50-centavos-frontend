@@ -154,7 +154,8 @@ describe('routes (smoke)', () => {
     renderApp('/payments')
     expect(await screen.findByRole('heading', { level: 1, name: 'Recebimentos' })).toBeInTheDocument()
     expect(await screen.findByRole('list', { name: 'Recebido por mês' })).toBeInTheDocument()
-    expect(screen.getByText('média de R$ 41,67 por mês', { exact: false })).toBeInTheDocument()
+    // The amount is its own element (<Amount>, improvement 71).
+    expect(screen.getByText(/média de/).closest('div')).toHaveTextContent(/média de R\$\s41,67 por mês/)
     expect(screen.getByRole('button', { name: /comprovante: joão araújo, notebook/i })).toBeInTheDocument()
   })
 
