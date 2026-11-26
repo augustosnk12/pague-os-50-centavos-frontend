@@ -16,6 +16,15 @@ describe('Cadastro de devedor (S9)', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
+  it('autoFocusName (Devedores › Adicionar): opens with the cursor in Nome; without it, the dialog takes the focus', async () => {
+    const { unmount } = render(<DebtorForm open autoFocusName onClose={() => {}} onSave={() => {}} />)
+    await waitFor(() => expect(field(/Nome/)).toHaveFocus())
+    unmount()
+    render(<DebtorForm open onClose={() => {}} onSave={() => {}} />)
+    await waitFor(() => expect(dialog()).toHaveFocus())
+    expect(field(/Nome/)).not.toHaveFocus()
+  })
+
   it('lean by default: Nome (required) and Telefone with a mask; errors on the field', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()

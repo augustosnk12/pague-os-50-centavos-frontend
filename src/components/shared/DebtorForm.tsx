@@ -32,6 +32,8 @@ interface DebtorFormProps {
   loading?: boolean
   /** Name typed in a search ("Cadastrar 'nome'"), for a new debtor. */
   initialName?: string
+  /** Opens with the cursor in "Nome" (Devedores › Adicionar: the person came to type a name). */
+  autoFocusName?: boolean
 }
 
 const UF_OPTIONS = [
@@ -98,7 +100,7 @@ const focusIn = (id: string) => {
  * rest and the cursor goes to Número), every field by hand when the CEP is
  * unknown or not found. Errors show on the field itself.
  */
-export function DebtorForm({ open, onClose, onSave, editing, loading, initialName = '' }: DebtorFormProps) {
+export function DebtorForm({ open, onClose, onSave, editing, loading, initialName = '', autoFocusName }: DebtorFormProps) {
   const [v, setV] = useState<Values>(() => fromDebtor(editing, initialName))
   const [errors, setErrors] = useState<Errors>({})
   const [more, setMore] = useState(false)
@@ -117,6 +119,8 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
     setMore(!!editing && (hasAddress || !!start.email || !!start.notes || !!start.reliability))
     setAddr(hasAddress ? 'full' : 'hidden')
     setCep('idle')
+    // After the dialog's own initial focus (it runs in the frame before this one).
+    if (autoFocusName) requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLInputElement>('#df-name input')?.focus()))
   }, [open, editing]) // eslint-disable-line react-hooks/exhaustive-deps -- initialName is read when it opens
 
   const set = <K extends keyof Values>(k: K, value: Values[K]) => {

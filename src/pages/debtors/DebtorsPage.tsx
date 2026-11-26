@@ -356,6 +356,7 @@ export function DebtorsPage() {
 
       <DebtorForm
         open={formOpen}
+        autoFocusName
         onClose={() => setFormOpen(false)}
         onSave={handleCreate}
         loading={createDebtor.isPending}
