@@ -103,6 +103,24 @@ describe('Configurações (S11)', () => {
     expect(put.mock.calls.length).toBe(calls)
   })
 
+  it('item 68: "Minha" never passes 1.000 characters (a huge paste is cut and says so; variables refused when full)', async () => {
+    settings = { ...settings, chargeTone: 'CUSTOM', chargeTemplate: 'Oi {nome}' }
+    const user = userEvent.setup()
+    renderApp('/settings')
+    const field = (await screen.findByRole('textbox', { name: 'Seu texto' })) as HTMLTextAreaElement
+    expect(field).toHaveAttribute('maxLength', '1000')
+    await user.clear(field)
+    await user.paste('x'.repeat(5000))
+    expect(field.value).toHaveLength(1000)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Colado só até o limite de 1.000 caracteres.')
+    expect(screen.getByText('1.000/1.000')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Inserir Nome ({nome})' }))
+    expect(field.value).toHaveLength(1000)
+    expect(screen.getByRole('alert')).toHaveTextContent('Chegou ao limite de 1.000 caracteres.')
+    await user.tab()
+    expect(put).toHaveBeenLastCalledWith('/settings', { chargeTemplate: 'x'.repeat(1000) })
+  })
+
   it('older API (no chargeTone): no Mensagem de cobrança section', async () => {
     renderApp('/settings')
     await screen.findByRole('textbox', { name: 'Chave CPF' })

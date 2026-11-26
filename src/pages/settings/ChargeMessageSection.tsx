@@ -77,6 +77,9 @@ export function ChargeMessageSection({ settings, save }: Props) {
   const pix = settings.pixKey ? pixBlock(brCode({ key: settings.pixKey, name: lender?.name ?? '', amount: total / 100 }), total) : ''
   const preview = chargeMessage({ chargeTone: tone, chargeTemplate: tone === 'CUSTOM' ? draft : null }, firstName(person.name), person.items, pix)
   const over = draft.length > CHARGE_TEMPLATE_MAX
+  // The field never goes past the limit (typing, pasting or the variable buttons).
+  const full = draft.length >= CHARGE_TEMPLATE_MAX
+  const LIMIT_TEXT = `Chegou ao limite de ${CHARGE_TEMPLATE_MAX.toLocaleString('pt-BR')} caracteres.`
 
   const pickTone = (t: ChargeTone) => {
     if (t === tone) return
@@ -100,6 +103,11 @@ export function ChargeMessageSection({ settings, save }: Props) {
     const el = ref.current
     const start = el?.selectionStart ?? draft.length
     const end = el?.selectionEnd ?? draft.length
+    if (draft.length - (end - start) + token.length > CHARGE_TEMPLATE_MAX) {
+      setErr(LIMIT_TEXT)
+      el?.focus()
+      return
+    }
     setDraft(draft.slice(0, start) + token + draft.slice(end))
     if (err) setErr('')
     requestAnimationFrame(() => {
@@ -124,15 +132,22 @@ export function ChargeMessageSection({ settings, save }: Props) {
               className="lt-remind-text lt-tpl-text"
               value={draft}
               rows={6}
+              maxLength={CHARGE_TEMPLATE_MAX}
               onChange={(e) => {
-                setDraft(e.target.value)
+                setDraft(e.target.value.slice(0, CHARGE_TEMPLATE_MAX))
                 if (err) setErr('')
+              }}
+              onPaste={(e) => {
+                // A paste that does not fit is cut at the limit by the field: say so.
+                const el = e.currentTarget
+                const room = CHARGE_TEMPLATE_MAX - (el.value.length - (el.selectionEnd - el.selectionStart))
+                if (e.clipboardData.getData('text').length > room) requestAnimationFrame(() => setErr(`Colado só até o limite de ${CHARGE_TEMPLATE_MAX.toLocaleString('pt-BR')} caracteres.`))
               }}
               onBlur={saveText}
               aria-invalid={!!err || undefined}
               aria-describedby="tpl-err tpl-count"
             />
-            <p id="tpl-count" className="lt-tpl-count" data-over={over || undefined}>
+            <p id="tpl-count" className="lt-tpl-count" data-over={full || undefined}>
               {draft.length.toLocaleString('pt-BR')}/{CHARGE_TEMPLATE_MAX.toLocaleString('pt-BR')}
             </p>
             {err && <p id="tpl-err" className="lt-field-error" role="alert" style={{ margin: '2px 2px 0' }}>{err}</p>}
