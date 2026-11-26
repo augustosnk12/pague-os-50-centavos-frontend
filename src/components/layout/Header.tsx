@@ -14,7 +14,6 @@ import { NAV } from '../../constants/nav'
 import { SupportSheet } from '../shared/SupportSheet'
 import { supportPix } from '../../lib/support'
 import { usePlan } from '../../hooks/plan/usePlan'
-import { HideValuesButton } from '../shared/HideValuesButton'
 
 /** Same breakpoint as `.lt-desktop-only` in index.css. */
 const DESKTOP_MIN = 880
@@ -298,10 +297,6 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
 
         <span className="lt-desktop-only" style={{ marginRight: 2 }}>
           <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')} title="Nova dívida (Alt+N)" shortcut="Alt+N">Nova dívida</Button>
-        </span>
-
-        <span className="lt-desktop-only">
-          <HideValuesButton variant="header" />
         </span>
 
         <span className="lt-desktop-only">

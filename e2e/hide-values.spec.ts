@@ -1,7 +1,7 @@
 /** Improvement 71: "Esconder valores" blurs every amount on every screen and is remembered on the device. */
 import { test, expect, thisMonthISO } from './support/fixtures'
 
-test('Esconder valores: the eye blurs every amount on every screen, survives a reload and turns off again', async ({ page, session, a11y }) => {
+test('Esconder valores: the Painel eye blurs every amount on every screen, survives a reload and turns off again in the Painel', async ({ page, session, a11y }) => {
   const d = await session.api('POST', '/debtors', { name: 'Vera Valores' })
   await session.api('POST', '/debts', {
     debtorId: d.id, type: 'PIX_INSTALLMENT', description: 'Geladeira', totalAmount: 1200, numberOfInstallments: 4,
@@ -37,13 +37,10 @@ test('Esconder valores: the eye blurs every amount on every screen, survives a r
   await page.reload()
   await allBlurred('Perfil depois de recarregar')
 
-  // Desktop: the same eye is in the header and turns it off.
-  if ((page.viewportSize()?.width ?? 0) >= 880) {
-    await page.getByRole('banner').getByRole('button', { name: 'Esconder valores' }).click()
-  } else {
-    await page.goto('/dashboard')
-    await page.getByRole('region', { name: /A receber em/ }).getByRole('button', { name: 'Esconder valores' }).click()
-  }
+  // The eye lives only in the Painel (not in the header: decision of 26/11/2026).
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Esconder valores' })).toHaveCount(0)
+  await page.goto('/dashboard')
+  await page.getByRole('region', { name: /A receber em/ }).getByRole('button', { name: 'Esconder valores' }).click()
   await expect(page.locator('.lt-toast').getByText('Valores à mostra')).toBeVisible()
   // The blur fades out (short transition): wait for it to end.
   await expect

@@ -95,7 +95,7 @@ function Hero({ o }: { o: DashboardOverview }) {
 
   return (
     <section className="lt-hero lt-anim-up" aria-labelledby="hero-k">
-      <HideValuesButton variant="hero" />
+      <HideValuesButton />
       <h2 id="hero-k" className="lt-hero-k">A receber em {month}</h2>
       <div className="lt-hero-value">
         <Money value={o.month.remaining} size={38} color="#fff" />
