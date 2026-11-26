@@ -1,4 +1,5 @@
 import { api } from '../lib/axios'
+import type { ChargeTone } from '../lib/reminder'
 
 export type PixKeyType = 'CPF' | 'CNPJ' | 'PHONE' | 'EMAIL' | 'RANDOM'
 
@@ -8,6 +9,10 @@ export interface LenderSettings {
   defaultPixInstallmentDueDay: number | null
   pixKey: string | null
   pixKeyType: PixKeyType | null
+  /** Item 68 (API V2, R7): null = Amigável. Absent on older APIs. */
+  chargeTone?: ChargeTone | null
+  /** Text of "Minha" (up to 1.000 characters); kept when the tone changes. */
+  chargeTemplate?: string | null
 }
 
 export const settingsApi = {

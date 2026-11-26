@@ -111,6 +111,29 @@ describe('RemindSheet (S5)', () => {
     open.mockRestore()
   })
 
+  it('item 68: the tone from Configurações (Direta) builds the message; untouched, the Pix goes where {pix} is', async () => {
+    pixKey = '+5511987654321'
+    get.mockImplementation((url: string) => {
+      if (url === '/debtors/d1') return Promise.resolve({ data: debtor })
+      if (url === '/debtors/d1/debts')
+        return Promise.resolve({ data: [{ id: 'x', description: 'Notebook', installments: [inst('a', 1, '2026-11-02'), inst('b', 2, '2026-12-02')] }] })
+      if (url === '/settings') return Promise.resolve({ data: { pixKey, pixKeyType: 'PHONE', chargeTone: 'DIRECT', chargeTemplate: null } })
+      return Promise.reject(new Error(url))
+    })
+    const user = userEvent.setup()
+    renderSheet()
+    const sheet = await screen.findByRole('dialog', { name: 'Lembrar Ana' })
+    const text = (await within(sheet).findByRole('textbox', { name: 'Mensagem' })) as HTMLTextAreaElement
+    await waitFor(() => expect(text.value).toMatch(/^Olá, Ana\. Seguem os valores em aberto:/))
+    expect(text.value).not.toContain('{pix}')
+    expect(sheet).toHaveTextContent('Modelo: Direta · Mudar em Configurações')
+    const sw = within(sheet).getByRole('switch', { name: 'Incluir Pix copia e cola' })
+    await user.click(sw)
+    expect(text.value).toMatch(/Total: R\$\s100,00\.\nPix copia e cola \(R\$\s100,00\):\n00020126.*\nPor favor, me avise quando pagar\.$/)
+    await user.click(sw)
+    expect(text.value).toMatch(/Total: R\$\s100,00\.\nPor favor, me avise quando pagar\.$/)
+  })
+
   it('nothing open: the button stays off and says why', async () => {
     get.mockImplementation((url: string) => {
       if (url === '/debtors/d1') return Promise.resolve({ data: debtor })

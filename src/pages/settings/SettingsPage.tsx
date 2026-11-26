@@ -26,6 +26,7 @@ import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
 import { NavRow } from '../../components/ui/ListRow'
 import { Segmented } from '../../components/ui/Segmented'
 import { PlanSection } from './PlanSection'
+import { ChargeMessageSection } from './ChargeMessageSection'
 import { usePlan } from '../../hooks/plan/usePlan'
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -213,6 +214,9 @@ export function SettingsPage() {
               )
             }}
           />
+
+          {/* Item 68 (API R7): hidden on an older API, which has no chargeTone. */}
+          {'chargeTone' in s && <ChargeMessageSection settings={s} save={(data, what) => save(data, what)} />}
         </>
       )}
 

@@ -70,6 +70,45 @@ describe('Configurações (S11)', () => {
     expect(put).toHaveBeenLastCalledWith('/settings', { pixKeyType: 'CPF', pixKey: '529.982.247-25' })
   })
 
+  it('item 68: Direta saves; Minha starts with a text, variables go at the cursor, saves on leaving; empty is refused', async () => {
+    settings = { ...settings, chargeTone: null, chargeTemplate: null }
+    const user = userEvent.setup()
+    renderApp('/settings')
+    const group = await screen.findByRole('radiogroup', { name: 'Modelo da mensagem' })
+    expect(within(group).getByRole('radio', { name: 'Amigável' })).toHaveAttribute('aria-checked', 'true')
+    expect(await screen.findByLabelText(/^Prévia da mensagem para/)).toHaveTextContent(/Tudo bem\?/)
+
+    await user.click(within(group).getByRole('radio', { name: 'Direta' }))
+    expect(put).toHaveBeenLastCalledWith('/settings', { chargeTone: 'DIRECT' })
+    await waitFor(() => expect(screen.getByLabelText(/^Prévia da mensagem para/)).toHaveTextContent(/Seguem os valores em aberto/))
+    expect(screen.queryByRole('textbox', { name: 'Seu texto' })).toBeNull()
+
+    await user.click(within(group).getByRole('radio', { name: 'Minha' }))
+    expect(put).toHaveBeenLastCalledWith('/settings', { chargeTone: 'CUSTOM', chargeTemplate: expect.stringContaining('{itens}') })
+    const field = (await screen.findByRole('textbox', { name: 'Seu texto' })) as HTMLTextAreaElement
+    await user.clear(field)
+    await user.type(field, 'Oi , tudo certo?')
+    field.setSelectionRange(3, 3)
+    await user.click(screen.getByRole('button', { name: 'Inserir Nome ({nome})' }))
+    expect(field.value).toBe('Oi {nome}, tudo certo?')
+    await waitFor(() => expect(field).toHaveFocus())
+    await user.tab()
+    expect(put).toHaveBeenLastCalledWith('/settings', { chargeTemplate: 'Oi {nome}, tudo certo?' })
+    expect(screen.getByLabelText(/^Prévia da mensagem para/).textContent).toMatch(/^Oi \S+, tudo certo\?/)
+
+    const calls = put.mock.calls.length
+    await user.clear(field)
+    await user.tab()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Escreva sua mensagem ou escolha outro modelo.')
+    expect(put.mock.calls.length).toBe(calls)
+  })
+
+  it('older API (no chargeTone): no Mensagem de cobrança section', async () => {
+    renderApp('/settings')
+    await screen.findByRole('textbox', { name: 'Chave CPF' })
+    expect(screen.queryByRole('radiogroup', { name: 'Modelo da mensagem' })).toBeNull()
+  })
+
   it('detail level and text size apply right away', async () => {
     const user = userEvent.setup()
     renderApp('/settings')

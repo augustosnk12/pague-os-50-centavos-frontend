@@ -7,7 +7,8 @@ import { useSettings } from '../../hooks/settings/useSettings'
 import { useAuth } from '../../contexts/AuthContext'
 import { localToday } from '../../lib/date'
 import { brCode } from '../../lib/pix'
-import { pixBlock, reminderItems, reminderText, reminderTotal } from '../../lib/reminder'
+import { chargeMessage, pixBlock, reminderItems, reminderTotal, toneLabel } from '../../lib/reminder'
+import { useNavigate } from 'react-router-dom'
 import { whatsappLink } from '../../lib/whatsapp'
 import { fmtPhone } from '../../lib/format'
 import { maskPhone, phoneProblem } from '../../lib/phone'
@@ -39,7 +40,8 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
   const { lender } = useAuth()
   const { data: debtor } = useDebtor(id)
   const { data: debts } = useDebtsByDebtor(id)
-  const { data: settings } = useSettings({ enabled: !!id })
+  const settingsQuery = useSettings({ enabled: !!id })
+  const settings = settingsQuery.data
 
   const items = useMemo(() => (debts ? reminderItems(debts, today) : []), [debts, today])
   const total = reminderTotal(items)
@@ -54,23 +56,32 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
   const phoneId = useId()
   const update = useUpdateDebtor(id)
   const { showToast } = useToast()
-  const ready = !!debtor && !!debts
+  // The message needs the tone (item 68): wait for the settings too (an error falls back to Amigável).
+  const ready = !!debtor && !!debts && (!!settings || settingsQuery.isError)
   const noteId = useId()
   const pixHintId = useId()
+
+  // Item 68: the tone chosen in Configurações (Amigável when the API has none).
+  const message = (on: boolean) => (debtor && items.length ? chargeMessage(settings, firstName(debtor.name), items, on ? pix : '') : '')
+  const navigate = useNavigate()
 
   // Fresh message each time the sheet opens for someone (and once the data arrives).
   useEffect(() => {
     if (!debtorId || !ready) return
-    setText(items.length ? reminderText(firstName(debtor.name), items) : '')
+    setText(message(false))
     setWithPix(false)
     setPhone(debtor.phone ? maskPhone(debtor.phone) : '')
     setPhoneErr('')
   }, [debtorId, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Toggling Pix adds / removes only its block, keeping the user's edits.
+  // Toggling Pix: an untouched message is rebuilt (the block goes where {pix} is);
+  // an edited one only gets the block added at the end / removed, keeping the edits.
   const togglePix = () => {
     if (!pix) return
-    setText((t) => (withPix ? t.replace(pix, '') : t + pix))
+    setText((t) => {
+      if (t === message(withPix)) return message(!withPix)
+      return withPix ? t.replace(pix, '').replace(pix.trim(), '') : t + pix
+    })
     setWithPix((v) => !v)
   }
 
@@ -168,6 +179,12 @@ export function RemindSheet({ debtorId, onClose }: RemindSheetProps) {
           )}
           {debtor.notes && (
             <p className="lt-remind-note"><Icon name="bulb" size={16} /><span>“{debtor.notes}”</span></p>
+          )}
+          {items.length > 0 && settings && 'chargeTone' in settings && (
+            <p className="lt-remind-tone">
+              Modelo: {toneLabel(settings?.chargeTone)} ·{' '}
+              <button type="button" className="lt-more-link" onClick={() => { onClose(); navigate('/settings#mensagem') }}>Mudar em Configurações</button>
+            </p>
           )}
           {items.length > 0 && (
             <textarea className="lt-remind-text" value={text} onChange={(e) => setText(e.target.value)} aria-label="Mensagem" rows={9} />
