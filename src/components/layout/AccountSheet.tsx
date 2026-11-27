@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGuardedNavigate } from '../../hooks/useGuardedNavigate'
 import { Modal } from '../ui/Modal'
 import { Icon } from '../ui/Icon'
 import { Avatar } from '../ui/Avatar'
@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { supportPix } from '../../lib/support'
 import { usePlan } from '../../hooks/plan/usePlan'
+import { useSide } from '../../contexts/SideContext'
 
 interface AccountSheetProps {
   open: boolean
@@ -21,11 +22,12 @@ interface AccountSheetProps {
  * Apoie o projeto, Sair). Everything is also in Configurações.
  */
 export function AccountSheet({ open, onClose, onCalc }: AccountSheetProps) {
-  const navigate = useNavigate()
+  const navigate = useGuardedNavigate()
   const { lender, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [supportOpen, setSupportOpen] = useState(false)
   const { data: plan } = usePlan()
+  const { t } = useSide()
   const then = (fn: () => void) => () => {
     onClose()
     fn()
@@ -54,7 +56,7 @@ export function AccountSheet({ open, onClose, onCalc }: AccountSheetProps) {
         )}
       >
         <div className="lt-acts">
-          <AccountItem icon="trend" title="Recebimentos" onClick={then(() => navigate('/payments'))} />
+          <AccountItem icon="trend" title={t('Recebimentos')} onClick={then(() => navigate('/payments'))} />
           <AccountItem icon="gear" title="Configurações" onClick={then(() => navigate('/settings'))} />
           {plan?.isAdmin && <AccountItem icon="shield" title="Administração" onClick={then(() => navigate('/admin'))} />}
           {/* Keeps the sheet open: the change is seen right away. */}

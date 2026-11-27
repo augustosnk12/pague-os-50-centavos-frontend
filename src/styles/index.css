@@ -1634,3 +1634,31 @@ body:has(.lt-float) .lt-toast { bottom: calc(92px + 40px + 12px + env(safe-area-
 .lt-split-opt[aria-checked="true"] .lt-split-box { background: var(--primary); border-color: var(--primary); }
 .lt-split-empty { padding: 4px 2px 2px; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); }
 .lt-split-empty p { margin: 0 0 6px; }
+
+/* Item 75: "Eu devo". The whole app turns blue on that side, so the two never get mixed up. */
+html[data-side="out"] { --accent-h: 200; }
+/* At hue 200 the same lightness reads paler than purple (4.37:1): a darker primary keeps 4.5:1 (light theme). */
+html[data-side="out"]:not([data-theme="dark"]) { --primary: oklch(0.46 var(--accent-c) var(--accent-h)); --primary-hover: oklch(0.41 var(--accent-c) var(--accent-h)); }
+.lt-side-pill-row { display: flex; margin: 0 0 10px; }
+.lt-side-pill {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 6px 10px 6px 9px; border-radius: var(--r-pill); cursor: pointer;
+  border: 1.5px solid var(--primary-weak-2); background: var(--primary-weak); color: var(--primary); font: inherit; font-weight: 800; font-size: 0.8125rem;
+}
+.lt-side-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--primary); }
+.lt-side-opts { display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; }
+.lt-side-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 13px; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: var(--r-md); background: var(--surface); color: var(--text); font: inherit;
+}
+/* Each option in the colour of its side, whatever side is on now. */
+.lt-side-opt[data-side="in"] { --c: oklch(0.52 0.2 295); }
+.lt-side-opt[data-side="out"] { --c: oklch(0.46 0.2 200); }
+.lt-side-opt .lt-side-dot { width: 10px; height: 10px; background: var(--c); }
+.lt-side-opt[aria-checked="true"] { border-color: var(--c); background: color-mix(in oklch, var(--c) 10%, var(--surface)); }
+.lt-side-opt > svg { color: var(--c); }
+.lt-side-opt-t { display: block; font-weight: 800; font-size: 0.9375rem; }
+.lt-side-opt-s { display: block; font-weight: 600; font-size: 0.75rem; color: var(--text-muted); }
+.lt-head-side { flex-shrink: 0; margin-left: 6px; }
+.lt-head-side [role="radio"] { white-space: nowrap; }
+.lt-nd-side { margin: 0 0 14px; }
+.lt-dp-new-top { width: 100%; margin: 8px 0 4px; border: 1.5px dashed var(--primary-weak-2); }

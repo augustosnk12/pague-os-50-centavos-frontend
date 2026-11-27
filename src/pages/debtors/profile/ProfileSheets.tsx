@@ -14,6 +14,7 @@ import { Segmented } from '../../../components/ui/Segmented'
 import { localToday } from '../../../lib/date'
 import type { DebtWithInstallments } from '../../../hooks/debts/useDebtsByDebtor'
 import type { Debtor } from '../../../types/debtor'
+import { useSide } from '../../../contexts/SideContext'
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
 /** Touch screens dial; elsewhere tel: depends on a configured app and often does nothing. */
@@ -53,7 +54,8 @@ export function DebtorInfoSheet({ open, onClose, debtor, numbers, onEdit, onCopi
   onEdit: () => void
   onCopied: () => void
 }) {
-  const rel = getReliabilityOption(debtor.reliability)
+  const { side, t } = useSide()
+  const rel = side === 'in' ? getReliabilityOption(debtor.reliability) : undefined
   const address = debtor.address ? formatAddress(debtor.address) : ''
   const phone = debtor.phone ? phoneAction(debtor.phone, onCopied) : null
   return (
@@ -85,7 +87,7 @@ export function DebtorInfoSheet({ open, onClose, debtor, numbers, onEdit, onCopi
         {address && <div className="lt-info-line" data-muted><Icon name="home" size={16} /><span>{address}</span></div>}
         {!debtor.phone && !debtor.email && !address && !debtor.notes && <p className="lt-info-empty">Nenhum dado de contato cadastrado.</p>}
         <dl className="lt-stats3">
-          <div><dt>Já recebido</dt><dd style={{ color: 'var(--paid)' }}><Amount value={numbers.received / 100} /></dd></div>
+          <div><dt>{t('Já recebido')}</dt><dd style={{ color: 'var(--paid)' }}><Amount value={numbers.received / 100} /></dd></div>
           <div><dt>Pontualidade</dt><dd>{numbers.onTime == null ? '—' : `${Math.round(numbers.onTime * 100)}%`}</dd></div>
           <div><dt>Parcelas pagas</dt><dd>{numbers.paidCount}/{numbers.count}</dd></div>
         </dl>
@@ -122,6 +124,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
   onBlocked: (why: string) => void
 }) {
   const first = firstName(debtor.name)
+  const { side } = useSide()
   const phone = debtor.phone ? phoneAction(debtor.phone, onCopied) : null
   const then = (fn: () => void) => () => {
     onClose()
@@ -133,7 +136,7 @@ export function DebtorActionsSheet({ open, onClose, debtor, archive, onInfo, onS
         {phone && <Item icon={phone.icon} title={phone.title} sub={phone.sub} onClick={then(phone.run)} />}
         <Item icon="user" title="Ver contato e anotações" onClick={then(onInfo)} />
         {onPayments && <Item icon="history" title="Pagamentos" sub={paymentsCount === 1 ? '1 pagamento' : `${paymentsCount} pagamentos`} onClick={then(onPayments)} />}
-        <Item icon="receipt" title="Enviar extrato" sub="O que deve, em imagem ou texto" onClick={then(onStatement)} />
+        {side === 'in' && <Item icon="receipt" title="Enviar extrato" sub="O que deve, em imagem ou texto" onClick={then(onStatement)} />}
         <Item icon="edit" title="Editar cadastro" onClick={then(onEdit)} />
         {archive.archived ? (
           <Item icon="archive" title={`Reativar ${first}`} sub="Volta para as listas" onClick={then(() => onArchive(false))} />
@@ -437,6 +440,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
     if (open) setTyped('')
   }
   const first = firstName(debtor.name)
+  const { t } = useSide()
   const hasHistory = debts.length > 0
   const payments = debts.reduce((n, d) => n + d.installments.reduce((m, i) => m + (i.payments?.length ?? 0), 0), 0)
   const ok = !hasHistory || norm(typed) === norm(first)
@@ -447,7 +451,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
       title={`Excluir ${first}?`}
       footer={
         <button type="button" className="lt-btn-lg" data-variant="danger" aria-disabled={!ok || undefined} disabled={busy} onClick={() => ok && onDelete()}>
-          <Icon name="trash" size={16} /> {busy ? 'Excluindo…' : hasHistory ? 'Excluir tudo' : 'Excluir devedor'}
+          <Icon name="trash" size={16} /> {busy ? 'Excluindo…' : hasHistory ? 'Excluir tudo' : t('Excluir devedor')}
         </button>
       }
     >
@@ -458,7 +462,7 @@ export function DeleteDebtorSheet({ open, onClose, debtor, debts, archive, recei
           {!archive.archived && (
             <div className="lt-del-arch">
               <div className="lt-del-arch-t"><Icon name="archive" size={16} /> Prefere arquivar?</div>
-              <div className="lt-del-arch-s">Some das listas e mantém o histórico de <Amount value={received / 100} /> recebidos. Dá para reativar.</div>
+              <div className="lt-del-arch-s">Some das listas e mantém o histórico de <Amount value={received / 100} /> {t('recebidos')}. Dá para reativar.</div>
               {archive.blockedBy ? (
                 <div className="lt-del-arch-why">{archive.blockedBy}</div>
               ) : (

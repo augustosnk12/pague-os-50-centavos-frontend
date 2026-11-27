@@ -4,6 +4,7 @@ import { Avatar } from '../../components/ui/Avatar'
 import { Icon } from '../../components/ui/Icon'
 import type { Debtor } from '../../types/debtor'
 import { rankByTerm } from '../../lib/searchMatch'
+import { useSide } from '../../contexts/SideContext'
 
 
 interface DebtorFilterSheetProps {
@@ -17,6 +18,7 @@ interface DebtorFilterSheetProps {
 /** "Filtrar por devedor" (improvement 14): search, toggle people, "Limpar". Applies as you tap. */
 export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }: DebtorFilterSheetProps) {
   const [q, setQ] = useState('')
+  const { t } = useSide()
   const matches = rankByTerm(debtors, q, (d) => d.name)
   const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
   const close = () => {
@@ -28,23 +30,23 @@ export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }
     <Modal
       open={open}
       onClose={close}
-      title="Filtrar por devedor"
+      title={t('Filtrar por devedor')}
       footer={
         <>
           <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={() => onChange([])} disabled={!selected.length} style={{ flex: '0 0 auto' }}>
             Limpar
           </button>
           <button type="button" className="lt-btn-lg" data-variant="primary" onClick={close}>
-            {selected.length ? `Ver ${selected.length === 1 ? '1 devedor' : `${selected.length} devedores`}` : 'Ver todos'}
+            {selected.length ? `Ver ${selected.length === 1 ? t('1 devedor') : `${selected.length} ${t('devedores')}`}` : 'Ver todos'}
           </button>
         </>
       }
     >
       <div className="lt-search-field">
         <Icon name="search" size={16} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar devedor…" aria-label="Buscar devedor" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Buscar devedor…')} aria-label={t('Buscar devedor')} />
       </div>
-      <ul className="lt-pick-list" aria-label="Devedores">
+      <ul className="lt-pick-list" aria-label={t('Devedores')}>
         {matches.map((d) => {
           const on = selected.includes(d.id)
           return (
@@ -57,7 +59,7 @@ export function DebtorFilterSheet({ open, onClose, debtors, selected, onChange }
             </li>
           )
         })}
-        {matches.length === 0 && <li className="lt-pick-empty">Nenhum devedor encontrado.</li>}
+        {matches.length === 0 && <li className="lt-pick-empty">{t('Nenhum devedor encontrado.')}</li>}
       </ul>
     </Modal>
   )

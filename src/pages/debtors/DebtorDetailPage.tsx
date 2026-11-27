@@ -45,6 +45,7 @@ import { paymentTarget, type PaymentTarget } from '../../lib/paymentTarget'
 import type { ReceiptRequest } from '../../lib/receipt'
 import type { DebtType } from '../../types/debt'
 import { DebtSection } from './profile/DebtSection'
+import { useSide } from '../../contexts/SideContext'
 import { DebtActionsSheet, DebtorActionsSheet, DebtorInfoSheet, DeleteDebtorSheet, DeleteDebtSheet, PayoffSheet, RecurrenceEndSheet } from './profile/ProfileSheets'
 
 type Tab = 'open' | 'paid' | 'pays'
@@ -75,6 +76,8 @@ function DebtorProfile({ id }: { id: string }) {
   const { showToast } = useToast()
   const { detail } = usePreferences()
   const today = localToday()
+  const { side, t } = useSide()
+  const debtorSide = side === 'in'
 
   const { data: debtor, isLoading, isError, error, refetch, isFetching } = useDebtor(id)
   const debtsQuery = useDebtsByDebtor(id)
@@ -150,7 +153,7 @@ function DebtorProfile({ id }: { id: string }) {
   if (isError && !debtor && !notFound) {
     return (
       <main className="lt-page">
-        <h1 className="lt-h1" style={{ marginBottom: 16 }}>Devedor</h1>
+        <h1 className="lt-h1" style={{ marginBottom: 16 }}>{t('Devedor')}</h1>
         <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
@@ -158,7 +161,7 @@ function DebtorProfile({ id }: { id: string }) {
   if (!debtor) {
     return (
       <main className="lt-page">
-        <EmptyState title="Devedor não encontrado" sub="Ele pode ter sido excluído." icon="users" action={<Button variant="secondary" onClick={() => navigate('/debtors')}>Ver devedores</Button>} />
+        <EmptyState title={t('Devedor não encontrado')} sub="Ele pode ter sido excluído." icon="users" action={<Button variant="secondary" onClick={() => navigate('/debtors')}>{t('Ver devedores')}</Button>} />
       </main>
     )
   }
@@ -177,7 +180,7 @@ function DebtorProfile({ id }: { id: string }) {
         : null
   // One line in the ⋯ menu; the tap (toast) and the delete sheet keep the full reason.
   const blockedShort = numbers.owed > 0 ? `Quite os ${fmtMoney(numbers.owed / 100)} antes` : blockedBy
-  const rel = getReliabilityOption(debtor.reliability)
+  const rel = debtorSide ? getReliabilityOption(debtor.reliability) : undefined
   // "Cobrar" only stops when there is nothing to charge. Without a phone (or with
   // one WhatsApp can't use) it still opens the sheet, which asks for the number
   // and saves it. The button stays tappable (aria-disabled, not disabled): a
@@ -211,7 +214,7 @@ function DebtorProfile({ id }: { id: string }) {
         showToast(`${first} ${gendered(first, 'excluíd')}`)
         navigate('/debtors')
       },
-      onError: fail('Erro ao excluir devedor.'),
+      onError: fail(t('Erro ao excluir devedor.')),
     })
 
   const handleSaveDebt = (data: { id: string; description: string | null; type: DebtType }) =>
@@ -332,11 +335,11 @@ function DebtorProfile({ id }: { id: string }) {
   const summary =
     numbers.owed === 0 ? (
       <span style={{ color: 'var(--paid)' }}>
-        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? <>Tudo quitado · <Amount value={numbers.received / 100} /> recebidos</> : 'Sem dívidas'}
+        <Icon name="check" size={16} strokeWidth={3} /> {debts.length ? <>Tudo quitado · <Amount value={numbers.received / 100} /> {t('recebidos')}</> : 'Sem dívidas'}
       </span>
     ) : (
       <>
-        Deve <b><Amount value={numbers.owed / 100} /></b>
+        {t('Deve ')}<b><Amount value={numbers.owed / 100} /></b>
         {numbers.late > 0 ? (
           <span style={{ color: 'var(--overdue)' }}> · {numbers.late >= numbers.owed ? 'tudo em atraso' : <><Amount value={numbers.late / 100} /> em atraso</>}</span>
         ) : numbers.next ? (
@@ -379,7 +382,7 @@ function DebtorProfile({ id }: { id: string }) {
       )}
 
       <div className="lt-prof-acts">
-        <button
+        {debtorSide && <button
           type="button"
           className="lt-btn-lg"
           data-variant="wa"
@@ -391,7 +394,7 @@ function DebtorProfile({ id }: { id: string }) {
           }}
         >
           <Icon name="whatsapp" size={16} /> Cobrar
-        </button>
+        </button>}
         <button
           type="button"
           className="lt-btn-lg"
@@ -432,9 +435,9 @@ function DebtorProfile({ id }: { id: string }) {
           open.length ? (
             <div className="lt-dsecs">
               {openTotal > 1 && !archived && (
-                <button type="button" className="lt-batch-link" onClick={() => setBatchOpen(true)} aria-label={`Receber várias de uma vez, ${openTotal} parcelas em aberto`}>
+                <button type="button" className="lt-batch-link" onClick={() => setBatchOpen(true)} aria-label={`${t('Receber várias de uma vez')}, ${openTotal} parcelas em aberto`}>
                   <Icon name="layers" size={16} />
-                  <span className="lt-batch-link-t">Receber várias de uma vez</span>
+                  <span className="lt-batch-link-t">{t('Receber várias de uma vez')}</span>
                   <span className="lt-batch-link-n" title={`${openTotal} parcelas em aberto`}>{openTotal}</span>
                   <Icon name="chevronRight" size={16} />
                 </button>
@@ -469,7 +472,7 @@ function DebtorProfile({ id }: { id: string }) {
             <EmptyState
               icon="wallet"
               title="Sem dívidas"
-              sub="Registre o que essa pessoa te deve."
+              sub={t('Registre o que essa pessoa te deve.')}
               action={!archived && <Button icon="plus" onClick={() => navigate(`/debts/new?debtorId=${debtor.id}`)}>Nova dívida</Button>}
             />
           )

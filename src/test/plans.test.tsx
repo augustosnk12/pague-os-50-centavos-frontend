@@ -29,8 +29,8 @@ beforeEach(() => {
 
 describe('textos dos limites (melhoria 62)', () => {
   it('Grátis: sem nome de plano; Pro: com o nome', () => {
-    expect(limitReachedText(FULL_DEBTORS, 'debtors')).toBe('Você chegou ao limite de 10 devedores.')
-    expect(limitLead(FULL_DEBTORS, 'debtors')).toBe('Você pode ter até 10 devedores e já tem 11.')
+    expect(limitReachedText(FULL_DEBTORS, 'debtors')).toBe('Você chegou ao limite de 10 pessoas.')
+    expect(limitLead(FULL_DEBTORS, 'debtors')).toBe('Você pode ter até 10 pessoas e já tem 11.')
     const proFull = { ...PRO, debts: { used: 1000, limit: 1000, full: true } }
     expect(limitReachedText(proFull, 'debts')).toBe('Você chegou ao limite de 1.000 dívidas do plano Pro.')
     expect(limitLead(proFull, 'debts')).toBe('O plano Pro permite até 1.000 dívidas, e você chegou lá.')
@@ -63,10 +63,10 @@ describe('limites nas telas (melhoria 62)', () => {
     post.mockResolvedValue({ data: { message: 'Request sent.', limitRequestedAt: '2026-11-22T15:00:00.000Z' } })
     const user = userEvent.setup()
     renderApp('/debtors')
-    expect(await screen.findByText('Você chegou ao limite de 10 devedores.')).toBeInTheDocument()
+    expect(await screen.findByText('Você chegou ao limite de 10 pessoas.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Adicionar' }))
     const sheet = await screen.findByRole('dialog', { name: 'Limite atingido' })
-    expect(within(sheet).getByText('Você pode ter até 10 devedores e já tem 11.')).toBeInTheDocument()
+    expect(within(sheet).getByText('Você pode ter até 10 pessoas e já tem 11.')).toBeInTheDocument()
     expect(within(sheet).getByText(/Por ser gratuito/)).toBeInTheDocument()
     expect(sheet.textContent).not.toMatch(/plano|Pro\b|Grátis|@/i)
     expect(screen.queryByRole('dialog', { name: 'Novo devedor' })).not.toBeInTheDocument()
@@ -80,7 +80,7 @@ describe('limites nas telas (melhoria 62)', () => {
     plan = FULL_DEBTORS
     renderApp('/settings')
     expect(await screen.findByText('Seus limites')).toBeInTheDocument()
-    expect(screen.getByText('Até 10 devedores e 50 dívidas')).toBeInTheDocument()
+    expect(screen.getByText('Até 10 pessoas e 50 dívidas')).toBeInTheDocument()
     expect(screen.getByText('11 de 10')).toBeInTheDocument()
     expect(screen.queryByText(/Plano Grátis/)).not.toBeInTheDocument()
   })

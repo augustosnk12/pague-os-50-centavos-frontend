@@ -4,6 +4,7 @@ import { Input } from '../ui/Input'
 import { Icon } from '../ui/Icon'
 import type { DebtType } from '../../types/debt'
 import type { DebtWithInstallments } from '../../hooks/debts/useDebtsByDebtor'
+import { useSide } from '../../contexts/SideContext'
 
 const TYPES: { type: DebtType; label: string; icon: string }[] = [
   { type: 'CASH', label: 'Dinheiro', icon: 'banknote' },
@@ -32,6 +33,7 @@ interface DebtFormProps {
  * otherwise it explains what to do instead.
  */
 export function DebtForm({ open, onClose, editing, onSave, onDelete, loading }: DebtFormProps) {
+  const { t } = useSide()
   const [last, setLast] = useState(editing)
   const [description, setDescription] = useState(editing?.description ?? '')
   const [type, setType] = useState<DebtType>(editing?.type ?? 'PIX')
@@ -93,7 +95,7 @@ export function DebtForm({ open, onClose, editing, onSave, onDelete, loading }: 
             <>
               <div className="lt-de-danger-t">Não dá para excluir</div>
               <div className="lt-de-danger-s">
-                {paid === 1 ? 'Há 1 pagamento registrado.' : `Há ${paid} pagamentos registrados.`} Para tirar do caminho, use “Quitar” na dívida ou arquive o devedor depois de quitar.
+                {paid === 1 ? 'Há 1 pagamento registrado.' : `Há ${paid} pagamentos registrados.`} Para tirar do caminho, use “Quitar” na dívida ou arquive {t('o devedor')} depois de quitar.
               </div>
             </>
           ) : (

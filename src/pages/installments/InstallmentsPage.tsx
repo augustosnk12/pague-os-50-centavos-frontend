@@ -24,6 +24,8 @@ import {
 } from '../../lib/installmentsView'
 import { DebtorFilterSheet } from './DebtorFilterSheet'
 import type { InstallmentEnriched } from '../../types/installment'
+import { SidePill } from '../../components/layout/SideSwitch'
+import { useSide } from '../../contexts/SideContext'
 
 const PERIODS: [Period, string][] = [['day', 'Dia'], ['week', 'Semana'], ['month', 'Mês']]
 const TABS: [Tab, string][] = [['open', 'A receber'], ['overdue', 'Atrasadas'], ['paid', 'Pagas']]
@@ -53,6 +55,8 @@ export function InstallmentsPage() {
   const [params, setParams] = useSearchParams()
   const url = readUrlState(params, today)
   const { period, anchor, tab, debtorIds } = url
+  const { side, t } = useSide()
+  const sideRef = useRef(side)
 
   const [totalsOpen, setTotalsOpen] = useState(() => url.summary || readTotalsOpen())
   const [limit, setLimit] = useState(PAGE)
@@ -86,6 +90,13 @@ export function InstallmentsPage() {
   const update = (next: Partial<{ period: Period; anchor: string; tab: Tab; debtorIds: string[] }>) =>
     setParams(writeUrlState({ period, anchor, tab, debtorIds, ...next }, today), { replace: true })
 
+  // The filter's people belong to one side (item 75): switching sides clears it.
+  useEffect(() => {
+    if (sideRef.current === side) return
+    sideRef.current = side
+    if (debtorIds.length) update({ debtorIds: [] })
+  }, [side]) // eslint-disable-line react-hooks/exhaustive-deps -- only when the side changes
+
   const toggleTotals = () => {
     setTotalsOpen((o) => {
       try {
@@ -98,8 +109,8 @@ export function InstallmentsPage() {
   }
 
   const selectedDebtors = debtorIds.map((id) => debtors.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d)
-  const filterLabel = !debtorIds.length ? 'Todos' : debtorIds.length === 1 ? firstName(selectedDebtors[0]?.name ?? '1 devedor') : `${debtorIds.length} devedores`
-  const filterSpoken = !debtorIds.length ? 'todos os devedores' : selectedDebtors.map((d) => d.name).join(', ') || filterLabel
+  const filterLabel = !debtorIds.length ? 'Todos' : debtorIds.length === 1 ? firstName(selectedDebtors[0]?.name ?? t('1 devedor')) : `${debtorIds.length} ${t('devedores')}`
+  const filterSpoken = !debtorIds.length ? t('todos os devedores') : selectedDebtors.map((d) => d.name).join(', ') || filterLabel
 
   const isNow = isCurrentPeriod(period, anchor, today) && (period !== 'day' || anchor === today)
   const openPayment = (inst: InstallmentEnriched) => setPayTarget(paymentTarget(inst))
@@ -110,7 +121,7 @@ export function InstallmentsPage() {
     const id = inst.debt?.debtor?.id ?? inst.debt?.debtorId
     return id ? () => setRemindId(id) : undefined
   }
-  const tabName = TABS.find((t) => t[0] === tab)?.[1] ?? ''
+  const tabName = t(TABS.find((x) => x[0] === tab)?.[1] ?? '')
 
   // Compact bar once the frame and tabs have scrolled away (improvement 15).
   const sentinel = useRef<HTMLDivElement>(null)
@@ -148,11 +159,12 @@ export function InstallmentsPage() {
               {tab === 'overdue' && <span className="lt-cnt" data-late={view.counts.overdue > 0 || undefined}>{view.counts.overdue}</span>}
               {debtorIds.length > 0 && <span className="lt-ipb-nf">· {filterLabel}</span>}
             </button>
-            <IconButton name="user" size={16} label={`Filtrar por devedor: ${filterSpoken}`} onClick={() => setFilterOpen(true)} />
+            <IconButton name="user" size={16} label={`${t('Filtrar por devedor')}: ${filterSpoken}`} onClick={() => setFilterOpen(true)} />
           </div>
         </div>
       )}
 
+      <SidePill />
       <div className="lt-ip-head">
         <h1 ref={top} className="lt-h1" tabIndex={-1}>Parcelas</h1>
         <span style={{ flex: 1 }} />
@@ -161,7 +173,7 @@ export function InstallmentsPage() {
           type="button"
           className="lt-chip lt-dfilter"
           aria-haspopup="dialog"
-          aria-label={`Filtrar por devedor: ${filterSpoken}`}
+          aria-label={`${t('Filtrar por devedor')}: ${filterSpoken}`}
           data-on={debtorIds.length > 0 || undefined}
           onClick={() => setFilterOpen(true)}
         >
@@ -197,7 +209,7 @@ export function InstallmentsPage() {
       </section>
 
       <Tabs
-        items={TABS.map(([id, label]) => ({ id, label, count: id === 'overdue' && !loading && !failed ? view.counts.overdue : null, late: id === 'overdue' }))}
+        items={TABS.map(([id, label]) => ({ id, label: t(label), count: id === 'overdue' && !loading && !failed ? view.counts.overdue : null, late: id === 'overdue' }))}
         value={tab}
         onChange={(t) => update({ tab: t })}
         label="Situação"
@@ -228,8 +240,8 @@ export function InstallmentsPage() {
           <>
             <EmptyState
               icon={tab === 'paid' ? 'wallet' : 'check'}
-              title={tab === 'overdue' ? 'Nenhuma parcela atrasada' : tab === 'paid' ? `Nada recebido ${where}` : `Nada a receber ${where}`}
-              sub={debtorIds.length ? 'Tente remover o filtro de devedor.' : tab === 'overdue' ? undefined : 'Use as setas para navegar entre períodos.'}
+              title={tab === 'overdue' ? 'Nenhuma parcela atrasada' : tab === 'paid' ? `${t('Nada recebido')} ${where}` : `${t('Nada a receber')} ${where}`}
+              sub={debtorIds.length ? t('Tente remover o filtro de devedor.') : tab === 'overdue' ? undefined : 'Use as setas para navegar entre períodos.'}
             />
             {debtorIds.length > 0 && (
               <div style={{ textAlign: 'center' }}>
@@ -345,15 +357,16 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
   const pct = expected ? Math.floor((received / expected) * 100) : 0
   const w = (v: number) => `${expected ? (v / expected) * 100 : 0}%`
   const id = useId()
+  const { t } = useSide()
   const legend: [string, number, string][] = [
-    ['Recebido', received, 'var(--paid)'],
+    [t('Recebido'), received, 'var(--paid)'],
     ['Atrasado', overdue, 'var(--overdue)'],
     ['A vencer', pending, 'var(--pending)'],
   ]
   return (
     <>
       <button type="button" className="lt-ipd-total" aria-expanded={open} aria-controls={id} onClick={onToggle} title={open ? 'Ocultar detalhes' : 'Ver detalhes'}>
-        <span className="lt-ipd-k">A receber</span>
+        <span className="lt-ipd-k">{t('A receber')}</span>
         <Amount className="lt-ipd-v" value={due / 100} />
         {/* Only the arrow: aria-expanded already says open/closed to screen readers. */}
         <span className="lt-ipd-info" aria-hidden="true">
@@ -373,7 +386,7 @@ function PeriodTotal({ view, where, open, onToggle }: { view: InstallmentsView; 
               </div>
             ))}
           </dl>
-          <div className="lt-ipd-exp"><Amount value={expected / 100} /> previsto {where}{expected ? ` · ${pct}% recebido` : ''}</div>
+          <div className="lt-ipd-exp"><Amount value={expected / 100} /> previsto {where}{expected ? ` · ${pct}% ${t('recebido')}` : ''}</div>
         </div>
       )}
     </>

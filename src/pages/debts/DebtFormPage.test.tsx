@@ -220,4 +220,53 @@ describe('Nova dívida (S8)', () => {
     const form = await screen.findByRole('dialog', { name: 'Novo devedor' })
     expect(within(form).getByRole('textbox', { name: /Nome/ })).toHaveValue('Zé Novo')
   })
+
+  it('nothing typed (the person preset by the profile does not count): the tab just goes', async () => {
+    const user = userEvent.setup()
+    renderApp('/debts/new?debtorId=d1')
+    await screen.findByRole('button', { name: 'Trocar devedor (João Araújo)' })
+    await user.click(within(screen.getByRole('navigation', { name: 'Abas' })).getByRole('link', { name: /^Parcelas/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Parcelas' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Sair sem criar a dívida?' })).toBeNull()
+  })
+
+  it('something typed: leaving asks first (a tab, Cancelar); Continuar editando keeps it, Sair e descartar leaves', async () => {
+    const user = userEvent.setup()
+    renderApp('/debts/new?debtorId=d1')
+    await screen.findByRole('button', { name: 'Trocar devedor (João Araújo)' })
+    await user.type(screen.getByRole('textbox', { name: /Valor total/ }), '5000')
+    await user.click(within(screen.getByRole('navigation', { name: 'Abas' })).getByRole('link', { name: /^Parcelas/ }))
+    const ask = await screen.findByRole('dialog', { name: 'Sair sem criar a dívida?' })
+    expect(ask).toHaveTextContent('O que você preencheu nesta dívida vai ser perdido.')
+    await user.click(within(ask).getByRole('button', { name: 'Continuar editando' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Sair sem criar a dívida?' })).toBeNull())
+    expect(screen.getByRole('heading', { level: 1, name: 'Nova dívida' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /Valor total/ })).toHaveValue('50,00')
+
+    await user.click(within(footer()).getByRole('button', { name: 'Cancelar' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Sair sem criar a dívida?' })).getByRole('button', { name: 'Sair e descartar' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { level: 1, name: 'Nova dívida' })).toBeNull())
+  })
+
+  it('"Cadastrar" sits right under the field (seen with the phone keyboard open); Enter registers, or picks the exact name', async () => {
+    const user = userEvent.setup()
+    renderApp('/debts/new')
+    await user.click(await screen.findByRole('button', { name: 'Buscar devedor' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Para quem é a dívida?' })
+    const field = within(sheet).getByRole('textbox', { name: 'Buscar devedor pelo nome' })
+    await user.type(field, 'Ana')
+    // Partial match: "Ana Souza" listed, and "Cadastrar “Ana”" comes first, right after the field.
+    const create = within(sheet).getByRole('button', { name: 'Cadastrar “Ana”' })
+    expect(field.closest('.lt-search-field')?.nextElementSibling).toBe(create)
+    await user.clear(field)
+    // The exact name (no accents needed): no "Cadastrar", Enter picks the person.
+    await user.type(field, 'ana souza{Enter}')
+    expect(within(sheet).queryByRole('button', { name: /^Cadastrar/ })).toBeNull()
+    expect(await screen.findByRole('button', { name: 'Trocar devedor (Ana Souza)' })).toBeInTheDocument()
+    // A new name: Enter opens the form with it.
+    await user.click(screen.getByRole('button', { name: 'Trocar devedor (Ana Souza)' }))
+    const again = await screen.findByRole('dialog', { name: 'Para quem é a dívida?' })
+    await user.type(within(again).getByRole('textbox', { name: 'Buscar devedor pelo nome' }), 'Zé Novo{Enter}')
+    expect(within(await screen.findByRole('dialog', { name: 'Novo devedor' })).getByRole('textbox', { name: /Nome/ })).toHaveValue('Zé Novo')
+  })
 })

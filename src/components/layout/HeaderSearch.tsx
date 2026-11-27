@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGuardedNavigate } from '../../hooks/useGuardedNavigate'
 import { Icon } from '../ui/Icon'
 import { IconButton } from '../ui/IconButton'
 import { SearchResults } from '../shared/SearchResults'
 import { searchHits, type SearchHit } from '../../lib/searchHits'
 import { useSearch } from '../../hooks/search/useSearch'
+import { useSide } from '../../contexts/SideContext'
 
 interface HeaderSearchProps {
   open: boolean
@@ -18,7 +19,8 @@ interface HeaderSearchProps {
  * and focus goes back to the magnifier.
  */
 export function HeaderSearch({ open, onOpenChange }: HeaderSearchProps) {
-  const navigate = useNavigate()
+  const { t } = useSide()
+  const navigate = useGuardedNavigate()
   const [q, setQ] = useState('')
   const [active, setActive] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -63,7 +65,7 @@ export function HeaderSearch({ open, onOpenChange }: HeaderSearchProps) {
       <IconButton
         ref={trigger}
         name="search"
-        label="Buscar devedor ou dívida (Ctrl K ou /)"
+        label={t('Buscar devedor ou dívida (Ctrl K ou /)')}
         aria-keyshortcuts="Control+K Meta+K /"
         onClick={() => onOpenChange(true)}
       />
@@ -83,8 +85,8 @@ export function HeaderSearch({ open, onOpenChange }: HeaderSearchProps) {
           onBlur={() => {
             if (!q.trim()) close(false)
           }}
-          placeholder="Buscar devedor ou dívida…"
-          aria-label="Buscar devedor ou dívida"
+          placeholder={t('Buscar devedor ou dívida…')}
+          aria-label={t('Buscar devedor ou dívida')}
           role="combobox"
           aria-expanded={showList}
           aria-controls={listId}

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGuardedNavigate } from '../../hooks/useGuardedNavigate'
+import { useNewDebt } from '../../hooks/useNewDebt'
 import { Header } from './Header'
 import { BottomTabs } from './BottomTabs'
 import { Modal } from '../ui/Modal'
@@ -27,7 +28,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     setRegisterLoaded(true)
     setRegisterOpen(true)
   }
-  const navigate = useNavigate()
+  const navigate = useGuardedNavigate()
+  const newDebt = useNewDebt()
   useRouteAnnouncer()
 
   // Improvement 28. On phones there is no header search: "/" and Ctrl K go to the
@@ -38,7 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       else navigate('/debtors?busca=1')
     },
     onRegister: openRegister,
-    onNewDebt: () => navigate('/debts/new'),
+    onNewDebt: newDebt,
   })
 
   // Improvement 5: overdue from EVERY month, derived from the dates by the API.

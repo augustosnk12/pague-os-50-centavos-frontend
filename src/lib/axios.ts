@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios'
 import { getLenderFromStorage, getToken, removeToken } from './cookies'
 import { notifySessionExpired, SESSION_SAVE_ERROR } from './session'
 import { rememberReturnPath } from './returnPath'
+import { withSide } from './apiSide'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -19,6 +20,9 @@ function asApiError(config: AxiosError['config'], message: string): AxiosError {
 }
 
 const isChange = (method?: string) => !!method && method.toLowerCase() !== 'get'
+
+// Item 75: on "Eu devo", lists ask for creditors and new people are creditors (lib/apiSide).
+api.interceptors.request.use((config) => withSide(config))
 
 api.interceptors.request.use((config) => {
   // Offline: block changes before they are sent ("nada foi salvo"); reads may

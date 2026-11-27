@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSide } from '../../contexts/SideContext'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/ui/Icon'
 import { Amount } from '../../components/ui/Amount'
@@ -49,6 +50,7 @@ type View = 'paid' | 'open'
  */
 function ForecastView({ today }: { today: string }) {
   const f = useForecast(today)
+  const { t } = useSide()
   const hidden = useValuesHidden()
   const year = Number(today.slice(0, 4))
   if (f.failed) return <ErrorState onRetry={f.retry} retrying={f.retrying} />
@@ -86,9 +88,9 @@ function ForecastView({ today }: { today: string }) {
         )}
       </section>
 
-      <SectionHeader variant="plain">Quem mais vai te pagar</SectionHeader>
+      <SectionHeader variant="plain">{t('Quem mais vai te pagar')}</SectionHeader>
       {d.people.length ? (
-        <ListGroup label="Quem mais vai te pagar">
+        <ListGroup label={t('Quem mais vai te pagar')}>
           {d.people.slice(0, 6).map((p) => (
             <LinkRow key={p.id} to={`/debtors/${p.id}`} label={`${p.name}, ${parcelas(p.count)} ${until(p.last)}, ${spoken(p.cents)}`}>
               <span aria-hidden="true"><Avatar name={p.name} size={36} hue={p.avatarHue} emoji={p.avatarEmoji} /></span>
@@ -129,6 +131,7 @@ function PeriodPicker({ value, onChange, today, idPrefix }: { value: PeriodChoic
 function ExportSheet({ open, start, onClose }: { open: boolean; start: PeriodChoice; onClose: () => void }) {
   const today = localToday()
   const { showToast } = useToast()
+  const { t } = useSide()
   const [p, setP] = useState(start)
   const [busy, setBusy] = useState(false)
   const [wasOpen, setWasOpen] = useState(open)
@@ -181,7 +184,7 @@ function ExportSheet({ open, start, onClose }: { open: boolean; start: PeriodCho
             {!bounds ? 'Escolha as datas' : s ? `${plural(s.count)} · ${fmtMoney(s.total)}` : 'Contando…'}
           </div>
         )}
-        <p className="lt-set-note" style={{ margin: 0, textAlign: 'center' }}>Data, devedor, dívida, parcela e valor. Abre no Excel e no Google Planilhas.</p>
+        <p className="lt-set-note" style={{ margin: 0, textAlign: 'center' }}>{t('Data, devedor, dívida, parcela e valor.')} Abre no Excel e no Google Planilhas.</p>
       </div>
     </Modal>
   )
@@ -196,6 +199,7 @@ export function ReceivablesPage() {
   const back = useBack({ path: '/settings', label: 'Configurações' })
   const [period, setPeriod] = useState(() => initialPeriod(today))
   const [exportOpen, setExportOpen] = useState(false)
+  const { t } = useSide()
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
 
   const [params, setParams] = useSearchParams()
@@ -226,8 +230,8 @@ export function ReceivablesPage() {
     <main className="lt-page lt-rep">
       <PageHeader
         back={{ label: back.label, onClick: back.go }}
-        title="Recebimentos"
-        sub={view === 'open' ? 'Próximos 6 meses · o que ainda vai entrar' : periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}
+        title={t('Recebimentos')}
+        sub={view === 'open' ? t('Próximos 6 meses · o que ainda vai entrar') : periodLabel(period, period.kind === 'all' ? (s?.months[0]?.month ?? null) : null)}
         keepSub
         action={
           view === 'paid' ? (
@@ -239,7 +243,7 @@ export function ReceivablesPage() {
         }
       />
 
-      <Segmented label="O que ver" value={view} options={[{ value: 'paid', label: 'Recebido' }, { value: 'open', label: 'A receber' }]} onChange={setView} />
+      <Segmented label="O que ver" value={view} options={[{ value: 'paid', label: t('Recebido') }, { value: 'open', label: t('A receber') }]} onChange={setView} />
 
       {view === 'open' && <ForecastView today={today} />}
       {view === 'paid' && <PeriodPicker value={period} onChange={setPeriod} today={today} idPrefix="rep" />}
@@ -260,14 +264,14 @@ export function ReceivablesPage() {
       ) : (
         <>
           <section className="lt-set-card lt-rep-card" aria-label="Resumo do período">
-            <div className="lt-rep-k">Total recebido</div>
+            <div className="lt-rep-k">{t('Total recebido')}</div>
             <div style={{ margin: '2px 0' }}><Money value={s.total} size={26} /></div>
             <div className="lt-rep-n">
               {plural(s.count)}
               {months.length > 1 ? <> · média de <Amount value={s.averagePerMonth} /> por mês</> : ''}
             </div>
             {months.length > 1 && (
-              <ul className="lt-rep-bars" aria-label="Recebido por mês">
+              <ul className="lt-rep-bars" aria-label={t('Recebido por mês')}>
                 {months.map((m) => (
                   <li key={m.month} className="lt-rep-row">
                     <span className="lt-rep-m">{monthLabel(m.month, year)}</span>

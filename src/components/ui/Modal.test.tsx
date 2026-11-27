@@ -177,4 +177,25 @@ describe('Modal: one sheet opening another', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).toBeNull(), { timeout: MODAL_EXIT_MS + 2000 })
     expect(confirm).toHaveFocus()
   })
+
+  it('phone keyboard open: the sheet follows the visible area (sits above the keyboard) and goes back when it closes', async () => {
+    // A fake visual viewport: 844 px of screen, 500 px visible with the keyboard up.
+    const vv = Object.assign(new EventTarget(), { height: 844, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', vv)
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 })
+    render(<Modal open title="Buscar" onClose={vi.fn()}><input aria-label="Nome" /></Modal>)
+    const wrap = (await screen.findByRole('dialog', { name: 'Buscar' })).parentElement as HTMLElement
+    expect(wrap.style.height).toBe('')
+    // Still covering the whole screen (the inset is kept).
+    expect([wrap.style.top, wrap.style.bottom]).toEqual(['0px', '0px'])
+    vv.height = 500
+    vv.dispatchEvent(new Event('resize'))
+    expect(wrap.style.height).toBe('500px')
+    expect(wrap.style.top).toBe('0px')
+    vv.height = 844
+    vv.dispatchEvent(new Event('resize'))
+    expect(wrap.style.height).toBe('')
+    expect([wrap.style.top, wrap.style.bottom]).toEqual(['0px', '0px'])
+    vi.unstubAllGlobals()
+  })
 })

@@ -60,6 +60,8 @@ interface PaymentSheetProps {
  * payments itself and offers "Desfazer" in the toast for both, using the
  * existing endpoints (POST / DELETE /installments/:id/payments).
  */
+import { useSide } from '../../contexts/SideContext'
+
 export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   const today = localToday()
   const { showToast } = useToast()
@@ -76,6 +78,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   // The installment as the sheet knows it: replaced after a deletion.
   const [inst, setInst] = useState<Installment | null>(t?.installment ?? null)
   const [cents, setCents] = useState('')
+  const { side, t: w } = useSide()
   const [dateMode, setDateMode] = useState<DateMode>('today')
   const [otherDate, setOtherDate] = useState('')
   const [histOpen, setHistOpen] = useState(false)
@@ -129,7 +132,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
   }
   // WhatsApp reminder (S5): for an overdue installment. Without a phone the
   // reminder sheet asks for it (and saves it) instead of hiding the button.
-  const canRemind = overdue && !!debtorFull
+  const canRemind = side === 'in' && overdue && !!debtorFull
 
   const setAmount = (raw: string) => {
     const digits = parseCurrencyDigits(raw)
@@ -251,7 +254,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
             <h2 id={titleId} className="lt-pay-name">
               <span className="lt-sr-only">{readOnly ? 'Pagamentos da parcela de ' : 'Registrar pagamento de '}</span>
               {showLinks ? (
-                <Link to={`/debtors/${t.debtor.id}`} onClick={leave} className="lt-pay-link" title="Ver devedor">
+                <Link to={`/debtors/${t.debtor.id}`} onClick={leave} className="lt-pay-link" title={w('Ver devedor')}>
                   {name}
                   <Icon name="chevronRight" size={16} />
                 </Link>
@@ -317,7 +320,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                   onChange={(e) => setAmount(e.target.value)}
                   inputMode="numeric"
                   placeholder="0,00"
-                  aria-label="Valor recebido"
+                  aria-label={w('Valor recebido')}
                   // As wide as its digits, so "R$" stays next to the amount.
                   style={{ width: amountWidth(formatCents(cents)) }}
                 />
@@ -367,7 +370,7 @@ export function PaymentSheet({ target, onClose }: PaymentSheetProps) {
                   setBatchFrom(from)
                 }}
               >
-                <Icon name="layers" size={16} /> Pagou mais de uma parcela? Receber em lote
+                <Icon name="layers" size={16} /> {w('Pagou mais de uma parcela? Receber em lote')}
               </button>
             )}
             {history}

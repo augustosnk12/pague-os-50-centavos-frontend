@@ -72,6 +72,30 @@ export function Modal({ open, onClose, title, children, footer, head, initialFoc
   const pressedOnScrim = useRef(false)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  // Phones: the keyboard shrinks only the visible area, so a bottom sheet would
+  // sit behind it (the field visible, its results and buttons hidden). While
+  // open, the sheet follows the visible area and sits right above the keyboard.
+  useEffect(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    const wrap = wrapRef.current
+    if (!mounted || !vv || !wrap) return
+    const sync = () => {
+      const covered = window.innerHeight - vv.height > 1
+      // Back to "inset: 0" when nothing covers it ('' would erase the inset React set).
+      wrap.style.top = covered ? `${vv.offsetTop}px` : '0px'
+      wrap.style.bottom = covered ? 'auto' : '0px'
+      wrap.style.height = covered ? `${vv.height}px` : ''
+    }
+    sync()
+    vv.addEventListener('resize', sync)
+    vv.addEventListener('scroll', sync)
+    return () => {
+      vv.removeEventListener('resize', sync)
+      vv.removeEventListener('scroll', sync)
+    }
+  }, [mounted])
 
   // Mount on open; on close keep it for the exit animation, then unmount.
   useEffect(() => {
@@ -161,6 +185,7 @@ export function Modal({ open, onClose, title, children, footer, head, initialFoc
     // Backdrop click = mouse shortcut for closing; the keyboard equivalent is Esc (handled on the dialog).
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
+      ref={wrapRef}
       className="lt-sheet-wrap"
       data-closing={closing || undefined}
       onMouseDown={(e) => {
@@ -195,7 +220,8 @@ export function Modal({ open, onClose, title, children, footer, head, initialFoc
           maxWidth: 460,
           borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
           boxShadow: 'var(--shadow-lg)',
-          maxHeight: '92vh',
+          // 92% of what is visible (the wrapper shrinks above the keyboard).
+          maxHeight: '92%',
           display: 'flex',
           flexDirection: 'column',
           outline: 'none',

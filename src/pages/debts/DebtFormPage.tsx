@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDebtors } from '../../hooks/debtors/useDebtors'
 import { useCreateDebt } from '../../hooks/debts/useCreateDebt'
@@ -29,6 +29,11 @@ import { SplitShares, SplitWho } from '../../components/shared/SplitPeople'
 import { useDeleteSplit, useSplitDebt } from '../../hooks/debts/useSplitDebt'
 import { useAuth } from '../../contexts/AuthContext'
 import { checkSplit, equalShares, type SplitMode } from '../../lib/split'
+import { useSide } from '../../contexts/SideContext'
+import { SideTabs } from '../../components/layout/SideSwitch'
+import { useLeaveGuard } from '../../hooks/useLeaveGuard'
+import { setNewDebtAgain } from '../../hooks/useNewDebt'
+import { Modal } from '../../components/ui/Modal'
 
 const TYPES: { type: DebtType; label: string; sub: string; icon: string }[] = [
   { type: 'CASH', label: 'Dinheiro', sub: 'À vista', icon: 'banknote' },
@@ -71,6 +76,9 @@ export function DebtFormPage() {
   const { lender } = useAuth()
 
   const [debtorId, setDebtorId] = useState(searchParams.get('debtorId') ?? '')
+  const [startDebtor, setStartDebtor] = useState(debtorId)
+  // "Nova dívida" tapped again while here, with something typed: "Começar outra dívida?".
+  const [askNew, setAskNew] = useState(false)
   const [type, setType] = useState<DebtType>('PIX')
   const [cents, setCents] = useState('')
   const [count, setCount] = useState('')
@@ -90,6 +98,18 @@ export function DebtFormPage() {
   const [mode, setMode] = useState<SplitMode>('equal')
   const [custom, setCustom] = useState<Record<string, string>>({})
   const [newFor, setNewFor] = useState<'main' | 'split'>('main')
+  // Item 75: here the side is a field (tabs). The people are of one side, so switching starts over;
+  // splitting a bill is only for who owes you.
+  const { side, t } = useSide()
+  const sideRef = useRef(side)
+  useEffect(() => {
+    if (sideRef.current === side) return
+    sideRef.current = side
+    setDebtorId('')
+    setSplit(false)
+    setWithIds([])
+    setCustom({})
+  }, [side])
   const [err, setErr] = useState('')
 
   const debtor = debtors.find((d) => d.id === debtorId) ?? null
@@ -101,7 +121,7 @@ export function DebtFormPage() {
   const n = inst ? Math.max(1, parseInt(count, 10) || 1) : 1
   const months = parseInt(recN, 10) || 0
   const ids = debtor ? [debtor.id, ...withIds.filter((id) => id !== debtor.id)] : []
-  const splitting = split && ids.length > 1
+  const splitting = side === 'in' && split && ids.length > 1
   const check = checkSplit({ totalCents: amount, ids, withMe, mode, custom, installments: isRec ? 1 : n })
   const preview = amount > 0 && due && !isRec && !splitting ? genInstallments(amount / 100, n, `${due}T00:00:00.000Z`) : []
   const recDates = isRec && due ? recurringPreview(due, recEnd, months, recUntil) : []
@@ -123,6 +143,43 @@ export function DebtFormPage() {
               : splitting && check.problem
                 ? { field: 'nd-shares', text: 'Confira a parte de cada pessoa' }
                 : null
+
+  // Something typed or chosen: leaving asks first (the person preset by the profile does not count).
+  const dirty = !!cents || !!count || !!desc.trim() || dueEdited !== null || type !== 'PIX' || rec || split || debtorId !== startDebtor
+  const guard = useLeaveGuard(dirty)
+
+  /** "Começar do zero": every field as when the page opens, no person (the address too). */
+  const startOver = () => {
+    setAskNew(false)
+    setDebtorId('')
+    setStartDebtor('')
+    setType('PIX')
+    setCents('')
+    setCount('')
+    setDueEdited(null)
+    setDesc('')
+    setDescOpen(false)
+    setRec(false)
+    setRecEnd('never')
+    setRecN('')
+    setRecUntil('')
+    setTried(false)
+    setErr('')
+    setSplit(false)
+    setWithIds([])
+    setWithMe(true)
+    setMode('equal')
+    setCustom({})
+    if (window.location.search) navigate('/debts/new', { replace: true })
+    window.scrollTo({ top: 0, behavior: scrollBehavior() })
+  }
+  // "+", the top button or Alt+N while already here: no navigation.
+  const dirtyNow = useRef(dirty)
+  dirtyNow.current = dirty
+  useEffect(() => {
+    setNewDebtAgain(() => (dirtyNow.current ? setAskNew(true) : window.scrollTo({ top: 0, behavior: scrollBehavior() })))
+    return () => setNewDebtAgain(null)
+  }, [])
 
   const focusField = (field: string) => {
     const box = document.getElementById(field)
@@ -165,7 +222,7 @@ export function DebtFormPage() {
             { status: 'PENDING', icon: 'check' },
           )
           // The profile opens with the new debt expanded and in view.
-          navigate(`/debtors/${debtor.id}?divida=${data.debt.id}`, { replace: true })
+          guard.leave(() => navigate(`/debtors/${debtor.id}?divida=${data.debt.id}`, { replace: true }))
         },
         onError: (e: unknown) => {
           if (!limits.handleLimitError(e)) setErr(translateApiError(getApiError(e), 'Erro ao criar dívida.'))
@@ -204,7 +261,7 @@ export function DebtFormPage() {
                   .catch((e: unknown) => showToast(translateApiError(getApiError(e), 'Não foi possível desfazer a divisão.'), { icon: 'alert' })),
             },
           })
-          back.go()
+          guard.leave(back.go)
         },
         onError: (e: unknown) => {
           if (!limits.handleLimitError(e)) setErr(translateApiError(getApiError(e), 'Erro ao criar as dívidas.'))
@@ -232,7 +289,7 @@ export function DebtFormPage() {
           setNewDebtor(null)
           return
         }
-        showToast(translateApiError(getApiError(e), 'Erro ao cadastrar devedor.'), { icon: 'alert' })
+        showToast(translateApiError(getApiError(e), t('Erro ao cadastrar devedor.')), { icon: 'alert' })
       },
     })
   }
@@ -240,7 +297,8 @@ export function DebtFormPage() {
   const showMissing = tried && missing
   return (
     <main className="lt-page lt-nd">
-      <PageHeader back={{ label: back.label, onClick: back.go }} title="Nova dívida" sub="Registre quanto a pessoa deve e gere as parcelas." />
+      <PageHeader back={{ label: back.label, onClick: () => guard.confirm(back.go) }} title="Nova dívida" sub={t('Registre quanto a pessoa deve e gere as parcelas.')} />
+      <SideTabs className="lt-nd-side" />
       <LimitBanner kinds={['debts']} />
 
       <div className="lt-nd-form">
@@ -259,7 +317,7 @@ export function DebtFormPage() {
           invalid={!!showMissing && missing.field === 'nd-debtor'}
         />
 
-        {debtor && (
+        {debtor && side === 'in' && (
           <SplitWho
             debtors={debtors}
             main={debtor}
@@ -453,7 +511,7 @@ export function DebtFormPage() {
             )}
           </div>
           <div className="lt-nd-btns">
-            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={back.go}>Cancelar</button>
+            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={() => guard.confirm(back.go)}>Cancelar</button>
             <button type="button" className="lt-btn-lg" data-variant="primary" aria-disabled={!!missing || createDebt.isPending || splitDebt.isPending || undefined} onClick={submit}>
               <Icon name="check" size={16} />
               {createDebt.isPending || splitDebt.isPending ? 'Criando…' : splitting ? `Criar ${ids.length} dívidas${isRec ? ' recorrentes' : ''}` : `Criar dívida${isRec ? ' recorrente' : ''}${debtor ? ` p/ ${firstName(debtor.name)}` : ''}`}
@@ -461,6 +519,34 @@ export function DebtFormPage() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={guard.asking}
+        onClose={guard.stay}
+        title="Sair sem criar a dívida?"
+        footer={
+          <>
+            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={guard.stay}>Continuar editando</button>
+            <button type="button" className="lt-btn-lg" data-variant="danger" onClick={guard.go}>Sair e descartar</button>
+          </>
+        }
+      >
+        <p className="lt-del-p">O que você preencheu nesta dívida vai ser perdido.</p>
+      </Modal>
+
+      <Modal
+        open={askNew}
+        onClose={() => setAskNew(false)}
+        title="Começar outra dívida?"
+        footer={
+          <>
+            <button type="button" className="lt-btn-lg" data-variant="secondary" onClick={() => setAskNew(false)}>Continuar esta</button>
+            <button type="button" className="lt-btn-lg" data-variant="danger" onClick={startOver}>Começar do zero</button>
+          </>
+        }
+      >
+        <p className="lt-del-p">O que você preencheu nesta dívida vai ser perdido.</p>
+      </Modal>
 
       <DebtorForm open={newDebtor !== null} initialName={newDebtor ?? ''} onClose={() => setNewDebtor(null)} onSave={saveDebtor} loading={createDebtor.isPending} />
     </main>

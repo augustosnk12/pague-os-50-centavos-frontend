@@ -19,6 +19,7 @@ import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
 import { failedSave } from '../../lib/saveError'
 import type { ReceiptRequest } from '../../lib/receipt'
+import { useSide } from '../../contexts/SideContext'
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -39,6 +40,7 @@ interface BatchSheetProps {
  * One batch (API B7): "Desfazer" undoes it all, and one receipt lists them.
  */
 export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
+  const { t } = useSide()
   const today = localToday()
   const { showToast } = useToast()
   const batch = usePaymentBatch()
@@ -193,13 +195,13 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
       <Modal
         open={!!debtorId}
         onClose={onClose}
-        title={`Receber várias parcelas de ${name}`}
+        title={`${t('Receber várias parcelas de')} ${name}`}
         head={(titleId, close) => (
           <div className="lt-pay-head">
             {debtor && <Avatar name={name} size={36} hue={debtor.avatarHue} emoji={debtor.avatarEmoji} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 id={titleId} className="lt-pay-name">
-                <span className="lt-sr-only">Receber várias parcelas de </span>
+                <span className="lt-sr-only">{t('Receber várias parcelas de')} </span>
                 {name}
               </h2>
               <div className="lt-pay-sub">Um pagamento para várias parcelas</div>
@@ -244,7 +246,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
             </div>
 
             <div className="lt-amt-box">
-              <div className="lt-bt-k">Valor recebido</div>
+              <div className="lt-bt-k">{t('Valor recebido')}</div>
               <label className="lt-amt-input">
                 <span className="lt-amt-cur" aria-hidden="true">R$</span>
                 <input
@@ -255,7 +257,7 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
                   }}
                   inputMode="numeric"
                   placeholder="0,00"
-                  aria-label="Valor recebido"
+                  aria-label={t('Valor recebido')}
                   aria-describedby="lt-bt-sum"
                   style={{ width: amountWidth(formatCents(amount ? String(amount) : '')) }}
                 />

@@ -50,10 +50,13 @@ interface InstallmentLineProps {
  */
 const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
+import { useSide } from '../../contexts/SideContext'
+
 export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = false, onRemind, onReceipt, inDebt = false, lean = false }: InstallmentLineProps) {
   const prefetch = usePrefetchDebtor()
+  const { side, t } = useSide()
   const debtor = inst.debt?.debtor
-  const name = debtor?.name ?? 'Devedor'
+  const name = debtor?.name ?? t('Devedor')
   const debtorId = debtor?.id ?? inst.debt?.debtorId
   const left = remainingCents(inst)
   const paid = left === 0
@@ -69,7 +72,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
   const start = useRef<{ x: number; y: number; id: number; horizontal: boolean | null } | null>(null)
   const swiped = useRef(false)
   const canSwipe = swipe && !paid
-  const canRemind = canSwipe && !!onRemind && fullTag?.tone === 'overdue'
+  const canRemind = canSwipe && side === 'in' && !!onRemind && fullTag?.tone === 'overdue'
   const onPointerDown = (e: PointerEvent<HTMLLIElement>) => {
     if (!canSwipe || e.pointerType !== 'touch') return
     start.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: null }
@@ -108,7 +111,7 @@ export function InstallmentLine({ inst, today, onOpen, showDate = true, swipe = 
     >
       {canSwipe && dx >= 0 && (
         <div className="lt-sw-hint" aria-hidden="true" data-ready={dx >= SWIPE_CONFIRM || undefined}>
-          <Icon name="wallet" size={16} /> Receber
+          <Icon name="wallet" size={16} /> {t('Receber')}
         </div>
       )}
       {canRemind && dx < 0 && (

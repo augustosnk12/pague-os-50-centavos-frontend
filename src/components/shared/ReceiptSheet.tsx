@@ -10,6 +10,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { buildReceipt, receiptText, type ReceiptRequest } from '../../lib/receipt'
 import { shareOrDownload } from '../../lib/receiptImage'
 import { whatsappLink } from '../../lib/whatsapp'
+import { useSide } from '../../contexts/SideContext'
 
 interface ReceiptSheetProps {
   /** Which receipt; null closes the sheet. */
@@ -23,6 +24,7 @@ interface ReceiptSheetProps {
  * phones, download elsewhere). Built from the debtor's debts, no backend.
  */
 export function ReceiptSheet({ request, onClose }: ReceiptSheetProps) {
+  const { t } = useSide()
   const last = useRef(request)
   if (request) last.current = request
   const req = request ?? last.current
@@ -107,7 +109,7 @@ export function ReceiptSheet({ request, onClose }: ReceiptSheetProps) {
               <div className="lt-rcpt-title">{r.title}</div>
               <div className="lt-rcpt-code">{r.code}</div>
             </div>
-            <StatusBadge tone="paid" icon="check">{r.kind === 'payoff' ? 'Quitada' : 'Recebido'}</StatusBadge>
+            <StatusBadge tone="paid" icon="check">{r.kind === 'payoff' ? 'Quitada' : t('Recebido')}</StatusBadge>
           </div>
           <div className="lt-rcpt-amt"><Money value={r.totalCents / 100} size={34} /></div>
           <div className="lt-rcpt-date">{r.date}</div>

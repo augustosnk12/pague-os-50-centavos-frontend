@@ -13,7 +13,7 @@ export function PlanSection({ plan }: { plan: MyPlan | undefined }) {
   const r = useLimitRequest(plan)
   if (!plan || !showPlanSection(plan)) return null
   const free = isFreePlan(plan)
-  const limits = `Até ${fmtCount(plan.debtors.limit ?? 0)} devedores e ${fmtCount(plan.debts.limit ?? 0)} dívidas`
+  const limits = `Até ${fmtCount(plan.debtors.limit ?? 0)} pessoas e ${fmtCount(plan.debts.limit ?? 0)} dívidas`
   return (
     <>
       <SectionHeader variant="plain">{free ? 'Seus limites' : 'Seu plano'}</SectionHeader>
@@ -27,7 +27,7 @@ export function PlanSection({ plan }: { plan: MyPlan | undefined }) {
         </div>
         <LimitMeter kind="debtors" usage={plan.debtors} />
         <LimitMeter kind="debts" usage={plan.debts} />
-        <p className="lt-set-note" style={{ margin: 0 }}>Toda dívida criada entra na conta, mesmo depois de quitada ou excluída. Devedores arquivados também contam.</p>
+        <p className="lt-set-note" style={{ margin: 0 }}>Toda dívida criada entra na conta, mesmo depois de quitada ou excluída. Pessoas dos dois lados e arquivadas também contam.</p>
         <div className="lt-lim-cta">
           <p role="status">{r.note}</p>
           <LimitRequestButton size="sm" sent={r.sent} pending={r.pending} onClick={r.send} />

@@ -8,6 +8,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { getApiError } from '../../lib/api'
 import { translateApiError } from '../../lib/utils'
 import type { DebtorFormPayload } from '../../components/shared/DebtorForm'
+import { useSide } from '../../contexts/SideContext'
 
 // The form (with CEP lookup, avatar picker…) is only downloaded when opened.
 const DebtorForm = lazy(() => import('../../components/shared/DebtorForm').then((m) => ({ default: m.DebtorForm })))
@@ -26,6 +27,7 @@ export function GettingStarted() {
   const { showToast } = useToast()
   const { data: debtors = [] } = useDebtors()
   const createDebtor = useCreateDebtor()
+  const { t } = useSide()
   const [formOpen, setFormOpen] = useState(false)
   // Mounted from the first opening on, so it can play its closing animation.
   const [formLoaded, setFormLoaded] = useState(false)
@@ -41,7 +43,7 @@ export function GettingStarted() {
         setFormOpen(false)
         showToast(registered(firstName(d.name)),{ icon: 'check', status: 'PAID' })
       },
-      onError: (e: unknown) => showToast(translateApiError(getApiError(e), 'Erro ao criar devedor.'), { icon: 'alert' }),
+      onError: (e: unknown) => showToast(translateApiError(getApiError(e), t('Erro ao criar devedor.')), { icon: 'alert' }),
     })
   }
 
@@ -58,7 +60,7 @@ export function GettingStarted() {
           <span className="lt-onb-num" aria-hidden="true">{has ? <Icon name="check" size={16} /> : '1'}</span>
           <div className="lt-onb-text">
             <div className="lt-onb-step">
-              Cadastre quem te deve{has && <span className="lt-sr-only"> (feito)</span>}
+              {t('Cadastre quem te deve')}{has && <span className="lt-sr-only"> (feito)</span>}
             </div>
             <div className="lt-onb-hint">
               {has

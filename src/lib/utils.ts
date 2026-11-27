@@ -146,6 +146,8 @@ const API_ERROR_MAP: Record<string, string> = {
   'Number of months must be at least 1': 'Informe pelo menos 1 mês.',
   'Choose either an end date or a number of months': 'Escolha uma data final ou um número de meses.',
   'Debtor with this name already exists': 'Já existe um devedor com este nome.',
+  // Item 75: until the R10 contract migration the API keeps one name per account across both sides.
+  'Name already used on the other side': 'Esse nome já está no outro lado (Me devem / Eu devo). Por enquanto, use um nome um pouco diferente, como “Rafael (geladeira)”.',
   'Debtor with this email already exists': 'Já existe um devedor com este e-mail.',
   'Name already in use by another debtor': 'Este nome já está em uso por outro devedor.',
   'Email already in use by another debtor': 'Este e-mail já está em uso por outro devedor.',

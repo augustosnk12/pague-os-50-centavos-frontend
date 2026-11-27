@@ -7,7 +7,7 @@ import { localToday } from '../../lib/date'
 import { profileNumbers } from '../../lib/debtorProfile'
 import { useDebtsByDebtor } from '../../hooks/debts/useDebtsByDebtor'
 import { byRecent } from '../../lib/recentDebtors'
-import { rankByTerm } from '../../lib/searchMatch'
+import { normalizeTerm, rankByTerm } from '../../lib/searchMatch'
 import type { Debtor } from '../../types/debtor'
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name
@@ -49,26 +49,36 @@ interface DebtorPickerProps {
  * Once chosen it is a compact card with the balance; tapping it changes.
  * Nothing is preselected.
  */
+import { useSide } from '../../contexts/SideContext'
+
 export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: DebtorPickerProps) {
   const [open, setOpen] = useState(false)
+  const { t } = useSide()
   const [q, setQ] = useState('')
   const sorted = byRecent(debtors)
   const term = q.trim()
   const list = rankByTerm(sorted, term, (d) => d.name)
+  // Someone with exactly this name already exists: pick them, no "Cadastrar".
+  const exact = term ? sorted.find((d) => normalizeTerm(d.name) === normalizeTerm(term)) : undefined
 
   const pick = (d: Debtor) => {
     setOpen(false)
     setQ('')
     onChange(d)
   }
+  const create = () => {
+    setOpen(false)
+    onCreate(term)
+    setQ('')
+  }
 
   return (
     <div className="lt-field" id="nd-debtor">
       <div className="lt-flabel" id="nd-debtor-l">
-        Para quem? <span className="lt-req" aria-hidden="true">*</span>
+        {t('Para quem?')} <span className="lt-req" aria-hidden="true">*</span>
       </div>
       {value ? (
-        <button type="button" className="lt-dp-card" onClick={() => setOpen(true)} aria-label={`Trocar devedor (${value.name})`}>
+        <button type="button" className="lt-dp-card" onClick={() => setOpen(true)} aria-label={`${t('Trocar devedor')} (${value.name})`}>
           <Avatar name={value.name} size={36} hue={value.avatarHue} emoji={value.avatarEmoji} />
           <span className="lt-dp-main">
             <span className="lt-dp-name">{value.name}</span>
@@ -79,7 +89,7 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
       ) : (
         <div className="lt-dp-chips" role="group" aria-labelledby="nd-debtor-l" data-invalid={invalid || undefined}>
           <button type="button" className="lt-dp-search" onClick={() => setOpen(true)}>
-            <Icon name="search" size={16} strokeWidth={2.6} /> Buscar devedor
+            <Icon name="search" size={16} strokeWidth={2.6} /> {t('Buscar devedor')}
           </button>
           {sorted.length > 0 && <span className="lt-dp-sep" aria-hidden="true" />}
           {sorted.slice(0, 4).map((d) => (
@@ -96,13 +106,33 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
           setOpen(false)
           setQ('')
         }}
-        title="Para quem é a dívida?"
+        title={t('Para quem é a dívida?')}
       >
         <div className="lt-search-field">
           <Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pelo nome…" aria-label="Buscar devedor pelo nome" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter: the person with this name, or register the new one.
+              if (e.key !== 'Enter' || !term) return
+              e.preventDefault()
+              if (exact) pick(exact)
+              else create()
+            }}
+            enterKeyHint={exact ? 'go' : 'done'}
+            placeholder="Buscar pelo nome…"
+            aria-label={t('Buscar devedor pelo nome')}
+          />
         </div>
-        <ul className="lt-pick-list" aria-label="Devedores">
+        {/* Right under the field: with the phone keyboard open, a button at the end of the list is out of sight. */}
+        {term && !exact && (
+          <button type="button" className="lt-pick lt-dp-new lt-dp-new-top" onClick={create}>
+            <span className="lt-dp-new-ic" aria-hidden="true"><Icon name="plus" size={16} /></span>
+            <span className="lt-pick-name">Cadastrar “{term}”</span>
+          </button>
+        )}
+        <ul className="lt-pick-list" aria-label={t('Devedores')}>
           {list.map((d) => (
             <li key={d.id}>
               <button type="button" className="lt-pick" aria-pressed={value?.id === d.id} onClick={() => pick(d)}>
@@ -112,24 +142,8 @@ export function DebtorPicker({ debtors, value, onChange, onCreate, invalid }: De
               </button>
             </li>
           ))}
-          {term && (
-            <li>
-              <button
-                type="button"
-                className="lt-pick lt-dp-new"
-                onClick={() => {
-                  setOpen(false)
-                  onCreate(q.trim())
-                  setQ('')
-                }}
-              >
-                <span className="lt-dp-new-ic" aria-hidden="true"><Icon name="plus" size={16} /></span>
-                <span className="lt-pick-name">Cadastrar “{q.trim()}”</span>
-              </button>
-            </li>
-          )}
         </ul>
-        {!term && list.length === 0 && <p className="lt-pick-empty">Nenhum devedor ainda. Digite um nome para cadastrar.</p>}
+        {!term && list.length === 0 && <p className="lt-pick-empty">{t('Nenhum devedor ainda. Digite um nome para cadastrar.')}</p>}
       </Modal>
     </div>
   )

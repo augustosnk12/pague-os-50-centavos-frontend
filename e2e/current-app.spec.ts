@@ -118,6 +118,9 @@ test.describe('with data', () => {
   test('create a debt through the form', async ({ page, session, a11y }) => {
     const d = await session.api('POST', '/debtors', { name: 'Conceição' })
     await page.goto(`/debts/new?debtorId=${d.id}`)
+    // The footer floats over the form while scrolling; checked at the end, where nothing is under it.
+    await expect(page.getByRole('switch', { name: /Dividir com mais pessoas/ })).toBeVisible()
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
     await a11y('new-debt')
 
     // Currency input keeps digits as cents: "30000" → R$ 300,00.
@@ -262,8 +265,10 @@ test('user menu: keyboard (Enter, arrows, Esc returns focus) and accessible', as
   // Arrows walk the items in order ("Apoie o projeto" appears only with VITE_SUPPORT_PIX) and wrap.
   const items = menu.getByRole('menuitem')
   const n = await items.count()
-  await expect(items.first()).toHaveAccessibleName('Recebimentos')
-  await expect(items.nth(1)).toHaveAccessibleName('Configurações')
+  // Calculadora left the top bar to make room for the side switch (item 75): first item now.
+  await expect(items.first()).toHaveAccessibleName('Calculadora')
+  await expect(items.nth(1)).toHaveAccessibleName('Recebimentos')
+  await expect(items.nth(2)).toHaveAccessibleName('Configurações')
   await expect(items.last()).toHaveAccessibleName('Sair')
   for (let k = 0; k < n; k++) {
     await expect(items.nth(k)).toBeFocused()

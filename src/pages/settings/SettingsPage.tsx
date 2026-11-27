@@ -27,6 +27,7 @@ import { NavRow } from '../../components/ui/ListRow'
 import { Segmented } from '../../components/ui/Segmented'
 import { PlanSection } from './PlanSection'
 import { ChargeMessageSection } from './ChargeMessageSection'
+import { useSide } from '../../contexts/SideContext'
 import { usePlan } from '../../hooks/plan/usePlan'
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -149,6 +150,7 @@ export function SettingsPage() {
   const { data: plan } = usePlan()
   const update = useUpdateSettings()
   const [calcOpen, setCalcOpen] = useState(false)
+  const { side, t } = useSide()
   const [dataOpen, setDataOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [supportOpen, setSupportOpen] = useState(false)
@@ -182,9 +184,9 @@ export function SettingsPage() {
       <ListGroup style={{ marginTop: 10 }}>
         <NavRow
           icon="trend"
-          title="Recebimentos"
+          title={t('Recebimentos')}
           sub="Quanto entrou nos últimos meses"
-          label="Recebimentos: relatório e exportação"
+          label={`${t('Recebimentos')}: relatório e exportação`}
           onClick={() => navigate('/payments')}
           onPointerEnter={() => preloadRoute('/payments')}
         />
@@ -216,7 +218,7 @@ export function SettingsPage() {
           />
 
           {/* Item 68 (API R7): hidden on an older API, which has no chargeTone. */}
-          {'chargeTone' in s && <ChargeMessageSection settings={s} save={(data, what) => save(data, what)} />}
+          {side === 'in' && 'chargeTone' in s && <ChargeMessageSection settings={s} save={(data, what) => save(data, what)} />}
         </>
       )}
 
@@ -290,7 +292,7 @@ export function SettingsPage() {
 
       <SectionHeader variant="plain">Seus dados</SectionHeader>
       <ListGroup>
-        <NavRow icon="download" title="Baixar meus dados" sub="Cópia de devedores, dívidas e pagamentos" onClick={() => setDataOpen(true)} />
+        <NavRow icon="download" title="Baixar meus dados" sub="Cópia das pessoas, dívidas e pagamentos" onClick={() => setDataOpen(true)} />
         <NavRow icon="trash" title="Excluir conta" sub="Apaga a conta e todos os dados" danger onClick={() => setDeleteOpen(true)} />
       </ListGroup>
 

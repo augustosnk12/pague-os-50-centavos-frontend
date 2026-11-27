@@ -15,7 +15,7 @@ function Counts({ s }: { s: AccountSummary | undefined }) {
   if (!s) return <div className="lt-skel" style={{ height: 74, borderRadius: 'var(--r-md)' }} aria-busy="true" />
   return (
     <ul className="lt-data-counts">
-      <li><b>{s.debtors}</b> {s.debtors === 1 ? 'devedor' : 'devedores'}</li>
+      <li><b>{s.debtors}</b> {s.debtors === 1 ? 'pessoa' : 'pessoas'}</li>
       <li><b>{s.debts}</b> {s.debts === 1 ? 'dívida' : 'dívidas'}</li>
       <li><b>{s.installments}</b> {s.installments === 1 ? 'parcela' : 'parcelas'}</li>
       <li><b>{s.payments}</b> {s.payments === 1 ? 'pagamento' : 'pagamentos'}</li>
@@ -216,7 +216,7 @@ export function DeleteAccountSheet({ open, onClose, onDownloadFirst, onDeleted }
         </div>
         {step === 'code' && s && (
           <p className="lt-set-note" style={{ margin: 0 }}>
-            Serão apagados {plural(s.debtors, 'devedor', 'devedores')}, {plural(s.debts, 'dívida', 'dívidas')} e {plural(s.payments, 'pagamento', 'pagamentos')}.
+            Serão apagados {plural(s.debtors, 'pessoa', 'pessoas')}, {plural(s.debts, 'dívida', 'dívidas')} e {plural(s.payments, 'pagamento', 'pagamentos')}.
           </p>
         )}
       </div>

@@ -20,6 +20,8 @@ import { fmtMoney, fmtSentence } from '../../lib/format'
 import { GettingStarted } from './GettingStarted'
 import { LimitBanner } from '../../components/shared/LimitBanner'
 import { HideValuesButton } from '../../components/shared/HideValuesButton'
+import { SidePill } from '../../components/layout/SideSwitch'
+import { useSide } from '../../contexts/SideContext'
 import type { DashboardOverview } from '../../types/dashboard'
 import type { InstallmentEnriched } from '../../types/installment'
 
@@ -50,6 +52,7 @@ export function DashboardPage() {
   const firstUse = !!o && looksEmpty(o) && summary.data?.debts === 0
   const [showWeek, setShowWeek] = useState(false)
   const [payTarget, setPayTarget] = useState<PaymentTarget | null>(null)
+  const { t } = useSide()
 
   const firstName = lender?.name?.split(' ')[0] ?? 'você'
 
@@ -58,10 +61,11 @@ export function DashboardPage() {
 
   const subtitle = firstUse
     ? 'Vamos começar?'
-    : `${cap(fmtSentence(today))} · veja quem precisa te pagar.`
+    : `${cap(fmtSentence(today))} · ${t('veja quem precisa te pagar.')}`
 
   return (
     <main className="lt-page lt-anim-fade">
+      <SidePill />
       <PageHeader title={`Olá, ${firstName} 👋`} sub={subtitle} />
       <LimitBanner kinds={['debtors', 'debts']} />
 
@@ -88,6 +92,7 @@ export function DashboardPage() {
 /** "A receber em novembro", the month bar and, only when there is any, the overdue pill (improvements 1–3). */
 function Hero({ o }: { o: DashboardOverview }) {
   const { detail } = usePreferences()
+  const { t } = useSide()
   const month = MONTHS[Number(o.month.key.slice(5, 7)) - 1]
   const pct = Math.max(0, Math.min(100, o.month.receivedPct))
   const prev = o.overdue.fromPreviousMonths.count
@@ -96,21 +101,21 @@ function Hero({ o }: { o: DashboardOverview }) {
   return (
     <section className="lt-hero lt-anim-up" aria-labelledby="hero-k">
       <HideValuesButton />
-      <h2 id="hero-k" className="lt-hero-k">A receber em {month}</h2>
+      <h2 id="hero-k" className="lt-hero-k">{t('A receber')} em {month}</h2>
       <div className="lt-hero-value">
         <Money value={o.month.remaining} size={38} color="#fff" />
       </div>
       <Link
         to="/installments?resumo=1"
         className="lt-hero-month"
-        aria-label={`${fmtMoney(o.month.received)} recebido de ${fmtMoney(o.month.expected)}, ${pct}%. Ver parcelas de ${month}`}
+        aria-label={`${fmtMoney(o.month.received)} ${t('recebido')} de ${fmtMoney(o.month.expected)}, ${pct}%. Ver parcelas de ${month}`}
       >
         <span className="lt-hm-bar" aria-hidden="true">
           <span style={{ width: `${pct}%` }} />
         </span>
         <span className="lt-hm-row" aria-hidden="true" data-lean={detail === 'lean' || undefined}>
           <span>
-            <b><Amount value={o.month.received} /></b> recebido de <Amount value={o.month.expected} />
+            <b><Amount value={o.month.received} /></b> {t('recebido')} de <Amount value={o.month.expected} />
           </span>
           <span className="lt-hm-pct">
             {pct}% <Icon name="chevronRight" size={16} />

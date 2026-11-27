@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
+import { useGuardedNavigate } from '../../hooks/useGuardedNavigate'
+import { useNewDebt } from '../../hooks/useNewDebt'
 import { scrollTopIfActive } from '../../lib/scroll'
 import { preloadRoute } from '../../router/routes'
 import { Logo } from './Logo'
@@ -14,6 +16,8 @@ import { NAV } from '../../constants/nav'
 import { SupportSheet } from '../shared/SupportSheet'
 import { supportPix } from '../../lib/support'
 import { usePlan } from '../../hooks/plan/usePlan'
+import { useSide } from '../../contexts/SideContext'
+import { SideTabs } from './SideSwitch'
 
 /** Same breakpoint as `.lt-desktop-only` in index.css. */
 const DESKTOP_MIN = 880
@@ -21,7 +25,7 @@ const DESKTOP_MIN = 880
 const SCROLL_SLACK = 6
 
 function UserMenu({ onCalc }: { onCalc: () => void }) {
-  const navigate = useNavigate()
+  const navigate = useGuardedNavigate()
   const { data: plan } = usePlan()
   const [supportOpen, setSupportOpen] = useState(false)
   const [open, setOpen] = useState(false)
@@ -30,6 +34,7 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
   const { logout, lender } = useAuth()
+  const { t } = useSide()
 
   const close = (returnFocus: boolean) => {
     setOpen(false)
@@ -43,7 +48,6 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
     }
     document.addEventListener('mousedown', handler)
     // Focus the first item (menu pattern).
-    // Focus the first VISIBLE item (Calculadora is hidden on desktop).
     requestAnimationFrame(() => {
       const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
       items.find((el) => el.offsetParent !== null)?.focus()
@@ -128,15 +132,13 @@ function UserMenu({ onCalc }: { onCalc: () => void }) {
             </>
           )}
 
-          <div className="lt-mobile-only" role="none">
-            {item('calc', 'calc', 'Calculadora', () => {
-              close(false)
-              onCalc()
-            })}
-            <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-          </div>
+          {item('calc', 'calc', 'Calculadora', () => {
+            close(false)
+            onCalc()
+          })}
+          <div role="separator" style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
-          {item('payments', 'trend', 'Recebimentos', () => {
+          {item('payments', 'trend', t('Recebimentos'), () => {
             close(false)
             navigate('/payments')
           })}
@@ -186,10 +188,11 @@ interface HeaderProps {
 }
 
 export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderProps) {
-  const navigate = useNavigate()
+  const newDebt = useNewDebt()
   const location = useLocation()
 
   const activeRoute = NAV.find((n) => location.pathname.startsWith(n.path))?.path
+  const { t } = useSide()
 
   // Phones: the bar hides while scrolling down and comes back on the way up (never with the search open).
   const [scrolledAway, setScrolledAway] = useState(false)
@@ -258,6 +261,11 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
           <Logo size={26} />
         </Link>
 
+        {/* Item 75: the side is global, so it sits with the global things (desktop; phones use the pill). */}
+        <span className="lt-desktop-only lt-head-side">
+          <SideTabs mini />
+        </span>
+
         <nav aria-label="Principal" className="lt-desktop-nav" style={{ marginLeft: 18, gap: 4 }}>
           {NAV.map((n) => (
             <Link
@@ -283,7 +291,7 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
                 transition: 'background .15s, color .15s',
               }}
             >
-              {n.label}
+              {t(n.label)}
             </Link>
           ))}
         </nav>
@@ -296,11 +304,7 @@ export function Header({ onCalc, onRegister, searchOpen, onSearchOpen }: HeaderP
         <IconButton name="wallet" onClick={onRegister} label="Registrar pagamento (Alt+R)" aria-keyshortcuts="Alt+R" />
 
         <span className="lt-desktop-only" style={{ marginRight: 2 }}>
-          <Button size="sm" icon="plus" onClick={() => navigate('/debts/new')} title="Nova dívida (Alt+N)" shortcut="Alt+N">Nova dívida</Button>
-        </span>
-
-        <span className="lt-desktop-only">
-          <IconButton name="calc" onClick={onCalc} label="Calculadora" />
+          <Button size="sm" icon="plus" onClick={newDebt} title="Nova dívida (Alt+N)" shortcut="Alt+N">Nova dívida</Button>
         </span>
 
         {/* Phones reach the account through the "Conta" tab: no second person icon up here. */}

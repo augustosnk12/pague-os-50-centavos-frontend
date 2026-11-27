@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { useRef, useState, type CSSProperties } from 'react'
 import { Modal } from '../ui/Modal'
 import { scrollTopIfActive } from '../../lib/scroll'
@@ -6,6 +6,8 @@ import { preloadRoute } from '../../router/routes'
 import { Icon } from '../ui/Icon'
 import { NAV } from '../../constants/nav'
 import { AccountSheet } from './AccountSheet'
+import { useSide } from '../../contexts/SideContext'
+import { useNewDebt } from '../../hooks/useNewDebt'
 
 interface BottomTabsProps {
   overdueCount: number
@@ -21,6 +23,8 @@ const HOLD_MS = 450
 export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const { t } = useSide()
+  const newDebt = useNewDebt()
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const held = useRef(false)
   const startHold = () => {
@@ -40,7 +44,6 @@ export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps
     action()
   }
 
-  const navigate = useNavigate()
   const location = useLocation()
 
   const isActive = (path: string) => location.pathname.startsWith(path)
@@ -65,7 +68,7 @@ export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps
       }}
     >
       {NAV.slice(0, 2).map((n) => (
-        <Tab key={n.path} to={n.path} label={n.label} icon={n.icon} active={isActive(n.path)} />
+        <Tab key={n.path} to={n.path} label={t(n.label)} icon={n.icon} active={isActive(n.path)} />
       ))}
 
       {/* Raised center "+" button */}
@@ -78,7 +81,7 @@ export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps
               held.current = false
               return
             }
-            navigate('/debts/new')
+            newDebt()
           }}
           onPointerDown={startHold}
           onPointerUp={endHold}
@@ -119,7 +122,7 @@ export function BottomTabs({ overdueCount, onRegister, onCalc }: BottomTabsProps
 
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="O que você quer fazer?">
         <div className="lt-fab-menu">
-          <button type="button" className="lt-fab-opt" onClick={() => choose(() => navigate('/debts/new'))}>
+          <button type="button" className="lt-fab-opt" onClick={() => choose(newDebt)}>
             <span className="lt-fab-ic" aria-hidden="true"><Icon name="plus" size={20} /></span>
             <span><span className="lt-fab-t">Nova dívida</span><span className="lt-fab-s">Empréstimo, compra parcelada ou mensal</span></span>
           </button>

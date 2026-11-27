@@ -41,7 +41,7 @@ function PeoplePicker({ others, withIds, full, onAdd, onRemove, onCreate }: Pick
   if (!others.length) {
     return (
       <div className="lt-split-empty">
-        <p>Você ainda não tem outros devedores.</p>
+        <p>Você ainda não tem outras pessoas.</p>
         <button type="button" className="lt-more-link" style={{ padding: 0 }} onClick={() => onCreate('')}>
           <Icon name="plus" size={16} /> Cadastrar pessoa
         </button>

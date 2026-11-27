@@ -3,6 +3,7 @@ import { Icon } from '../ui/Icon'
 import { Amount } from '../ui/Amount'
 import { StatusBadge } from '../ui/StatusBadge'
 import type { SearchHit } from '../../lib/searchHits'
+import { useSide } from '../../contexts/SideContext'
 
 const owes = (v: string) => (Number(v) > 0 ? <>deve <Amount value={v} /></> : 'sem saldo')
 
@@ -19,6 +20,7 @@ interface SearchResultsProps {
  * by the input (aria-activedescendant), so options only need the pointer.
  */
 export function SearchResults({ hits, activeId, listId, onPick, emptyText }: SearchResultsProps) {
+  const { t } = useSide()
   const debtors = hits.filter((h) => h.kind === 'debtor')
   const debts = hits.filter((h) => h.kind === 'debt')
   const all = hits.find((h) => h.kind === 'all')
@@ -66,7 +68,7 @@ export function SearchResults({ hits, activeId, listId, onPick, emptyText }: Sea
     <div id={listId} role="listbox" aria-label="Resultados da busca" className="lt-sr-list">
       {debtors.length > 0 && (
         <div role="group" aria-labelledby={`${listId}-d`}>
-          <div id={`${listId}-d`} className="lt-sr-h">Devedores</div>
+          <div id={`${listId}-d`} className="lt-sr-h">{t('Devedores')}</div>
           {debtors.map(option)}
         </div>
       )}

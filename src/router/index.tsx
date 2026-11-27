@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { PrivateRoute } from './PrivateRoute'
 import { useClientValue } from '../hooks/useClientValue'
 import { AppLayout } from '../components/layout/AppLayout'
+import { SideProvider } from '../contexts/SideContext'
 import { pages } from './routes'
 import { getToken } from '../lib/cookies'
 import { PUBLIC_PAGES } from '../seo/site'
@@ -13,12 +14,15 @@ function PageLoading() {
 }
 
 function AppShell() {
+  // Item 75: the side (Me devem / Eu devo) covers the whole signed-in area.
   return (
-    <AppLayout>
-      <Suspense fallback={<PageLoading />}>
-        <Outlet />
-      </Suspense>
-    </AppLayout>
+    <SideProvider>
+      <AppLayout>
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
+      </AppLayout>
+    </SideProvider>
   )
 }
 

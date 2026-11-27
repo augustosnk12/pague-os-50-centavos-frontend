@@ -8,7 +8,8 @@ export const LIMIT_ERRORS: Record<string, LimitKind> = {
 }
 
 export const LIMIT_WORDS: Record<LimitKind, { one: string; many: string; title: string; icon: string }> = {
-  debtors: { one: 'devedor', many: 'devedores', title: 'Devedores', icon: 'users' },
+  // Both sides count together (item 75): "pessoas", not "devedores".
+  debtors: { one: 'pessoa', many: 'pessoas', title: 'Pessoas', icon: 'users' },
   debts: { one: 'dívida', many: 'dívidas', title: 'Dívidas', icon: 'layers' },
 }
 
@@ -40,7 +41,7 @@ export function requestSent(plan: MyPlan | undefined, now = Date.now()): boolean
   return Number.isFinite(at) && now - at < REQUEST_COOLDOWN_MS
 }
 
-/** "Você chegou ao limite de 10 devedores." (+ " do plano Pro" outside the free plan). */
+/** "Você chegou ao limite de 10 pessoas." (+ " do plano Pro" outside the free plan). */
 export function limitReachedText(plan: MyPlan, kind: LimitKind): string {
   const limit = plan[kind].limit ?? 0
   const where = isFreePlan(plan) ? '' : ` do plano ${plan.plan!.name}`
@@ -57,7 +58,7 @@ export function limitLead(plan: MyPlan, kind: LimitKind): string {
 }
 
 export const LIMIT_TIPS: Record<LimitKind, string> = {
-  debtors: 'Devedores arquivados também contam. Só excluir um devedor (e as dívidas dele) libera espaço.',
+  debtors: 'Quem você deve e quem te deve contam juntos, arquivados também. Só excluir uma pessoa (e as dívidas dela) libera espaço.',
   debts: 'Toda dívida criada conta, mesmo depois de quitada ou excluída.',
 }
 

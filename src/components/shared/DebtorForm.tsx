@@ -100,10 +100,13 @@ const focusIn = (id: string) => {
  * rest and the cursor goes to Número), every field by hand when the CEP is
  * unknown or not found. Errors show on the field itself.
  */
+import { useSide } from '../../contexts/SideContext'
+
 export function DebtorForm({ open, onClose, onSave, editing, loading, initialName = '', autoFocusName }: DebtorFormProps) {
   const [v, setV] = useState<Values>(() => fromDebtor(editing, initialName))
   const [errors, setErrors] = useState<Errors>({})
   const [more, setMore] = useState(false)
+  const { side, t } = useSide()
   const [pickAvatar, setPickAvatar] = useState(false)
   const [addr, setAddr] = useState<AddressStep>('hidden')
   const [cep, setCep] = useState<CepStatus>('idle')
@@ -201,17 +204,17 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? 'Editar cadastro' : 'Novo devedor'}
+      title={editing ? 'Editar cadastro' : t('Novo devedor')}
       footer={
         <button type="button" className="lt-btn-lg" data-variant="primary" onClick={save} disabled={loading}>
-          <Icon name="check" size={16} /> {loading ? 'Salvando…' : editing ? 'Salvar alterações' : 'Salvar devedor'}
+          <Icon name="check" size={16} /> {loading ? 'Salvando…' : editing ? 'Salvar alterações' : t('Salvar devedor')}
         </button>
       }
     >
       <div className="lt-df">
         <div className="lt-df-av">
           <button type="button" className="lt-df-av-btn" aria-expanded={pickAvatar} aria-label="Trocar avatar" onClick={() => setPickAvatar((p) => !p)}>
-            <Avatar name={v.name.trim() || 'Novo devedor'} size={48} hue={v.avatarHue} emoji={v.avatarEmoji} />
+            <Avatar name={v.name.trim() || t('Novo devedor')} size={48} hue={v.avatarHue} emoji={v.avatarEmoji} />
           </button>
           <button type="button" className="lt-more-link" style={{ padding: 0 }} aria-expanded={pickAvatar} onClick={() => setPickAvatar((p) => !p)}>
             Trocar avatar
@@ -253,7 +256,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
             <div id="df-email">
               <Input label="E-mail" value={v.email} onChange={(x) => set('email', x)} placeholder="maria@email.com" type="email" maxLength={254} error={errors.email} />
             </div>
-            <div>
+            {side === 'in' && <div>
               <div className="lt-flabel" id="df-rel-l">Como costuma pagar</div>
               <div className="lt-df-chips" role="group" aria-labelledby="df-rel-l">
                 {RELIABILITY_OPTIONS.map((o) => (
@@ -269,7 +272,7 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
             <Input label="Anotação" value={v.notes} onChange={(x) => set('notes', x)} placeholder="Ex.: prefere ser lembrada de manhã" textarea rows={2} maxLength={500} />
 
             {addr === 'hidden' ? (

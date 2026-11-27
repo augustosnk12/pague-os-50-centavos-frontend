@@ -18,6 +18,8 @@ import { Amount } from '../../components/ui/Amount'
 import { IconButton } from '../../components/ui/IconButton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { SidePill } from '../../components/layout/SideSwitch'
+import { useSide } from '../../contexts/SideContext'
 import { ListGroup, SectionHeader } from '../../components/ui/ListGroup'
 import { LinkRow, RowText } from '../../components/ui/ListRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -41,6 +43,13 @@ export function DebtorsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const { detail } = usePreferences()
   const { showToast } = useToast()
+  // Item 75: "Credores" on the "Eu devo" side; no reliability tag there.
+  const { side, t } = useSide()
+  const debtorSide = side === 'in'
+  // The tag filter does not exist on "Eu devo": never leave it hidden but applied.
+  useEffect(() => {
+    if (!debtorSide) setReliabilityFilter(null)
+  }, [debtorSide])
 
   const { data: debtors = [], isLoading, isError, refetch, isFetching } = useDebtors(reliabilityFilter ?? undefined)
   // Archived: out of the list, in a group at the end; the search still finds them (improvement 41).
@@ -135,7 +144,7 @@ export function DebtorsPage() {
     createDebtor.mutate(data, {
       onSuccess: () => {
         setFormOpen(false)
-        showToast('Devedor adicionado')
+        showToast(t('Devedor adicionado'))
       },
       onError: (e: unknown) => {
         if (limits.handleLimitError(e)) {
@@ -143,7 +152,7 @@ export function DebtorsPage() {
           return
         }
         const msg = getApiError(e)
-        showToast(translateApiError(msg, 'Erro ao criar devedor.'), { icon: 'alert' })
+        showToast(translateApiError(msg, t('Erro ao criar devedor.')), { icon: 'alert' })
       },
     })
   }
@@ -151,7 +160,7 @@ export function DebtorsPage() {
   if (isLoading) {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} aria-busy="true">
-        <span className="lt-sr-only">Carregando devedores…</span>
+        <span className="lt-sr-only">{t('Carregando devedores…')}</span>
         <div className="lt-skel" style={{ height: 30, width: 160, borderRadius: 'var(--r-sm)' }} />
         <div className="lt-skel" style={{ height: 46, borderRadius: 'var(--r-md)', marginTop: 18 }} />
         <div className="lt-skel-row" style={{ marginTop: 12 }}>
@@ -176,7 +185,8 @@ export function DebtorsPage() {
   if (isError && debtors.length === 0) {
     return (
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }}>
-        <PageHeader title="Devedores" />
+        <SidePill />
+        <PageHeader title={t('Devedores')} />
         <ErrorState onRetry={() => void refetch()} retrying={isFetching} />
       </main>
     )
@@ -185,7 +195,7 @@ export function DebtorsPage() {
   // One row of the list (improvement 31, as in the mock): a real link to the profile,
   // prefetched on intent (improvement 43).
   const row = (dt: Debtor, archived = false) => {
-    const rel = getReliabilityOption(dt.reliability)
+    const rel = debtorSide ? getReliabilityOption(dt.reliability) : undefined
     const sub = dt.notes ?? dt.email ?? dt.phone ?? 'Sem observações'
     return (
       <LinkRow key={dt.id} to={`/debtors/${dt.id}`} onIntent={() => prefetch(dt.id)} label={`${dt.name}${rel ? `, ${rel.label}` : ''}${archived ? ', Arquivado' : ''}`}>
@@ -208,8 +218,9 @@ export function DebtorsPage() {
 
   return (
     <main style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 100px' }} className="lt-anim-fade">
+      <SidePill />
       <PageHeader
-        title="Devedores"
+        title={t('Devedores')}
         sub={`${debtors.length} ${debtors.length === 1 ? 'pessoa' : 'pessoas'}`}
         action={
           <Button size="md" icon="plus" onClick={openForm}>
@@ -226,18 +237,18 @@ export function DebtorsPage() {
           <input
             ref={searchRef}
             type="search"
-            aria-label="Buscar devedor ou dívida"
+            aria-label={t('Buscar devedor ou dívida')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar devedor ou dívida…"
+            placeholder={t('Buscar devedor ou dívida…')}
             style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--text)', fontSize: '0.9375rem', fontWeight: 500, width: '100%', fontFamily: 'inherit' }}
           />
           {q && <IconButton name="x" size={16} onClick={() => setQ('')} label="Limpar" style={{ width: 28, height: 28 }} />}
         </div>
       </div>
 
-      {/* Reliability filter chips */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', overflowY: 'hidden', paddingBottom: 2 }}>
+      {/* Reliability filter chips (only for debtors) */}
+      {debtorSide && <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', overflowY: 'hidden', paddingBottom: 2 }}>
         {[{ id: null, label: 'Todos', color: 'var(--primary)', icon: undefined }, ...RELIABILITY_OPTIONS].map((f) => {
           const active = reliabilityFilter === f.id
           return (
@@ -260,16 +271,16 @@ export function DebtorsPage() {
             </button>
           )
         })}
-      </div>
+      </div>}
 
       <div ref={listTop} />
       {/* List */}
       {nothing ? (
         <EmptyState
           icon="users"
-          title={q || reliabilityFilter ? 'Nada encontrado' : 'Nenhum devedor ainda'}
-          sub={q || reliabilityFilter ? 'Tente outro nome, dívida ou filtro.' : 'Adicione a primeira pessoa que te deve.'}
-          action={!q && !reliabilityFilter && <Button icon="plus" onClick={openForm}>Adicionar devedor</Button>}
+          title={q || reliabilityFilter ? 'Nada encontrado' : t('Nenhum devedor ainda')}
+          sub={q || reliabilityFilter ? 'Tente outro nome, dívida ou filtro.' : t('Adicione a primeira pessoa que te deve.')}
+          action={!q && !reliabilityFilter && <Button icon="plus" onClick={openForm}>{t('Adicionar devedor')}</Button>}
         />
       ) : (
         <>
@@ -285,8 +296,8 @@ export function DebtorsPage() {
             </>
           ) : (
             <>
-              {term && filtered.length > 0 && debtHits.length > 0 && <SectionHeader count={filtered.length}>Devedores</SectionHeader>}
-              {filtered.length > 0 && <ListGroup label="Devedores">{filtered.map((d) => row(d))}</ListGroup>}
+              {term && filtered.length > 0 && debtHits.length > 0 && <SectionHeader count={filtered.length}>{t('Devedores')}</SectionHeader>}
+              {filtered.length > 0 && <ListGroup label={t('Devedores')}>{filtered.map((d) => row(d))}</ListGroup>}
             </>
           )}
           {archivedHits.length > 0 && (
@@ -343,13 +354,13 @@ export function DebtorsPage() {
             onBlur={() => {
               if (!q.trim()) setFloatOpen(false)
             }}
-            placeholder="Buscar devedor ou dívida…"
-            aria-label="Buscar devedor ou dívida"
+            placeholder={t('Buscar devedor ou dívida…')}
+            aria-label={t('Buscar devedor ou dívida')}
           />
           {q && <IconButton name="x" size={16} label="Limpar" onClick={() => { setQ(''); floatRef.current?.focus() }} />}
         </div>
       ) : (
-        <button type="button" className="lt-float lt-float-search" onClick={() => setFloatOpen(true)} aria-label="Buscar devedor ou dívida">
+        <button type="button" className="lt-float lt-float-search" onClick={() => setFloatOpen(true)} aria-label={t('Buscar devedor ou dívida')}>
           <Icon name="search" size={20} />
         </button>
       ))}
