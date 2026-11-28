@@ -11,6 +11,8 @@ import { RELIABILITY_OPTIONS } from '../../constants/reliability'
 import { AvatarPicker } from './AvatarPicker'
 import type { Debtor, DebtorReliability } from '../../types/debtor'
 import type { AddressPayload } from '../../api/debtors.api'
+import type { PixKeyType } from '../../api/settings.api'
+import { checkPixKey, maskPixKey, PIX_CHECK_TEXT, PIX_TYPES } from '../../lib/pixKey'
 
 export interface DebtorFormPayload {
   id?: string
@@ -22,6 +24,9 @@ export interface DebtorFormPayload {
   avatarHue: number | null
   avatarEmoji: string | null
   address: AddressPayload | null
+  /** Only on the "Eu devo" side (a creditor's key, for "Pagar com Pix"); null clears it. */
+  pixKey?: string | null
+  pixKeyType?: PixKeyType | null
 }
 
 interface DebtorFormProps {
@@ -56,8 +61,10 @@ interface Values {
   neighborhood: string
   city: string
   state: string
+  pixType: PixKeyType
+  pixKey: string
 }
-type Errors = Partial<Record<'name' | 'phone' | 'email', string>>
+type Errors = Partial<Record<'name' | 'phone' | 'email' | 'pix', string>>
 /** hidden: only "Adicionar endereço"; cep: the CEP first; full: every field. */
 type AddressStep = 'hidden' | 'cep' | 'full'
 type CepStatus = 'idle' | 'loading' | 'found' | 'notfound'
@@ -81,7 +88,16 @@ function fromDebtor(d: Debtor | null | undefined, initialName: string): Values {
     neighborhood: a?.neighborhood ?? '',
     city: a?.city ?? '',
     state: a?.state ?? '',
+    pixType: d?.pixKeyType ?? 'CPF',
+    pixKey: d?.pixKey ? maskPixKey(d.pixKeyType ?? 'CPF', d.pixKey) : '',
   }
+}
+
+/** Empty is fine (the key is optional); anything typed must be a whole, valid key. */
+function pixProblem(type: PixKeyType, value: string): string | undefined {
+  const check = checkPixKey(type, value)
+  if (check === 'empty' || check === 'valid') return undefined
+  return check === 'invalid' ? PIX_CHECK_TEXT.invalid : 'Chave incompleta · complete ou apague'
 }
 
 const focusIn = (id: string) => {
@@ -167,9 +183,10 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
       name: name ? undefined : 'Informe o nome',
       phone: phoneProblem(v.phone) ?? undefined,
       email: email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? 'E-mail inválido' : undefined,
+      pix: side === 'out' ? pixProblem(v.pixType, v.pixKey) : undefined,
     }
     setErrors(next)
-    const first = (['name', 'phone', 'email'] as const).find((k) => next[k])
+    const first = (['name', 'phone', 'pix', 'email'] as const).find((k) => next[k])
     if (first) {
       if (first === 'email') setMore(true)
       focusIn(`df-${first}`)
@@ -197,6 +214,8 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
       avatarHue: v.avatarHue,
       avatarEmoji: v.avatarEmoji,
       address,
+      // Sent only for creditors: the API refuses a key on a debtor.
+      ...(side === 'out' ? { pixKey: v.pixKey.trim() || null, pixKeyType: v.pixKey.trim() ? v.pixType : null } : {}),
     })
   }
 
@@ -241,10 +260,15 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
             inputMode="tel"
             autoComplete="off"
             maxLength={20}
-            hint={errors.phone ? undefined : 'Para cobrar no WhatsApp'}
+            hint={errors.phone || side === 'out' ? undefined : 'Para cobrar no WhatsApp'}
             error={errors.phone}
           />
         </div>
+
+        {side === 'out' && <CreditorPixField type={v.pixType} value={v.pixKey} error={errors.pix} onChange={(pixType, pixKey) => {
+          setV((cur) => ({ ...cur, pixType, pixKey }))
+          if (errors.pix) setErrors((e) => ({ ...e, pix: undefined }))
+        }} />}
 
         <button type="button" className="lt-more-link lt-df-more" aria-expanded={more} onClick={() => setMore((m) => !m)}>
           {more ? 'Menos dados' : 'Mais dados'}
@@ -344,5 +368,46 @@ export function DebtorForm({ open, onClose, onSave, editing, loading, initialNam
         )}
       </div>
     </Modal>
+  )
+}
+
+/** A creditor's Pix key (item 75): the type picks the mask and keyboard, as in Configurações; the check shows live. */
+function CreditorPixField({ type, value, error, onChange }: { type: PixKeyType; value: string; error?: string; onChange: (type: PixKeyType, value: string) => void }) {
+  const pt = PIX_TYPES.find((x) => x.id === type)!
+  const check = checkPixKey(type, value)
+  return (
+    <div className="lt-df-pix">
+      <div className="lt-flabel" id="df-pix-l">Chave Pix <span className="lt-df-opt">opcional</span></div>
+      <div className="lt-df-chips" role="group" aria-label="Tipo de chave Pix">
+        {PIX_TYPES.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            className="lt-chip"
+            aria-pressed={type === x.id}
+            onClick={() => {
+              if (x.id === type) return
+              onChange(x.id, '')
+              focusIn('df-pix')
+            }}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+      <div id="df-pix">
+        <Input
+          label={`Chave ${pt.label}`}
+          value={value}
+          onChange={(x) => onChange(type, maskPixKey(type, x))}
+          placeholder={pt.placeholder}
+          inputMode={pt.inputMode}
+          maxLength={pt.max}
+          autoComplete="off"
+          hint={error ? undefined : check === 'empty' ? 'Para pagar com Pix pelo app' : PIX_CHECK_TEXT[check]}
+          error={error}
+        />
+      </div>
+    </div>
   )
 }

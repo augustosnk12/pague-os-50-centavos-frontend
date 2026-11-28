@@ -23,6 +23,8 @@ import { RemindSheet } from '../../components/shared/RemindSheet'
 import { ReceiptSheet } from '../../components/shared/ReceiptSheet'
 import { StatementSheet } from '../../components/shared/StatementSheet'
 import { BatchSheet } from '../../components/shared/BatchSheet'
+import { PayPixSheet } from '../../components/shared/PayPixSheet'
+import type { PixOption } from '../../lib/payPix'
 import { useDebtor } from '../../hooks/debtors/useDebtor'
 import { useUpdateDebtor } from '../../hooks/debtors/useUpdateDebtor'
 import { useDeleteDebtor } from '../../hooks/debtors/useDeleteDebtor'
@@ -106,6 +108,9 @@ function DebtorProfile({ id }: { id: string }) {
   const [remindId, setRemindId] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<ReceiptRequest | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
+  // "Pagar com Pix" (creditors) and the installments its "Já paguei" registers.
+  const [pixOpen, setPixOpen] = useState(false)
+  const [batchSelect, setBatchSelect] = useState<string[] | null>(null)
   const [endFor, setEndFor] = useState<DebtWithInstallments | null>(null)
   const [paysOpen, setPaysOpen] = useState(false)
   const [statementOpen, setStatementOpen] = useState(false)
@@ -198,6 +203,20 @@ function DebtorProfile({ id }: { id: string }) {
       else n.add(debtId)
       return n
     })
+
+  /** "Já paguei · registrar": one installment = its payment sheet; more = "várias de uma vez" with exactly those. */
+  const paidByPix = (o: PixOption) => {
+    setPixOpen(false)
+    if (o.ids.length === 1) {
+      for (const d of debts) {
+        const i = d.installments.find((x) => x.id === o.ids[0])
+        if (i) return openPayment(enrich(i, d, debtor))
+      }
+      return
+    }
+    setBatchSelect(o.ids)
+    setBatchOpen(true)
+  }
 
   const handleUpdate = (data: DebtorFormPayload) =>
     updateDebtor.mutate(data, {
@@ -394,6 +413,19 @@ function DebtorProfile({ id }: { id: string }) {
           }}
         >
           <Icon name="whatsapp" size={16} /> Cobrar
+        </button>}
+        {!debtorSide && <button
+          type="button"
+          className="lt-btn-lg"
+          data-variant="primary"
+          aria-disabled={numbers.owed <= 0 || undefined}
+          title={numbers.owed <= 0 ? `Você não deve nada para ${first} agora.` : undefined}
+          onClick={() => {
+            if (numbers.owed > 0) return setPixOpen(true)
+            showToast(`Você não deve nada para ${first} agora.`, { icon: 'alert' })
+          }}
+        >
+          <Icon name="zap" size={16} /> Pagar com Pix
         </button>}
         <button
           type="button"
@@ -598,7 +630,27 @@ function DebtorProfile({ id }: { id: string }) {
       </Modal>
 
       <PaymentSheet target={payTarget} onClose={() => setPayTarget(null)} />
-      <BatchSheet debtorId={batchOpen ? debtor.id : null} onClose={() => setBatchOpen(false)} />
+      <BatchSheet
+        debtorId={batchOpen ? debtor.id : null}
+        select={batchSelect}
+        onClose={() => {
+          setBatchOpen(false)
+          setBatchSelect(null)
+        }}
+      />
+      {!debtorSide && (
+        <PayPixSheet
+          open={pixOpen}
+          creditor={debtor}
+          debts={debts}
+          onClose={() => setPixOpen(false)}
+          onAddKey={() => {
+            setPixOpen(false)
+            setEditOpen(true)
+          }}
+          onPaid={paidByPix}
+        />
+      )}
       <RemindSheet debtorId={remindId} onClose={() => setRemindId(null)} />
       <ReceiptSheet request={receipt} onClose={() => setReceipt(null)} />
       <StatementSheet debtorId={statementOpen ? debtor.id : null} onClose={() => setStatementOpen(false)} />

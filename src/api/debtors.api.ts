@@ -1,5 +1,6 @@
 import { api } from '../lib/axios'
 import type { Debtor, DebtorReliability } from '../types/debtor'
+import type { PixKeyType } from './settings.api'
 
 export interface AddressPayload {
   zip?: string | null
@@ -20,6 +21,9 @@ export interface CreateDebtorPayload {
   avatarHue?: number | null
   avatarEmoji?: string | null
   address?: AddressPayload | null
+  /** Creditors only (item 75); null clears it. */
+  pixKey?: string | null
+  pixKeyType?: PixKeyType | null
 }
 
 export interface UpdateDebtorPayload {
@@ -31,6 +35,9 @@ export interface UpdateDebtorPayload {
   avatarHue?: number | null
   avatarEmoji?: string | null
   address?: AddressPayload | null
+  /** Creditors only (item 75); null clears it. */
+  pixKey?: string | null
+  pixKeyType?: PixKeyType | null
 }
 
 export const debtorsApi = {

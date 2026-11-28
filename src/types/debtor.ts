@@ -1,3 +1,5 @@
+import type { PixKeyType } from '../api/settings.api'
+
 export interface Address {
   id: string
   zip: string | null
@@ -25,5 +27,10 @@ export interface Debtor {
   createdAt: string
   /** UI v2 (API B10): set when archived. */
   archivedAt?: string | null
+  /** UI v3 (API V4, item 75): which side; absent on older APIs (= DEBTOR). */
+  kind?: 'DEBTOR' | 'CREDITOR'
+  /** Creditors only ("Pagar com Pix"), normalized like the lender's key. */
+  pixKey?: string | null
+  pixKeyType?: PixKeyType | null
   address: Address | null
 }

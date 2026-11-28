@@ -29,6 +29,8 @@ interface BatchSheetProps {
   debtorId: string | null
   /** Installment that must start selected (opened from its payment sheet). */
   preselect?: string | null
+  /** Exactly these selected instead of "this month" ("Pagar com Pix · Já paguei"). */
+  select?: string[] | null
   onClose: () => void
 }
 
@@ -39,7 +41,7 @@ interface BatchSheetProps {
  * can be edited (less = oldest first, the last one reached stays partial).
  * One batch (API B7): "Desfazer" undoes it all, and one receipt lists them.
  */
-export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
+export function BatchSheet({ debtorId, preselect, select, onClose }: BatchSheetProps) {
   const { t } = useSide()
   const today = localToday()
   const { showToast } = useToast()
@@ -68,13 +70,14 @@ export function BatchSheet({ debtorId, preselect, onClose }: BatchSheetProps) {
   const candidates = debts ? batchCandidates(debts, today) : []
   // Fresh state each time it opens: this month (and the installment it came from) selected.
   if (debtorId && debts && !ready) {
-    const ids = new Set(candidates.filter((c) => dueThisMonth(c, today)).map((c) => c.inst.id))
+    const chosen = select?.length ? candidates.filter((c) => select.includes(c.inst.id)) : null
+    const ids = new Set((chosen ?? candidates.filter((c) => dueThisMonth(c, today))).map((c) => c.inst.id))
     const from = candidates.find((c) => c.inst.id === preselect)
     if (from) ids.add(from.inst.id)
     setSelected(ids)
     setCents('')
     setEdited(false)
-    setShowLater(!!from && !dueThisMonth(from, today))
+    setShowLater((!!from && !dueThisMonth(from, today)) || !!chosen?.some((c) => !dueThisMonth(c, today)))
     setDate(today)
     setReady(true)
   }

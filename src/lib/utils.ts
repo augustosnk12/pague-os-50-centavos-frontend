@@ -147,6 +147,14 @@ const API_ERROR_MAP: Record<string, string> = {
   'Choose either an end date or a number of months': 'Escolha uma data final ou um número de meses.',
   'Debtor with this name already exists': 'Já existe um devedor com este nome.',
   // Item 75: until the R10 contract migration the API keeps one name per account across both sides.
+  // Creditor's Pix key (item 75).
+  'Only creditors have a Pix key': 'Só quem você deve (Eu devo) tem chave Pix no cadastro.',
+  'Pix key type is required': 'Escolha o tipo da chave Pix.',
+  'Invalid CPF Pix key': 'CPF da chave Pix inválido.',
+  'Invalid CNPJ Pix key': 'CNPJ da chave Pix inválido.',
+  'Invalid phone Pix key': 'Celular da chave Pix inválido.',
+  'Invalid e-mail Pix key': 'E-mail da chave Pix inválido.',
+  'Invalid random Pix key': 'Chave Pix aleatória inválida.',
   'Name already used on the other side': 'Esse nome já está no outro lado (Me devem / Eu devo). Por enquanto, use um nome um pouco diferente, como “Rafael (geladeira)”.',
   'Debtor with this email already exists': 'Já existe um devedor com este e-mail.',
   'Name already in use by another debtor': 'Este nome já está em uso por outro devedor.',
